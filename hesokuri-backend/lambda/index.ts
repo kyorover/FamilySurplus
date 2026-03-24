@@ -16,7 +16,8 @@ const corsHeaders = {
 };
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { httpMethod, path, pathParameters, queryStringParameters, body } = event;
+  // pathParameters への依存を削除し、直接 path を使用します
+  const { httpMethod, path, queryStringParameters, body } = event;
   
   if (httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' };
@@ -25,8 +26,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     // --- 1. マスタ設定の取得 ---
     if (httpMethod === 'GET' && path.startsWith('/settings/')) {
-      const householdId = pathParameters?.householdId;
-      if (!householdId) return buildResponse(400, { message: 'householdId is required' });
+      // URL（/settings/ID）から直接IDを抽出
+      const householdId = path.split('/')[2];
+      if (!householdId) return buildResponse(400, { message: 'householdId is required in path' });
 
       const result = await docClient.send(new GetCommand({
         TableName: SETTINGS_TABLE,
@@ -37,7 +39,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // --- 2. マスタ設定の更新 ---
     if (httpMethod === 'PUT' && path.startsWith('/settings/')) {
-      const householdId = pathParameters?.householdId;
+      const householdId = path.split('/')[2];
       if (!householdId || !body) return buildResponse(400, { message: 'Invalid request' });
 
       const settingsData = JSON.parse(body);
@@ -80,7 +82,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // --- 4. 支出一覧取得 ---
     if (httpMethod === 'GET' && path.startsWith('/expenses/')) {
-      const householdId = pathParameters?.householdId;
+      const householdId = path.split('/')[2];
       const monthPrefix = queryStringParameters?.month;
 
       if (!householdId || !monthPrefix) {

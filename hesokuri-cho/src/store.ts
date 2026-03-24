@@ -1,25 +1,23 @@
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord } from './types'; // 前のステップで作成した中央スキーマ
+import { HouseholdSettings, ExpenseRecord } from './types';
 
 // ==========================================
 // 1. 環境設定
 // ==========================================
-// AWS CDKで構築したAPI GatewayのエンドポイントURLに置き換えます
-const API_BASE_URL = 'https://your-api-id.execute-api.ap-northeast-1.amazonaws.com/prod';
-// プロトタイプ開発用の固定世帯ID（本番では認証機能から取得）
+// デプロイされた本物のAPIエンドポイントをセット
+const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
+// プロトタイプ開発用の固定世帯ID
 const HOUSEHOLD_ID = 'default-household-001';
 
 // ==========================================
 // 2. ストアの型定義
 // ==========================================
 interface HesokuriState {
-  // --- 状態 (State) ---
   settings: HouseholdSettings | null;
   expenses: ExpenseRecord[];
   isLoading: boolean;
   error: string | null;
 
-  // --- アクション (Actions) ---
   fetchSettings: () => Promise<void>;
   updateSettings: (newSettings: HouseholdSettings) => Promise<void>;
   fetchExpenses: (month: string) => Promise<void>;
@@ -27,10 +25,9 @@ interface HesokuriState {
 }
 
 // ==========================================
-// 3. Zustand ストアの作成
+// 3. Zustand ストアの作成（本番通信版）
 // ==========================================
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
-  // 初期状態
   settings: null,
   expenses: [],
   isLoading: false,
@@ -47,7 +44,15 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
         throw new Error(`設定データの取得に失敗しました (Status: ${response.status})`);
       }
       const data = await response.json();
-      set({ settings: data, isLoading: false });
+      
+      // DynamoDBにデータがない（初回アクセス）場合はnullになるため、
+      // UI側で初期データを入れるか、ここでデフォルト値をセットする運用になります。
+      // 今回はAPIからの戻り値が message: 'Settings not found' の場合はnullとして扱います。
+      if (data.message === 'Settings not found') {
+        set({ settings: null, isLoading: false });
+      } else {
+        set({ settings: data, isLoading: false });
+      }
     } catch (error: any) {
       console.error('fetchSettings error:', error);
       set({ error: error.message, isLoading: false });
@@ -69,6 +74,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
         throw new Error(`設定データの保存に失敗しました (Status: ${response.status})`);
       }
       const data = await response.json();
+      
       // バックエンドから返却された最新データでローカルのStateを上書き
       set({ settings: data.data, isLoading: false });
     } catch (error: any) {
@@ -81,7 +87,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   // C. 特定月の支出一覧取得
   // --------------------------------------------------
   fetchExpenses: async (month) => {
-    // monthの形式は 'YYYY-MM' (例: '2026-03')
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?month=${month}`);
@@ -112,8 +117,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       }
       const data = await response.json();
 
-      // 成功後、現在のState（expenses配列）に新しいレコードを追加
-      // これにより、画面上の「今月のへそくり」が即座に再計算・UI反映される
       set((state) => ({
         expenses: [...state.expenses, data.data],
         isLoading: false

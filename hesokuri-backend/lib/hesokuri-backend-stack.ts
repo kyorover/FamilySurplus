@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'; // ★追加: 自動変換用のモジュール
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'path';
 
@@ -26,12 +27,12 @@ export class HesokuriBackendStack extends cdk.Stack {
     });
 
     // ==========================================
-    // 2. Lambda 関数の作成
+    // 2. Lambda 関数の作成 (自動変換対応版)
     // ==========================================
-    const apiHandler = new lambda.Function(this, 'HesokuriApiHandler', {
+    const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      entry: path.join(__dirname, '../lambda/index.ts'), // ★変更: .tsファイルを直接指定
+      handler: 'handler',
       environment: {
         SETTINGS_TABLE_NAME: settingsTable.tableName,
         EXPENSES_TABLE_NAME: expensesTable.tableName,
@@ -56,7 +57,6 @@ export class HesokuriBackendStack extends cdk.Stack {
       },
     });
 
-    // フロントエンドに設定するためのURLを出力
     new cdk.CfnOutput(this, 'ApiEndpointUrl', {
       value: api.url,
       description: 'The endpoint URL for the Hesokuri API',
