@@ -30,7 +30,7 @@ export class HesokuriBackendStack extends cdk.Stack {
     // 2. Lambda 関数の作成 (自動変換対応版)
     // ==========================================
     const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       entry: path.join(__dirname, '../lambda/index.ts'), // ★変更: .tsファイルを直接指定
       handler: 'handler',
       environment: {
