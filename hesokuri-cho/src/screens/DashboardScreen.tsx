@@ -1,22 +1,26 @@
 // src/screens/DashboardScreen.tsx
-import React from 'react';
-import { StyleSheet, ScrollView, View, Text } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { HesokuriSummaryCard } from '../components/dashboard/HesokuriSummaryCard';
 import { BudgetProgressBar } from '../components/dashboard/BudgetProgressBar';
+import { CategoryDetailModal } from '../components/dashboard/CategoryDetailModal';
 
-export const DashboardScreen: React.FC = () => {
-  const { settings, expenses } = useHesokuriStore();
+interface DashboardScreenProps {
+  onNavigateToHistory: () => void;
+}
+
+export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHistory }) => {
+  const { settings, expenses, updateExpense, deleteExpense } = useHesokuriStore();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   if (!settings) return null;
 
-  // 子供の有無によるカテゴリフィルタリング
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
   const activeCategories = settings.categories.filter(cat => 
     cat.isFixed && cat.name === '養育費' ? hasChild : true
   );
 
-  // 集計ロジック
   const totalMonthlyBudget = activeCategories.reduce((sum, cat) => sum + cat.budget, 0);
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
@@ -26,35 +30,57 @@ export const DashboardScreen: React.FC = () => {
     return acc;
   }, {} as Record<string, number>);
 
+  // モーダル用のデータ準備
+  const selectedCategory = settings.categories.find(c => c.id === selectedCategoryId) || null;
+  const selectedExpenses = expenses.filter(e => e.categoryId === selectedCategoryId)
+                                   .sort((a, b) => b.date.localeCompare(a.date));
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <HesokuriSummaryCard 
-        currentHesokuri={currentHesokuri}
-        totalMonthlyBudget={totalMonthlyBudget}
-        totalSpent={totalSpent}
-      />
-      
-      <Text style={styles.sectionTitle}>カテゴリ別状況</Text>
-      {activeCategories.map(cat => (
-        <BudgetProgressBar 
-          key={cat.id}
-          categoryName={cat.name}
-          budget={cat.budget}
-          spent={spentByCategory[cat.id] || 0}
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <HesokuriSummaryCard 
+          currentHesokuri={currentHesokuri}
+          totalMonthlyBudget={totalMonthlyBudget}
+          totalSpent={totalSpent}
         />
-      ))}
-      <View style={{ height: 100 }} />
-    </ScrollView>
+        
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>カテゴリ別状況</Text>
+          <TouchableOpacity onPress={onNavigateToHistory} style={styles.historyBtn}>
+            <Text style={styles.historyBtnText}>履歴を見る ＞</Text>
+          </TouchableOpacity>
+        </View>
+
+        {activeCategories.map(cat => (
+          <BudgetProgressBar 
+            key={cat.id}
+            categoryId={cat.id}
+            categoryName={cat.name}
+            budget={cat.budget}
+            spent={spentByCategory[cat.id] || 0}
+            onPress={setSelectedCategoryId}
+          />
+        ))}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* 明細確認・修正ポップアップ */}
+      <CategoryDetailModal 
+        visible={!!selectedCategoryId}
+        category={selectedCategory}
+        expenses={selectedExpenses}
+        onClose={() => setSelectedCategoryId(null)}
+        onUpdate={updateExpense}
+        onDelete={deleteExpense}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  sectionTitle: { 
-    fontSize: 14, 
-    fontWeight: 'bold', 
-    color: '#8E8E93', 
-    marginLeft: 8, 
-    marginBottom: 8 
-  },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8, marginHorizontal: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93' },
+  historyBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+  historyBtnText: { fontSize: 13, fontWeight: 'bold', color: '#007AFF' },
 });

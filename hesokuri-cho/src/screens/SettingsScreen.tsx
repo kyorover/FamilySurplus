@@ -10,14 +10,11 @@ import { HouseholdSettings, Category } from '../types';
 
 export const SettingsScreen: React.FC = () => {
   const { settings, updateSettings } = useHesokuriStore();
-  
-  // AWSへ保存する前の「編集中の状態」を画面内で保持する
   const [localSettings, setLocalSettings] = useState<HouseholdSettings | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   useEffect(() => {
     if (settings) {
-      // ディープコピーしてローカルステートにセット（参照渡しを防ぐ）
       setLocalSettings(JSON.parse(JSON.stringify(settings)));
     }
   }, [settings]);
@@ -33,7 +30,6 @@ export const SettingsScreen: React.FC = () => {
   const averageGuideline = calculateAverageGuideline(localSettings.familyMembers);
   const evaluation = evaluateBudget(totalMonthlyBudget, averageGuideline);
 
-  // モーダルで「決定」が押された時の処理
   const handleSaveBudget = (categoryId: string, newBudget: number) => {
     setLocalSettings(prev => {
       if (!prev) return prev;
@@ -44,13 +40,12 @@ export const SettingsScreen: React.FC = () => {
         )
       };
     });
-    setEditingCategory(null); // モーダルを閉じる
+    setEditingCategory(null);
   };
 
-  // 画面下部の「設定を保存する」が押された時の処理（ここでAWSへPUT）
   const handleSaveAllToAWS = () => {
     updateSettings(localSettings);
-    Alert.alert('完了', '最新の予算設定をAWSに保存しました！');
+    Alert.alert('完了', '設定を保存しました！');
   };
 
   return (
@@ -69,13 +64,12 @@ export const SettingsScreen: React.FC = () => {
         />
 
         <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAllToAWS}>
-          <Text style={styles.primaryButtonText}>設定をAWSに保存する</Text>
+          <Text style={styles.primaryButtonText}>設定を保存する</Text>
         </TouchableOpacity>
         
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* 予算編集モーダル */}
       <BudgetEditModal 
         visible={!!editingCategory}
         category={editingCategory}
