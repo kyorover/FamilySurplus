@@ -1,6 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord } from './types';
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget } from './types';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001';
@@ -8,12 +8,18 @@ const HOUSEHOLD_ID = 'default-household-001';
 interface HesokuriState {
   settings: HouseholdSettings | null;
   expenses: ExpenseRecord[];
+  monthlyBudget: MonthlyBudget | null; // --- 新規追加：今月の予算データ ---
   isLoading: boolean;
   error: string | null;
 
   fetchSettings: () => Promise<void>;
   updateSettings: (newSettings: HouseholdSettings) => Promise<void>;
   fetchExpenses: (month: string) => Promise<void>;
+  
+  // --- 新規追加：月次予算の操作 ---
+  fetchMonthlyBudget: (month: string) => Promise<void>;
+  updateMonthlyBudget: (budgets: Record<string, number>, month: string) => Promise<void>;
+
   addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>;
   updateExpense: (expense: ExpenseRecord) => Promise<void>;
   deleteExpense: (date_id: string) => Promise<void>;
@@ -22,6 +28,7 @@ interface HesokuriState {
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null,
   expenses: [],
+  monthlyBudget: null,
   isLoading: false,
   error: null,
 
@@ -57,6 +64,58 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     }
   },
 
+  // --- 新規追加：月次予算の取得と自動初期化 ---
+  fetchMonthlyBudget: async (month) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`);
+      if (!response.ok) throw new Error(`予算データの取得に失敗しました`);
+      const data = await response.json();
+      
+      let currentBudgets = data.budgets || {};
+      const currentSettings = get().settings;
+      
+      // その月の予算が空（未作成）の場合、マスタの初期値をコピーして自動作成する
+      if (Object.keys(currentBudgets).length === 0 && currentSettings) {
+        currentSettings.categories.forEach(cat => {
+          currentBudgets[cat.id] = cat.budget;
+        });
+        await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ month_id: month, budgets: currentBudgets }),
+        });
+      }
+      
+      set({ 
+        monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, updatedAt: new Date().toISOString() }, 
+        isLoading: false 
+      });
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+    }
+  },
+
+  // --- 新規追加：月次予算の更新 ---
+  updateMonthlyBudget: async (budgets, month) => {
+    set({ isLoading: true, error: null });
+    try {
+      const budgetData = { month_id: month, budgets };
+      const response = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(budgetData),
+      });
+      if (!response.ok) throw new Error(`予算の更新に失敗しました`);
+      set({ 
+        monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets, updatedAt: new Date().toISOString() }, 
+        isLoading: false 
+      });
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+    }
+  },
+
   fetchExpenses: async (month) => {
     set({ isLoading: true, error: null });
     try {
@@ -85,7 +144,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     }
   },
 
-  // --- 追加：支出の更新 ---
   updateExpense: async (expenseData) => {
     set({ isLoading: true, error: null });
     try {
@@ -105,7 +163,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     }
   },
 
-  // --- 追加：支出の削除 ---
   deleteExpense: async (date_id) => {
     set({ isLoading: true, error: null });
     try {

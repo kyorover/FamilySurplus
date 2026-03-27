@@ -9,19 +9,17 @@ import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HouseholdSettings } from './src/types';
 
 export default function App() {
-  const { settings, isLoading, error, fetchSettings, updateSettings, fetchExpenses } = useHesokuriStore();
-  
-  // 'history' という新しい画面のステータスを追加
+  const { settings, monthlyBudget, isLoading, error, fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget } = useHesokuriStore();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'input' | 'settings' | 'history'>('dashboard');
 
   useEffect(() => {
     fetchSettings();
     const currentMonth = new Date().toISOString().slice(0, 7);
     fetchExpenses(currentMonth);
+    fetchMonthlyBudget(currentMonth); // アプリ起動時に月次予算を取得
   }, []);
 
-  // （中略：エラー画面や初期化画面は変更なしのため維持）
-  if (isLoading && !settings) return (
+  if (isLoading && (!settings || !monthlyBudget)) return (
     <View style={styles.centerContainer}>
       <ActivityIndicator size="large" color="#007AFF" />
       <Text style={{ marginTop: 16 }}>データを読み込んでいます...</Text>
@@ -32,7 +30,7 @@ export default function App() {
     <View style={styles.centerContainer}>
       <Text style={{ color: '#FF3B30', marginBottom: 16, fontWeight: 'bold' }}>通信エラー</Text>
       <Text style={{ marginHorizontal: 32, textAlign: 'center', marginBottom: 24 }}>{error}</Text>
-      <TouchableOpacity style={styles.primaryButton} onPress={fetchSettings}>
+      <TouchableOpacity style={styles.primaryButton} onPress={() => { fetchSettings(); fetchMonthlyBudget(new Date().toISOString().slice(0, 7)); }}>
         <Text style={styles.primaryButtonText}>再試行</Text>
       </TouchableOpacity>
     </View>
@@ -44,7 +42,7 @@ export default function App() {
       <Text style={styles.welcomeText}>最初の設定データを作成してアプリを開始します。</Text>
       <TouchableOpacity 
         style={styles.primaryButton}
-        onPress={() => {
+        onPress={async () => {
           const defaultSettings: HouseholdSettings = {
             householdId: 'default-household-001',
             familyMembers: [{ id: 'm1', name: '自分', role: '大人', hasPocketMoney: false, pocketMoneyAmount: 0 }],
@@ -59,7 +57,8 @@ export default function App() {
             notificationsEnabled: true,
             updatedAt: new Date(),
           };
-          updateSettings(defaultSettings);
+          await updateSettings(defaultSettings);
+          await fetchMonthlyBudget(new Date().toISOString().slice(0, 7)); // マスタ保存後に予算を自動初期化
         }}
       >
         <Text style={styles.primaryButtonText}>初期データを生成して開始</Text>
@@ -69,7 +68,6 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* History画面のときは共通ヘッダーを隠す（独自の戻るボタン付きヘッダーを表示するため） */}
       {activeTab !== 'history' && (
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
@@ -84,13 +82,12 @@ export default function App() {
         {activeTab === 'settings' && <SettingsScreen />}
         {activeTab === 'history' && <HistoryScreen onBack={() => {
           setActiveTab('dashboard');
-          // ダッシュボードに戻る際、念のため現在の月のデータを取り直す
-          const currentMonth = new Date().toISOString().slice(0, 7);
-          fetchExpenses(currentMonth);
+          const month = new Date().toISOString().slice(0, 7);
+          fetchExpenses(month);
+          fetchMonthlyBudget(month);
         }} />}
       </View>
 
-      {/* History画面のときはボトムナビゲーションを隠す（没入感を高め、誤操作を防ぐため） */}
       {activeTab !== 'history' && (
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('dashboard')}>

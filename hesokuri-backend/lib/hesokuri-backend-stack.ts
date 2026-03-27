@@ -1,8 +1,9 @@
+// hesokuri-backend/lib/hesokuri-backend-stack.ts
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'; // ★追加: 自動変換用のモジュール
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'path';
 
@@ -10,9 +11,6 @@ export class HesokuriBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // ==========================================
-    // 1. DynamoDB テーブルの作成
-    // ==========================================
     const settingsTable = new dynamodb.Table(this, 'HouseholdSettingsTable', {
       partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -26,27 +24,30 @@ export class HesokuriBackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    // ==========================================
-    // 2. Lambda 関数の作成 (自動変換対応版)
-    // ==========================================
+    // === 新規追加：月次予算テーブル ===
+    const monthlyBudgetsTable = new dynamodb.Table(this, 'MonthlyBudgetsTable', {
+      partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'month_id', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
-      runtime: lambda.Runtime.NODEJS_22_X,
-      entry: path.join(__dirname, '../lambda/index.ts'), // ★変更: .tsファイルを直接指定
+      runtime: lambda.Runtime.NODEJS_22_X, // Node.js 22 LTSへ更新
+      entry: path.join(__dirname, '../lambda/index.ts'),
       handler: 'handler',
       environment: {
         SETTINGS_TABLE_NAME: settingsTable.tableName,
         EXPENSES_TABLE_NAME: expensesTable.tableName,
+        MONTHLY_BUDGETS_TABLE_NAME: monthlyBudgetsTable.tableName, // 新テーブルを環境変数へ追加
       },
       timeout: cdk.Duration.seconds(10),
     });
 
-    // Lambda関数にDynamoDBへの読み書き権限を付与
     settingsTable.grantReadWriteData(apiHandler);
     expensesTable.grantReadWriteData(apiHandler);
+    monthlyBudgetsTable.grantReadWriteData(apiHandler); // 新テーブルへのアクセス権限を付与
 
-    // ==========================================
-    // 3. API Gateway の作成
-    // ==========================================
     const api = new apigateway.LambdaRestApi(this, 'HesokuriApi', {
       handler: apiHandler,
       proxy: true,
