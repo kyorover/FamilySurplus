@@ -1,70 +1,94 @@
 // src/screens/SettingsScreen.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { BudgetEvaluationCard } from '../components/settings/BudgetEvaluationCard';
 import { CategoryBudgetList } from '../components/settings/CategoryBudgetList';
+import { BudgetEditModal } from '../components/settings/BudgetEditModal';
 import { calculateAverageGuideline, evaluateBudget } from '../functions/budgetUtils';
+import { HouseholdSettings, Category } from '../types';
 
 export const SettingsScreen: React.FC = () => {
   const { settings, updateSettings } = useHesokuriStore();
+  
+  // AWSへ保存する前の「編集中の状態」を画面内で保持する
+  const [localSettings, setLocalSettings] = useState<HouseholdSettings | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  if (!settings) return null;
+  useEffect(() => {
+    if (settings) {
+      // ディープコピーしてローカルステートにセット（参照渡しを防ぐ）
+      setLocalSettings(JSON.parse(JSON.stringify(settings)));
+    }
+  }, [settings]);
 
-  const hasChild = settings.familyMembers.some(m => m.role === '子供');
-  const activeCategories = settings.categories.filter(cat => 
+  if (!localSettings) return null;
+
+  const hasChild = localSettings.familyMembers.some(m => m.role === '子供');
+  const activeCategories = localSettings.categories.filter(cat => 
     cat.isFixed && cat.name === '養育費' ? hasChild : true
   );
 
   const totalMonthlyBudget = activeCategories.reduce((sum, cat) => sum + cat.budget, 0);
-  const averageGuideline = calculateAverageGuideline(settings.familyMembers);
+  const averageGuideline = calculateAverageGuideline(localSettings.familyMembers);
   const evaluation = evaluateBudget(totalMonthlyBudget, averageGuideline);
 
-  const handleSaveAll = () => {
-    updateSettings(settings);
-    Alert.alert('完了', '設定をAWSに保存しました！');
+  // モーダルで「決定」が押された時の処理
+  const handleSaveBudget = (categoryId: string, newBudget: number) => {
+    setLocalSettings(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        categories: prev.categories.map(cat => 
+          cat.id === categoryId ? { ...cat, budget: newBudget } : cat
+        )
+      };
+    });
+    setEditingCategory(null); // モーダルを閉じる
+  };
+
+  // 画面下部の「設定を保存する」が押された時の処理（ここでAWSへPUT）
+  const handleSaveAllToAWS = () => {
+    updateSettings(localSettings);
+    Alert.alert('完了', '最新の予算設定をAWSに保存しました！');
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      
-      <BudgetEvaluationCard 
-        totalMonthlyBudget={totalMonthlyBudget}
-        averageGuideline={averageGuideline}
-        evaluation={evaluation}
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <BudgetEvaluationCard 
+          totalMonthlyBudget={totalMonthlyBudget}
+          averageGuideline={averageGuideline}
+          evaluation={evaluation}
+        />
+
+        <Text style={styles.sectionTitle}>カテゴリ一覧と予算（タップで編集）</Text>
+        <CategoryBudgetList 
+          categories={activeCategories} 
+          onCategoryPress={setEditingCategory} 
+        />
+
+        <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAllToAWS}>
+          <Text style={styles.primaryButtonText}>設定をAWSに保存する</Text>
+        </TouchableOpacity>
+        
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* 予算編集モーダル */}
+      <BudgetEditModal 
+        visible={!!editingCategory}
+        category={editingCategory}
+        onSave={handleSaveBudget}
+        onClose={() => setEditingCategory(null)}
       />
-
-      <Text style={styles.sectionTitle}>カテゴリ一覧と予算</Text>
-      <CategoryBudgetList categories={activeCategories} />
-
-      <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAll}>
-        <Text style={styles.primaryButtonText}>設定を保存する</Text>
-      </TouchableOpacity>
-      
-      <View style={{ height: 100 }} />
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  sectionTitle: { 
-    fontSize: 14, 
-    fontWeight: 'bold', 
-    color: '#8E8E93', 
-    marginLeft: 8, 
-    marginBottom: 8 
-  },
-  primaryButton: { 
-    backgroundColor: '#007AFF', 
-    paddingHorizontal: 24, 
-    paddingVertical: 14, 
-    borderRadius: 8 
-  },
-  primaryButtonText: { 
-    color: '#FFFFFF', 
-    fontWeight: 'bold', 
-    fontSize: 16, 
-    textAlign: 'center' 
-  },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93', marginLeft: 8, marginBottom: 8 },
+  primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
+  primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
 });
