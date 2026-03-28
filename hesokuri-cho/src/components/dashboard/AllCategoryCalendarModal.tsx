@@ -22,7 +22,6 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
   const [viewExpenses, setViewExpenses] = useState<ExpenseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // モーダルが開かれた時の初期化
   useEffect(() => {
     if (visible) {
       const targetMonth = initialDate ? initialDate.slice(0, 7) : currentMonth;
@@ -33,7 +32,6 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
     }
   }, [visible, initialDate, currentMonth]);
 
-  // 表示する月（viewMonth）が変わるたびに履歴データを取得
   useEffect(() => {
     if (!visible) return;
     const loadData = async () => {
@@ -64,14 +62,15 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
 
   const selectedExpenses = selectedDate ? (expensesByDate[selectedDate] || []) : [];
 
-  const handlePrevMonth = () => {
-    const prev = new Date(year, month - 2, 1);
-    setViewMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`);
+  // 月・年の切り替えロジックを統合
+  const handleMonthChange = (diff: number) => {
+    const next = new Date(year, month - 1 + diff, 1);
+    setViewMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
     setSelectedDate(null);
   };
 
-  const handleNextMonth = () => {
-    const next = new Date(year, month, 1);
+  const handleYearChange = (diff: number) => {
+    const next = new Date(year + diff, month - 1, 1);
     setViewMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
     setSelectedDate(null);
   };
@@ -93,11 +92,17 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
             <View style={{ width: 40 }} />
           </View>
 
-          {/* 月切り替えコントロール */}
+          {/* 修正：年と月をそれぞれジャンプできるナビゲーション */}
           <View style={styles.monthControl}>
-            <TouchableOpacity onPress={handlePrevMonth} style={styles.monthBtn}><Text style={styles.monthBtnText}>◀ 前月</Text></TouchableOpacity>
+            <View style={styles.controlGroup}>
+              <TouchableOpacity onPress={() => handleYearChange(-1)} style={styles.monthBtn}><Text style={styles.monthBtnText}>≪ 年</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => handleMonthChange(-1)} style={styles.monthBtn}><Text style={styles.monthBtnText}>＜ 月</Text></TouchableOpacity>
+            </View>
             <Text style={styles.currentMonthText}>{year}年 {month}月</Text>
-            <TouchableOpacity onPress={handleNextMonth} style={styles.monthBtn}><Text style={styles.monthBtnText}>次月 ▶</Text></TouchableOpacity>
+            <View style={styles.controlGroup}>
+              <TouchableOpacity onPress={() => handleMonthChange(1)} style={styles.monthBtn}><Text style={styles.monthBtnText}>月 ＞</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => handleYearChange(1)} style={styles.monthBtn}><Text style={styles.monthBtnText}>年 ≫</Text></TouchableOpacity>
+            </View>
           </View>
 
           {isLoading ? (
@@ -167,8 +172,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   closeText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
-  monthControl: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, backgroundColor: '#F2F2F7', borderRadius: 8, padding: 4 },
-  monthBtn: { paddingHorizontal: 16, paddingVertical: 8 },
+  monthControl: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
+  controlGroup: { flexDirection: 'row', alignItems: 'center' },
+  monthBtn: { paddingHorizontal: 12, paddingVertical: 8 },
   monthBtnText: { fontSize: 14, color: '#007AFF', fontWeight: 'bold' },
   currentMonthText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   loadingArea: { height: 200, justifyContent: 'center', alignItems: 'center' },
