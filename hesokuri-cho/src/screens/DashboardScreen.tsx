@@ -1,5 +1,5 @@
 // src/screens/DashboardScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { HesokuriSummaryCard } from '../components/dashboard/HesokuriSummaryCard';
@@ -12,13 +12,20 @@ import { calculateAverageGuideline, evaluateBudget } from '../functions/budgetUt
 interface DashboardScreenProps {
   onNavigateToHistory: () => void;
   onNavigateToHesokuriHistory: () => void;
-  onNavigateToInput: (categoryId: string) => void; // 新規追加
+  onNavigateToInput: () => void; 
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHistory, onNavigateToHesokuriHistory, onNavigateToInput }) => {
-  const { settings, expenses, monthlyBudget, updateMonthlyBudget, updateExpense, deleteExpense } = useHesokuriStore();
+  const { settings, expenses, monthlyBudget, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail } = useHesokuriStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
+
+  // ダッシュボード表示時に、Storeの帰還フラグがあればモーダルを開く
+  useEffect(() => {
+    if (returnToCategoryDetail) {
+      setSelectedCategoryId(returnToCategoryDetail);
+    }
+  }, [returnToCategoryDetail]);
 
   if (!settings || !monthlyBudget) return null;
 
@@ -53,7 +60,30 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
         ))}
         <TotalHesokuriDisplay currentMonthHesokuri={currentHesokuri} onPress={onNavigateToHesokuriHistory} />
       </ScrollView>
-      <CategoryDetailModal visible={!!selectedCategoryId} category={selectedCategoryForDetail} expenses={selectedExpenses} onClose={() => setSelectedCategoryId(null)} onUpdate={updateExpense} onDelete={deleteExpense} onAddExpense={onNavigateToInput} />
+
+      {/* カレンダー詳細モーダル */}
+      <CategoryDetailModal 
+        visible={!!selectedCategoryId} 
+        category={selectedCategoryForDetail} 
+        expenses={selectedExpenses} 
+        currentMonth={monthlyBudget.month_id}
+        initialDate={returnToCategoryDetailDate} // 帰還時の日付を渡す
+        onClose={() => {
+          setSelectedCategoryId(null);
+          setReturnToCategoryDetail(null, null); // 閉じた時にフラグをクリア
+        }} 
+        onDelete={deleteExpense}
+        onAddExpense={(categoryId, date) => {
+          setExpenseInput({ id: undefined, date, amount: '0', categoryId, paymentMethod: '現金', storeName: '', memo: '', isLocked: true });
+          setReturnToCategoryDetail(categoryId, date); // 追加時の日付をセット
+          onNavigateToInput();
+        }}
+        onEditExpense={(exp) => {
+          setExpenseInput({ id: exp.id, date: exp.date, amount: String(exp.amount), categoryId: exp.categoryId, paymentMethod: exp.paymentMethod, storeName: exp.storeName || '', memo: exp.memo || '', isLocked: true });
+          setReturnToCategoryDetail(exp.categoryId, exp.date); // 修正時の日付をセット
+          onNavigateToInput();
+        }}
+      />
       <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={averageGuideline} onSave={handleSaveMonthlyBudget} onClose={() => setBudgetModalVisible(false)} />
     </View>
   );

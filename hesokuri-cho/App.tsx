@@ -10,8 +10,7 @@ import { HesokuriHistoryScreen } from './src/screens/HesokuriHistoryScreen';
 import { HouseholdSettings } from './src/types';
 
 export default function App() {
-  // 追加: addExpense を Store から呼び出せるように取得
-  const { settings, pendingSettings, setPendingSettings, monthlyBudget, isLoading, error, fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget, expenseInput, setExpenseInput, resetExpenseInput, addExpense } = useHesokuriStore();
+  const { settings, pendingSettings, setPendingSettings, monthlyBudget, isLoading, error, fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget, expenseInput, setExpenseInput, resetExpenseInput, saveExpenseInput, setReturnToCategoryDetail } = useHesokuriStore();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'input' | 'settings' | 'history' | 'hesokuriHistory'>('dashboard');
 
   useEffect(() => {
@@ -35,36 +34,22 @@ export default function App() {
       }
     }
 
-    // 2. 入力画面の未保存チェック（UIの統一と保存機能の追加）
+    // 2. 入力画面の未保存チェック
     if (activeTab === 'input' && targetTab !== 'input') {
       if (expenseInput.amount !== '0' || expenseInput.storeName !== '' || expenseInput.memo !== '') {
         Alert.alert('未保存の入力データ', '入力途中のデータがあります。保存して移動しますか？', [
-          { text: '破棄して移動', style: 'destructive', onPress: () => { resetExpenseInput(); setActiveTab(targetTab); } },
+          { text: '破棄して移動', style: 'destructive', onPress: () => { resetExpenseInput(); setReturnToCategoryDetail(null); setActiveTab(targetTab); } },
           { text: 'キャンセル', style: 'cancel' },
           { text: '保存して移動', onPress: async () => {
-              const amountNum = parseInt(expenseInput.amount, 10);
-              if (amountNum <= 0 || !expenseInput.categoryId) {
-                Alert.alert('エラー', '金額またはカテゴリが未設定のため保存できませんでした');
-                return;
-              }
-              // ルーター側から強制的に保存処理を実行
-              await addExpense({
-                householdId: settings!.householdId,
-                date: new Date().toISOString().slice(0, 10),
-                categoryId: expenseInput.categoryId,
-                amount: amountNum,
-                paymentMethod: expenseInput.paymentMethod,
-                storeName: expenseInput.storeName.trim(),
-                memo: expenseInput.memo.trim()
-              });
-              resetExpenseInput();
-              setActiveTab(targetTab);
+              try {
+                await saveExpenseInput();
+                setActiveTab(targetTab);
+              } catch (e: any) { Alert.alert('エラー', e.message); }
           }}
         ]);
         return;
       }
     }
-
     setActiveTab(targetTab);
   };
 
@@ -106,15 +91,9 @@ export default function App() {
 
       <View style={styles.contentWrapper}>
         {activeTab === 'dashboard' && <DashboardScreen onNavigateToHistory={() => handleTabChange('history')} onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} 
-          onNavigateToInput={(categoryId) => {
-            setExpenseInput({ amount: '0', categoryId, paymentMethod: '現金', storeName: '', memo: '', isLocked: true });
-            setActiveTab('input');
-          }} 
+          onNavigateToInput={() => setActiveTab('input')} 
         />}
-        
-        {/* 修正箇所：正常に記録を終えた場合はチェック関数を通さず、直接タブを切り替えることで暴発を防ぐ */}
         {activeTab === 'input' && <InputScreen onComplete={() => setActiveTab('dashboard')} />}
-        
         {activeTab === 'settings' && <SettingsScreen />}
         {activeTab === 'history' && <HistoryScreen onBack={() => handleTabChange('dashboard')} />}
         {activeTab === 'hesokuriHistory' && <HesokuriHistoryScreen onBack={() => handleTabChange('dashboard')} currentMonthHesokuri={20000} />}
@@ -127,6 +106,7 @@ export default function App() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItemMain} onPress={() => {
             setExpenseInput({ isLocked: false });
+            setReturnToCategoryDetail(null);
             handleTabChange('input');
           }}>
             <Text style={styles.navTextMain}>➕ 入力</Text>
@@ -141,7 +121,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  // ... (既存のスタイル群)
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' },
   contentWrapper: { flex: 1 },

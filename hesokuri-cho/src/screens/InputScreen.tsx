@@ -1,5 +1,5 @@
 // src/screens/InputScreen.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
@@ -9,13 +9,20 @@ interface InputScreenProps {
 }
 
 export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
-  const { settings, addExpense, expenseInput, setExpenseInput, resetExpenseInput } = useHesokuriStore();
-  const paymentMethods = ['現金', '電子PAY', 'クレジット'];
+  const { settings, expenseInput, setExpenseInput, saveExpenseInput } = useHesokuriStore();
+  const paymentMethods = ['現金', 'コード決済', 'クレジット'];
+  const [cursorVisible, setCursorVisible] = useState(true);
 
   if (!settings) return null;
 
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
   const activeCategories = settings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+
+  // カーソルの点滅アニメーション
+  useEffect(() => {
+    const interval = setInterval(() => setCursorVisible(v => !v), 500);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!expenseInput.categoryId && activeCategories.length > 0) setExpenseInput({ categoryId: activeCategories[0].id });
@@ -30,31 +37,31 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   };
 
   const handleSubmit = async () => {
-    const amountNum = parseInt(expenseInput.amount, 10);
-    if (amountNum <= 0) return Alert.alert('エラー', '金額を入力してください');
-    if (!expenseInput.categoryId) return Alert.alert('エラー', 'カテゴリを選択してください');
-
-    const today = new Date().toISOString().slice(0, 10);
-    await addExpense({
-      householdId: settings.householdId, date: today, categoryId: expenseInput.categoryId,
-      amount: amountNum, paymentMethod: expenseInput.paymentMethod,
-      storeName: expenseInput.storeName.trim(), memo: expenseInput.memo.trim()
-    });
-
-    Alert.alert('記録完了', `￥${amountNum.toLocaleString()} を記録しました！`);
-    resetExpenseInput();
-    onComplete();
+    try {
+      await saveExpenseInput();
+      Alert.alert('完了', '記録を保存しました！');
+      onComplete();
+    } catch (e: any) {
+      Alert.alert('エラー', e.message);
+    }
   };
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.inputDisplayArea}>
-        <Text style={styles.inputCurrency}>￥</Text>
-        <Text style={styles.inputDisplayAmount}>{parseInt(expenseInput.amount, 10).toLocaleString()}</Text>
+      
+      {/* 修正：フォーカスを明示する入力エリア */}
+      <View style={styles.inputFocusWrapper}>
+        <View style={styles.inputDisplayArea}>
+          <Text style={styles.inputCurrency}>￥</Text>
+          <Text style={styles.inputDisplayAmount}>
+            {parseInt(expenseInput.amount, 10).toLocaleString()}
+            <Text style={{ color: cursorVisible ? '#007AFF' : 'transparent' }}>|</Text>
+          </Text>
+        </View>
+        {expenseInput.date && <Text style={styles.dateHint}>{expenseInput.date.split('-')[1]}月{expenseInput.date.split('-')[2]}日 の記録</Text>}
       </View>
 
       <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
-        {/* カテゴリ選択 */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
           <View style={styles.chipContainer}>
             {activeCategories.map(cat => {
@@ -72,7 +79,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           </View>
         </ScrollView>
 
-        {/* 決済手段選択 */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
           <View style={styles.chipContainer}>
             {paymentMethods.map(method => (
@@ -83,14 +89,15 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           </View>
         </ScrollView>
 
-        {/* 任意入力（店名・コメント） */}
         <View style={styles.optionalInputArea}>
           <TextInput style={styles.textInput} placeholder="店名（任意）" value={expenseInput.storeName} onChangeText={(text) => setExpenseInput({ storeName: text })} />
           <TextInput style={styles.textInput} placeholder="コメント（任意）" value={expenseInput.memo} onChangeText={(text) => setExpenseInput({ memo: text })} />
         </View>
 
         <ExpenseInputPad onKeyPress={handleNumpadPress} />
-        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}><Text style={styles.submitBtnText}>この内容で記録する</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+          <Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -99,9 +106,11 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   scrollArea: { flex: 1 },
-  inputDisplayArea: { backgroundColor: '#FFFFFF', paddingVertical: 24, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  inputCurrency: { fontSize: 24, color: '#8E8E93', marginRight: 4, marginTop: 12 },
+  inputFocusWrapper: { backgroundColor: '#FFFFFF', paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', alignItems: 'center' },
+  inputDisplayArea: { marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, borderWidth: 2, borderColor: '#007AFF', backgroundColor: '#F0F8FF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minWidth: '80%' },
+  inputCurrency: { fontSize: 24, color: '#007AFF', marginRight: 8, fontWeight: 'bold' },
   inputDisplayAmount: { fontSize: 48, fontWeight: 'bold', color: '#1C1C1E', letterSpacing: -1 },
+  dateHint: { fontSize: 12, color: '#8E8E93', fontWeight: 'bold', marginTop: 12 },
   chipScroll: { maxHeight: 54, minHeight: 54, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FAFAFC' },
   chipContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
   chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5E5EA', marginRight: 8 },

@@ -6,12 +6,14 @@ const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.co
 const HOUSEHOLD_ID = 'default-household-001';
 
 interface ExpenseInputState {
+  id?: string;
+  date?: string;
   amount: string;
   categoryId: string;
   paymentMethod: string;
   storeName: string;
   memo: string;
-  isLocked: boolean; // カテゴリを固定するかどうか
+  isLocked: boolean;
 }
 
 interface HesokuriState {
@@ -23,8 +25,13 @@ interface HesokuriState {
   error: string | null;
 
   expenseInput: ExpenseInputState;
+  returnToCategoryDetail: string | null;
+  returnToCategoryDetailDate: string | null; // 新規追加：帰還時のカレンダー日付
+
   setExpenseInput: (input: Partial<ExpenseInputState>) => void;
   resetExpenseInput: () => void;
+  saveExpenseInput: () => Promise<void>;
+  setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
 
   setPendingSettings: (settings: HouseholdSettings | null) => void;
   fetchSettings: () => Promise<void>;
@@ -39,18 +46,38 @@ interface HesokuriState {
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null,
+  returnToCategoryDetail: null, returnToCategoryDetailDate: null,
 
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
-  resetExpenseInput: () => set((state) => ({ expenseInput: { ...state.expenseInput, amount: '0', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
+  resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
   
+  // カテゴリIDと日付の両方をセットできるように変更
+  setReturnToCategoryDetail: (id, date = null) => set({ returnToCategoryDetail: id, returnToCategoryDetailDate: date }),
+
+  saveExpenseInput: async () => {
+    const state = get();
+    const input = state.expenseInput;
+    const amountNum = parseInt(input.amount, 10);
+    if (amountNum <= 0 || !input.categoryId) throw new Error('金額またはカテゴリが不正です');
+    
+    const expenseDate = input.date || new Date().toISOString().slice(0, 10);
+    const dataObj = { householdId: HOUSEHOLD_ID, date: expenseDate, categoryId: input.categoryId, amount: amountNum, paymentMethod: input.paymentMethod, storeName: input.storeName.trim(), memo: input.memo.trim() };
+
+    if (input.id) {
+      await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` });
+    } else {
+      await state.addExpense(dataObj);
+    }
+    state.resetExpenseInput();
+  },
+
   setPendingSettings: (settings) => set({ pendingSettings: settings }),
 
   fetchSettings: async () => {
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`);
-      if (!response.ok) throw new Error(`設定の取得失敗`);
       const data = await response.json();
       set({ settings: data.message === 'Settings not found' ? null : data, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
@@ -59,10 +86,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   updateSettings: async (newSettings) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings),
-      });
-      if (!response.ok) throw new Error(`設定の保存失敗`);
+      const response = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSettings) });
       const data = await response.json();
       set({ settings: data.data, pendingSettings: null, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
@@ -72,15 +96,12 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`);
-      if (!response.ok) throw new Error(`予算の取得失敗`);
       const data = await response.json();
       let currentBudgets = data.budgets || {};
       const currentSettings = get().settings;
       if (Object.keys(currentBudgets).length === 0 && currentSettings) {
         currentSettings.categories.forEach(cat => { currentBudgets[cat.id] = cat.budget; });
-        await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets }),
-        });
+        await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets }) });
       }
       set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, updatedAt: new Date().toISOString() }, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
@@ -89,10 +110,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   updateMonthlyBudget: async (budgets, month) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets }),
-      });
-      if (!response.ok) throw new Error(`予算の更新失敗`);
+      await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets }) });
       set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets, updatedAt: new Date().toISOString() }, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
   },
@@ -101,7 +119,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?month=${month}`);
-      if (!response.ok) throw new Error(`支出の取得失敗`);
       const data = await response.json();
       set({ expenses: data.expenses, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
@@ -110,10 +127,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   addExpense: async (expenseData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/expenses`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...expenseData, householdId: HOUSEHOLD_ID }),
-      });
-      if (!response.ok) throw new Error(`支出の記録失敗`);
+      const response = await fetch(`${API_BASE_URL}/expenses`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...expenseData, householdId: HOUSEHOLD_ID }) });
       const data = await response.json();
       set((state) => ({ expenses: [...state.expenses, data.data], isLoading: false }));
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
@@ -122,10 +136,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   updateExpense: async (expenseData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/expenses`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(expenseData),
-      });
-      if (!response.ok) throw new Error(`支出の更新失敗`);
+      const response = await fetch(`${API_BASE_URL}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(expenseData) });
       const data = await response.json();
       set((state) => ({ expenses: state.expenses.map(e => e.id === expenseData.id ? data.data : e), isLoading: false }));
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
@@ -134,8 +145,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   deleteExpense: async (date_id) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?date_id=${encodeURIComponent(date_id)}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error(`支出の削除失敗`);
+      await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?date_id=${encodeURIComponent(date_id)}`, { method: 'DELETE' });
       set((state) => ({ expenses: state.expenses.filter(e => e.date_id !== date_id), isLoading: false }));
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
   },

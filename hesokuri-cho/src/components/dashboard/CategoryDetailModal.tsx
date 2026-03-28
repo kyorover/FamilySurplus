@@ -1,39 +1,52 @@
 // src/components/dashboard/CategoryDetailModal.tsx
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { ExpenseRecord, Category } from '../../types';
 
 interface CategoryDetailModalProps {
   visible: boolean;
   category: Category | null;
   expenses: ExpenseRecord[];
+  currentMonth: string;
+  initialDate?: string | null; // 自動帰還用の初期日付
   onClose: () => void;
-  onUpdate: (expense: ExpenseRecord) => void;
+  onEditExpense: (exp: ExpenseRecord) => void;
+  onAddExpense: (categoryId: string, date: string) => void;
   onDelete: (date_id: string) => void;
-  onAddExpense: (categoryId: string) => void;
 }
 
-export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({ visible, category, expenses, onClose, onUpdate, onDelete, onAddExpense }) => {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editAmount, setEditAmount] = useState<string>('');
-  const [editStoreName, setEditStoreName] = useState<string>('');
-  const [editMemo, setEditMemo] = useState<string>('');
+export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({ visible, category, expenses, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete }) => {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // モーダル表示時に初期日付があればセット
+  useEffect(() => {
+    if (visible && initialDate) {
+      setSelectedDate(initialDate);
+    } else if (!visible) {
+      setSelectedDate(null);
+    }
+  }, [visible, initialDate]);
 
   if (!category) return null;
 
-  const handleEdit = (exp: ExpenseRecord) => {
-    setEditingId(exp.id);
-    setEditAmount(String(exp.amount));
-    setEditStoreName(exp.storeName || '');
-    setEditMemo(exp.memo || '');
-  };
+  const [yearStr, monthStr] = currentMonth.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
 
-  const handleSave = (exp: ExpenseRecord) => {
-    const num = parseInt(editAmount, 10);
-    if (isNaN(num) || num <= 0) return Alert.alert('エラー', '正しい金額を入力してください');
-    onUpdate({ ...exp, amount: num, storeName: editStoreName.trim(), memo: editMemo.trim() });
-    setEditingId(null);
-  };
+  const calendarDays = Array.from({ length: firstDay + daysInMonth }, (_, i) => {
+    if (i < firstDay) return null;
+    return `${year}-${String(month).padStart(2, '0')}-${String(i - firstDay + 1).padStart(2, '0')}`;
+  });
+
+  const expensesByDate = expenses.reduce((acc, exp) => {
+    if (!acc[exp.date]) acc[exp.date] = [];
+    acc[exp.date].push(exp);
+    return acc;
+  }, {} as Record<string, ExpenseRecord[]>);
+
+  const selectedExpenses = selectedDate ? (expensesByDate[selectedDate] || []) : [];
 
   const handleDelete = (exp: ExpenseRecord) => {
     Alert.alert('確認', '削除しますか？', [{ text: 'キャンセル', style: 'cancel' }, { text: '削除', style: 'destructive', onPress: () => onDelete(exp.date_id) }]);
@@ -42,37 +55,45 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({ visibl
   return (
     <Modal visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* フルスクリーンに近い広々としたモーダル */}
         <View style={styles.modalCard}>
           <View style={styles.header}>
-            <Text style={styles.title}>{category.name} の明細</Text>
-            <TouchableOpacity onPress={() => { setEditingId(null); onClose(); }}><Text style={styles.closeText}>閉じる</Text></TouchableOpacity>
+            <Text style={styles.title}>{category.name} の明細カレンダー</Text>
+            <TouchableOpacity onPress={onClose}><Text style={styles.closeText}>閉じる</Text></TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.addDirectBtn} onPress={() => { setEditingId(null); onClose(); onAddExpense(category.id); }}>
-            <Text style={styles.addDirectBtnText}>＋ このカテゴリに支出を追加</Text>
-          </TouchableOpacity>
+          {/* カレンダーUI */}
+          <View style={styles.calendarGrid}>
+            {['日','月','火','水','木','金','土'].map(d => <Text key={d} style={styles.weekday}>{d}</Text>)}
+            {calendarDays.map((dateStr, idx) => {
+              if (!dateStr) return <View key={idx} style={styles.dayCell} />;
+              const dayTotal = expensesByDate[dateStr]?.reduce((s, e) => s + e.amount, 0) || 0;
+              const isSelected = selectedDate === dateStr;
+              return (
+                <TouchableOpacity key={dateStr} style={[styles.dayCell, isSelected && styles.selectedDayCell]} onPress={() => setSelectedDate(dateStr)}>
+                  <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>{parseInt(dateStr.split('-')[2], 10)}</Text>
+                  {dayTotal > 0 && <Text style={styles.dayAmount} numberOfLines={1}>￥{dayTotal.toLocaleString()}</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-          <ScrollView style={styles.list}>
-            {expenses.length === 0 ? <Text style={styles.emptyText}>記録はありません</Text> : 
-              expenses.map(exp => (
-                <View key={exp.id} style={styles.recordItem}>
-                  {editingId === exp.id ? (
-                    <View style={styles.editForm}>
-                      <TextInput style={styles.editInput} keyboardType="number-pad" placeholder="金額" value={editAmount} onChangeText={setEditAmount} autoFocus />
-                      <TextInput style={styles.editInput} placeholder="店名（任意）" value={editStoreName} onChangeText={setEditStoreName} />
-                      <TextInput style={styles.editInput} placeholder="コメント（任意）" value={editMemo} onChangeText={setEditMemo} />
-                      <View style={styles.editActions}>
-                        <TouchableOpacity onPress={() => setEditingId(null)} style={styles.cancelBtn}><Text style={styles.cancelBtnText}>キャンセル</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleSave(exp)} style={styles.saveBtn}><Text style={styles.saveBtnText}>保存</Text></TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    <>
+          {/* 選択された日付の明細リスト（縦に広くスクロール可能に） */}
+          {selectedDate && (
+            <View style={styles.detailSection}>
+              <View style={styles.detailHeader}>
+                <Text style={styles.detailDateText}>{month}月{parseInt(selectedDate.split('-')[2], 10)}日の記録</Text>
+                <TouchableOpacity style={styles.addDirectBtn} onPress={() => onAddExpense(category.id, selectedDate)}>
+                  <Text style={styles.addDirectBtnText}>＋ 追加</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+                {selectedExpenses.length === 0 ? <Text style={styles.emptyText}>記録はありません</Text> : 
+                  selectedExpenses.map(exp => (
+                    <TouchableOpacity key={exp.id} style={styles.recordItem} onPress={() => onEditExpense(exp)} activeOpacity={0.7}>
                       <View style={styles.recordHeader}>
-                        <View style={styles.dateAndMethod}>
-                          <Text style={styles.date}>{exp.date.split('-')[2]}日</Text>
-                          <Text style={styles.methodBadge}>{exp.paymentMethod}</Text>
-                        </View>
+                        <Text style={styles.methodBadge}>{exp.paymentMethod}</Text>
                         <Text style={styles.amount}>￥{exp.amount.toLocaleString()}</Text>
                       </View>
                       <View style={styles.recordBody}>
@@ -80,17 +101,14 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({ visibl
                           {exp.storeName ? <Text style={styles.storeName} numberOfLines={1}>📍 {exp.storeName}</Text> : null}
                           {exp.memo ? <Text style={styles.memo} numberOfLines={1}>💬 {exp.memo}</Text> : null}
                         </View>
-                        <View style={styles.actions}>
-                          <TouchableOpacity onPress={() => handleEdit(exp)} style={styles.actionBtn}><Text style={styles.editText}>修正</Text></TouchableOpacity>
-                          <TouchableOpacity onPress={() => handleDelete(exp)} style={styles.actionBtn}><Text style={styles.deleteText}>削除</Text></TouchableOpacity>
-                        </View>
+                        <TouchableOpacity onPress={() => handleDelete(exp)} style={styles.actionBtn}><Text style={styles.deleteText}>削除</Text></TouchableOpacity>
                       </View>
-                    </>
-                  )}
-                </View>
-              ))
-            }
-          </ScrollView>
+                    </TouchableOpacity>
+                  ))
+                }
+              </ScrollView>
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -99,33 +117,33 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({ visibl
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: '85%', minHeight: '60%' },
+  modalCard: { flex: 0.95, backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
   title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   closeText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
-  addDirectBtn: { backgroundColor: '#E5F1FF', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 16 },
-  addDirectBtnText: { color: '#007AFF', fontWeight: 'bold', fontSize: 14 },
-  list: { flexGrow: 0 },
-  emptyText: { textAlign: 'center', color: '#8E8E93', marginTop: 24 },
-  recordItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+  weekday: { width: '14.28%', textAlign: 'center', fontSize: 12, color: '#8E8E93', fontWeight: 'bold', marginBottom: 8 },
+  dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#F2F2F7', padding: 2 },
+  selectedDayCell: { backgroundColor: '#E5F1FF', borderRadius: 8, borderBottomWidth: 0 },
+  dayText: { fontSize: 14, color: '#1C1C1E', fontWeight: '500' },
+  selectedDayText: { color: '#007AFF', fontWeight: 'bold' },
+  dayAmount: { fontSize: 8, color: '#8E8E93', marginTop: 2 },
+  detailSection: { flex: 1, borderTopWidth: 1, borderTopColor: '#E5E5EA', paddingTop: 16 },
+  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  detailDateText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  addDirectBtn: { backgroundColor: '#007AFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  addDirectBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 12 },
+  list: { flex: 1 },
+  listContent: { paddingBottom: 40 },
+  emptyText: { textAlign: 'center', color: '#8E8E93', marginTop: 24, fontSize: 13 },
+  recordItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F2F2F7', backgroundColor: '#FAFAFC', borderRadius: 8, paddingHorizontal: 12, marginBottom: 8 },
   recordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  dateAndMethod: { flexDirection: 'row', alignItems: 'center' },
-  date: { fontSize: 14, color: '#8E8E93', width: 40, fontWeight: 'bold' },
   methodBadge: { fontSize: 10, backgroundColor: '#E5E5EA', color: '#8E8E93', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
   amount: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E' },
   recordBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   textContainer: { flex: 1, marginRight: 8 },
   storeName: { fontSize: 13, color: '#1C1C1E', marginBottom: 2, fontWeight: '500' },
   memo: { fontSize: 12, color: '#8E8E93' },
-  actions: { flexDirection: 'row' },
-  actionBtn: { paddingVertical: 6, paddingHorizontal: 12, marginLeft: 8, backgroundColor: '#F2F2F7', borderRadius: 6 },
-  editText: { fontSize: 12, color: '#007AFF', fontWeight: 'bold' },
+  actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#FFF0F0', borderRadius: 6 },
   deleteText: { fontSize: 12, color: '#FF3B30', fontWeight: 'bold' },
-  editForm: { backgroundColor: '#FAFAFC', padding: 12, borderRadius: 8 },
-  editInput: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5EA', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, marginBottom: 8 },
-  editActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 },
-  cancelBtn: { paddingVertical: 8, paddingHorizontal: 16, marginRight: 8 },
-  cancelBtnText: { color: '#8E8E93', fontWeight: 'bold', fontSize: 13 },
-  saveBtn: { backgroundColor: '#007AFF', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
-  saveBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 },
 });
