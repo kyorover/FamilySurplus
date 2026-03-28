@@ -10,7 +10,8 @@ import { HesokuriHistoryScreen } from './src/screens/HesokuriHistoryScreen';
 import { HouseholdSettings } from './src/types';
 
 export default function App() {
-  const { settings, pendingSettings, setPendingSettings, monthlyBudget, isLoading, error, fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget, expenseInput, setExpenseInput, resetExpenseInput } = useHesokuriStore();
+  // 追加: addExpense を Store から呼び出せるように取得
+  const { settings, pendingSettings, setPendingSettings, monthlyBudget, isLoading, error, fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget, expenseInput, setExpenseInput, resetExpenseInput, addExpense } = useHesokuriStore();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'input' | 'settings' | 'history' | 'hesokuriHistory'>('dashboard');
 
   useEffect(() => {
@@ -34,12 +35,31 @@ export default function App() {
       }
     }
 
-    // 2. 入力画面の未保存チェック（金額、店名、メモのいずれかが入力されている場合）
+    // 2. 入力画面の未保存チェック（UIの統一と保存機能の追加）
     if (activeTab === 'input' && targetTab !== 'input') {
       if (expenseInput.amount !== '0' || expenseInput.storeName !== '' || expenseInput.memo !== '') {
-        Alert.alert('入力の破棄', '入力途中のデータがあります。破棄して移動しますか？', [
+        Alert.alert('未保存の入力データ', '入力途中のデータがあります。保存して移動しますか？', [
           { text: '破棄して移動', style: 'destructive', onPress: () => { resetExpenseInput(); setActiveTab(targetTab); } },
-          { text: 'キャンセル', style: 'cancel' }
+          { text: 'キャンセル', style: 'cancel' },
+          { text: '保存して移動', onPress: async () => {
+              const amountNum = parseInt(expenseInput.amount, 10);
+              if (amountNum <= 0 || !expenseInput.categoryId) {
+                Alert.alert('エラー', '金額またはカテゴリが未設定のため保存できませんでした');
+                return;
+              }
+              // ルーター側から強制的に保存処理を実行
+              await addExpense({
+                householdId: settings!.householdId,
+                date: new Date().toISOString().slice(0, 10),
+                categoryId: expenseInput.categoryId,
+                amount: amountNum,
+                paymentMethod: expenseInput.paymentMethod,
+                storeName: expenseInput.storeName.trim(),
+                memo: expenseInput.memo.trim()
+              });
+              resetExpenseInput();
+              setActiveTab(targetTab);
+          }}
         ]);
         return;
       }
@@ -87,12 +107,14 @@ export default function App() {
       <View style={styles.contentWrapper}>
         {activeTab === 'dashboard' && <DashboardScreen onNavigateToHistory={() => handleTabChange('history')} onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} 
           onNavigateToInput={(categoryId) => {
-            // モーダルからの直接入力時は状態をリセットし、対象カテゴリをロックして遷移
             setExpenseInput({ amount: '0', categoryId, paymentMethod: '現金', storeName: '', memo: '', isLocked: true });
             setActiveTab('input');
           }} 
         />}
-        {activeTab === 'input' && <InputScreen onComplete={() => handleTabChange('dashboard')} />}
+        
+        {/* 修正箇所：正常に記録を終えた場合はチェック関数を通さず、直接タブを切り替えることで暴発を防ぐ */}
+        {activeTab === 'input' && <InputScreen onComplete={() => setActiveTab('dashboard')} />}
+        
         {activeTab === 'settings' && <SettingsScreen />}
         {activeTab === 'history' && <HistoryScreen onBack={() => handleTabChange('dashboard')} />}
         {activeTab === 'hesokuriHistory' && <HesokuriHistoryScreen onBack={() => handleTabChange('dashboard')} currentMonthHesokuri={20000} />}
@@ -104,7 +126,6 @@ export default function App() {
             <Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItemMain} onPress={() => {
-            // ボトムタブからの入力時はロックを解除
             setExpenseInput({ isLocked: false });
             handleTabChange('input');
           }}>
