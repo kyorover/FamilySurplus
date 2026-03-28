@@ -10,13 +10,14 @@ interface HesokuriSummaryCardProps {
   averageGuideline: number;
   evaluation: BudgetEvaluationResult;
   hasChild: boolean;
-  pocketMoneyDetails: { id: string, name: string, base: number, bonus: number, total: number }[]; // 新規追加：お小遣い計算結果
+  pocketMoneyDetails: { id: string, name: string, base: number, bonus: number, total: number }[];
   onPressCard: () => void;
   onPressEditBudget: () => void;
+  onPressPocketMoney: () => void; // 新規追加：ルール設定ダイアログの呼び出し
 }
 
 export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
-  currentHesokuri, totalMonthlyBudget, totalSpent, averageGuideline, evaluation, hasChild, pocketMoneyDetails, onPressCard, onPressEditBudget
+  currentHesokuri, totalMonthlyBudget, totalSpent, averageGuideline, evaluation, hasChild, pocketMoneyDetails, onPressCard, onPressEditBudget, onPressPocketMoney
 }) => {
   const isNegative = currentHesokuri < 0;
   const fixedCategoriesText = hasChild ? '食費、外食、日用品、養育費' : '食費、外食、日用品';
@@ -40,10 +41,13 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
 
       <View style={styles.divider} />
 
-      {/* 新規追加：誰のお小遣いがいくらになるかの表示エリア */}
+      {/* 変更：お小遣いエリアをタップ可能にし、ルール設定への動線を明示 */}
       {pocketMoneyDetails.length > 0 && (
-        <View style={styles.pocketMoneyArea}>
-          <Text style={styles.pocketMoneyTitle}>✨ 今月のお小遣い着地見込み</Text>
+        <TouchableOpacity style={styles.pocketMoneyArea} activeOpacity={0.7} onPress={onPressPocketMoney}>
+          <View style={styles.pmHeaderRow}>
+            <Text style={styles.pocketMoneyTitle}>✨ 今月のお小遣い着地見込み</Text>
+            <Text style={styles.pmHintText}>ルール設定 ＞</Text>
+          </View>
           {pocketMoneyDetails.map(pm => (
             <View key={pm.id} style={styles.pmRow}>
               <Text style={styles.pmName}>{pm.name}</Text>
@@ -56,7 +60,7 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
               <Text style={styles.pmTotal}>￥{pm.total.toLocaleString()}</Text>
             </View>
           ))}
-        </View>
+        </TouchableOpacity>
       )}
 
       <View style={styles.budgetArea}>
@@ -86,7 +90,9 @@ const styles = StyleSheet.create({
   hintText: { fontSize: 12, color: '#007AFF', fontWeight: 'bold', paddingVertical: 8 },
   divider: { height: 1, backgroundColor: '#E5E5EA', marginBottom: 20 },
   pocketMoneyArea: { backgroundColor: '#FAFAFC', padding: 16, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: '#E5E5EA' },
-  pocketMoneyTitle: { fontSize: 13, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 12 },
+  pmHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  pocketMoneyTitle: { fontSize: 13, fontWeight: 'bold', color: '#1C1C1E' },
+  pmHintText: { fontSize: 11, color: '#007AFF', fontWeight: 'bold' },
   pmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   pmName: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', width: 60 },
   pmCalc: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 16 },
