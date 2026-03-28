@@ -9,10 +9,8 @@ interface InputScreenProps {
 }
 
 export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
-  const { settings, expenseInput, setExpenseInput, saveExpenseInput } = useHesokuriStore();
+  const { settings, expenseInput, setExpenseInput, saveExpenseInput, setReturnToCategoryDetail } = useHesokuriStore();
   const paymentMethods = ['現金', 'コード決済', 'クレジット'];
-  
-  // フォーカス状態の管理（デフォルトはfalse = フォーカスなし）
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(false);
 
@@ -21,7 +19,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
   const activeCategories = settings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
 
-  // フォーカス中のみカーソルを点滅させる
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isAmountFocused) {
@@ -38,11 +35,8 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   }, [settings]);
 
   const handleNumpadPress = (val: string) => {
-    if (val === 'BS') {
-      setExpenseInput({ amount: expenseInput.amount.length > 1 ? expenseInput.amount.slice(0, -1) : '0' });
-    } else {
-      setExpenseInput({ amount: expenseInput.amount === '0' ? (val === '00' ? '0' : val) : (expenseInput.amount.length >= 8 ? expenseInput.amount : expenseInput.amount + val) });
-    }
+    if (val === 'BS') setExpenseInput({ amount: expenseInput.amount.length > 1 ? expenseInput.amount.slice(0, -1) : '0' });
+    else setExpenseInput({ amount: expenseInput.amount === '0' ? (val === '00' ? '0' : val) : (expenseInput.amount.length >= 8 ? expenseInput.amount : expenseInput.amount + val) });
   };
 
   const handleSubmit = async () => {
@@ -50,6 +44,12 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
       await saveExpenseInput();
       Alert.alert('完了', '記録を保存しました！');
       setIsAmountFocused(false);
+      
+      // カテゴリがロックされていなければ（＝ボトムタブ等からの汎用入力なら）、完了後に全カレンダーへ戻す
+      if (!expenseInput.isLocked) {
+        setReturnToCategoryDetail('ALL', expenseInput.date || new Date().toISOString().slice(0, 10));
+      }
+
       onComplete();
     } catch (e: any) {
       Alert.alert('エラー', e.message);
@@ -58,18 +58,10 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      
       <View style={styles.inputFocusWrapper}>
-        <TouchableOpacity 
-          style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused]} 
-          activeOpacity={0.8}
-          onPress={() => { Keyboard.dismiss(); setIsAmountFocused(true); }}
-        >
+        <TouchableOpacity style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused]} activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); setIsAmountFocused(true); }}>
           <Text style={[styles.inputCurrency, isAmountFocused && styles.inputCurrencyFocused]}>￥</Text>
-          <Text style={styles.inputDisplayAmount}>
-            {parseInt(expenseInput.amount, 10).toLocaleString()}
-            <Text style={{ color: cursorVisible ? '#007AFF' : 'transparent' }}>|</Text>
-          </Text>
+          <Text style={styles.inputDisplayAmount}>{parseInt(expenseInput.amount, 10).toLocaleString()}<Text style={{ color: cursorVisible ? '#007AFF' : 'transparent' }}>|</Text></Text>
         </TouchableOpacity>
         {expenseInput.date && <Text style={styles.dateHint}>{expenseInput.date.split('-')[1]}月{expenseInput.date.split('-')[2]}日 の記録</Text>}
       </View>
@@ -81,11 +73,8 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
               const isSelected = expenseInput.categoryId === cat.id;
               const isDisabled = expenseInput.isLocked && !isSelected;
               return (
-                <TouchableOpacity key={cat.id} style={[styles.chip, isSelected && styles.chipSelected, isDisabled && styles.chipDisabled]}
-                  disabled={expenseInput.isLocked} onPress={() => { setExpenseInput({ categoryId: cat.id }); setIsAmountFocused(false); }}>
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected, isDisabled && styles.chipTextDisabled]}>
-                    {cat.name} {isSelected && expenseInput.isLocked && ' 🔒'}
-                  </Text>
+                <TouchableOpacity key={cat.id} style={[styles.chip, isSelected && styles.chipSelected, isDisabled && styles.chipDisabled]} disabled={expenseInput.isLocked} onPress={() => { setExpenseInput({ categoryId: cat.id }); setIsAmountFocused(false); }}>
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected, isDisabled && styles.chipTextDisabled]}>{cat.name} {isSelected && expenseInput.isLocked && ' 🔒'}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -107,12 +96,9 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           <TextInput style={styles.textInput} placeholder="コメント（任意）" value={expenseInput.memo} onChangeText={(text) => setExpenseInput({ memo: text })} onFocus={() => setIsAmountFocused(false)} />
         </View>
 
-        {/* 金額枠がフォーカスされている時だけテンキーを表示 */}
         {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-          <Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text>
-        </TouchableOpacity>
+        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}><Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text></TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -5,6 +5,7 @@ import { useHesokuriStore } from '../store';
 import { HesokuriSummaryCard } from '../components/dashboard/HesokuriSummaryCard';
 import { BudgetProgressBar } from '../components/dashboard/BudgetProgressBar';
 import { CategoryDetailModal } from '../components/dashboard/CategoryDetailModal';
+import { AllCategoryCalendarModal } from '../components/dashboard/AllCategoryCalendarModal';
 import { TotalHesokuriDisplay } from '../components/dashboard/TotalHesokuriDisplay';
 import { MonthlyBudgetEditModal } from '../components/dashboard/MonthlyBudgetEditModal';
 import { calculateAverageGuideline, evaluateBudget } from '../functions/budgetUtils';
@@ -18,11 +19,14 @@ interface DashboardScreenProps {
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHistory, onNavigateToHesokuriHistory, onNavigateToInput }) => {
   const { settings, expenses, monthlyBudget, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail } = useHesokuriStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
 
-  // ダッシュボード表示時に、Storeの帰還フラグがあればモーダルを開く
+  // 入力画面から戻ってきた際の自動展開ロジック
   useEffect(() => {
-    if (returnToCategoryDetail) {
+    if (returnToCategoryDetail === 'ALL') {
+      setAllCalendarVisible(true);
+    } else if (returnToCategoryDetail) {
       setSelectedCategoryId(returnToCategoryDetail);
     }
   }, [returnToCategoryDetail]);
@@ -50,7 +54,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <HesokuriSummaryCard currentHesokuri={currentHesokuri} totalMonthlyBudget={totalMonthlyBudget} totalSpent={totalSpent} averageGuideline={averageGuideline} evaluation={evaluation} onPressEditBudget={() => setBudgetModalVisible(true)} />
+        <HesokuriSummaryCard 
+          currentHesokuri={currentHesokuri} totalMonthlyBudget={totalMonthlyBudget} totalSpent={totalSpent} 
+          averageGuideline={averageGuideline} evaluation={evaluation} hasChild={hasChild}
+          onPressCard={() => setAllCalendarVisible(true)} // サマリータップで全カレンダー表示
+          onPressEditBudget={() => setBudgetModalVisible(true)} 
+        />
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>カテゴリ別状況</Text>
           <TouchableOpacity onPress={onNavigateToHistory} style={styles.historyBtn}><Text style={styles.historyBtnText}>履歴を見る ＞</Text></TouchableOpacity>
@@ -61,29 +70,42 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
         <TotalHesokuriDisplay currentMonthHesokuri={currentHesokuri} onPress={onNavigateToHesokuriHistory} />
       </ScrollView>
 
-      {/* カレンダー詳細モーダル */}
+      {/* カテゴリごとのカレンダー */}
       <CategoryDetailModal 
-        visible={!!selectedCategoryId} 
-        category={selectedCategoryForDetail} 
-        expenses={selectedExpenses} 
-        currentMonth={monthlyBudget.month_id}
-        initialDate={returnToCategoryDetailDate} // 帰還時の日付を渡す
-        onClose={() => {
-          setSelectedCategoryId(null);
-          setReturnToCategoryDetail(null, null); // 閉じた時にフラグをクリア
-        }} 
+        visible={!!selectedCategoryId} category={selectedCategoryForDetail} expenses={selectedExpenses} currentMonth={monthlyBudget.month_id}
+        initialDate={returnToCategoryDetail !== 'ALL' ? returnToCategoryDetailDate : null}
+        onClose={() => { setSelectedCategoryId(null); if (returnToCategoryDetail !== 'ALL') setReturnToCategoryDetail(null, null); }} 
         onDelete={deleteExpense}
         onAddExpense={(categoryId, date) => {
           setExpenseInput({ id: undefined, date, amount: '0', categoryId, paymentMethod: '現金', storeName: '', memo: '', isLocked: true });
-          setReturnToCategoryDetail(categoryId, date); // 追加時の日付をセット
+          setReturnToCategoryDetail(categoryId, date);
           onNavigateToInput();
         }}
         onEditExpense={(exp) => {
           setExpenseInput({ id: exp.id, date: exp.date, amount: String(exp.amount), categoryId: exp.categoryId, paymentMethod: exp.paymentMethod, storeName: exp.storeName || '', memo: exp.memo || '', isLocked: true });
-          setReturnToCategoryDetail(exp.categoryId, exp.date); // 修正時の日付をセット
+          setReturnToCategoryDetail(exp.categoryId, exp.date);
           onNavigateToInput();
         }}
       />
+
+      {/* 全カテゴリ統合カレンダー */}
+      <AllCategoryCalendarModal 
+        visible={isAllCalendarVisible} categories={activeCategories} expenses={expenses} currentMonth={monthlyBudget.month_id}
+        initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null}
+        onClose={() => { setAllCalendarVisible(false); if (returnToCategoryDetail === 'ALL') setReturnToCategoryDetail(null, null); }}
+        onDelete={deleteExpense}
+        onAddExpense={(date) => {
+          setExpenseInput({ id: undefined, date, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false });
+          setReturnToCategoryDetail('ALL', date);
+          onNavigateToInput();
+        }}
+        onEditExpense={(exp) => {
+          setExpenseInput({ id: exp.id, date: exp.date, amount: String(exp.amount), categoryId: exp.categoryId, paymentMethod: exp.paymentMethod, storeName: exp.storeName || '', memo: exp.memo || '', isLocked: false });
+          setReturnToCategoryDetail('ALL', exp.date);
+          onNavigateToInput();
+        }}
+      />
+
       <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={averageGuideline} onSave={handleSaveMonthlyBudget} onClose={() => setBudgetModalVisible(false)} />
     </View>
   );
