@@ -12,20 +12,14 @@ export interface FamilyMember {
 export interface Category {
   id: string;
   name: string;
-  budget: number; // マスタ側のデフォルト予算として維持（UI上では見せずに初期値として利用します）
+  budget: number; 
   isFixed: boolean;
-}
-
-export interface Payer {
-  id: string;
-  name: string;
 }
 
 export interface HouseholdSettings {
   householdId: string;
   familyMembers: FamilyMember[];
   categories: Category[];
-  payers: Payer[];
   notificationsEnabled: boolean;
   updatedAt: Date | string;
 }
@@ -36,17 +30,16 @@ export interface ExpenseRecord {
   date: string; // YYYY-MM-DD
   categoryId: string;
   amount: number;
-  payerId: string;
-  paymentMethod: string;
-  memo: string;
+  paymentMethod: string; // '現金' | '電子PAY' | 'クレジット'
+  storeName?: string; // 新規：店名（任意）
+  memo?: string;      // 新規：コメント（任意）
   createdAt?: string;
   date_id?: string;
 }
 
-// === 新規追加：月次予算データ ===
 export interface MonthlyBudget {
   householdId: string;
   month_id: string; // "YYYY-MM"
-  budgets: Record<string, number>; // { categoryId: amount } の形式
+  budgets: Record<string, number>;
   updatedAt: string;
 }

@@ -21,7 +21,7 @@ export default function App() {
   }, []);
 
   const handleTabChange = (targetTab: typeof activeTab) => {
-    // 設定画面の未保存チェック
+    // 1. 設定画面の未保存チェック
     if (activeTab === 'settings' && targetTab !== 'settings') {
       const isChanged = JSON.stringify(settings) !== JSON.stringify(pendingSettings);
       if (isChanged && pendingSettings) {
@@ -34,10 +34,10 @@ export default function App() {
       }
     }
 
-    // 入力画面の未保存チェック
+    // 2. 入力画面の未保存チェック（金額、店名、メモのいずれかが入力されている場合）
     if (activeTab === 'input' && targetTab !== 'input') {
-      if (expenseInput.amount !== '0') {
-        Alert.alert('入力の破棄', '入力中の金額があります。破棄して移動しますか？', [
+      if (expenseInput.amount !== '0' || expenseInput.storeName !== '' || expenseInput.memo !== '') {
+        Alert.alert('入力の破棄', '入力途中のデータがあります。破棄して移動しますか？', [
           { text: '破棄して移動', style: 'destructive', onPress: () => { resetExpenseInput(); setActiveTab(targetTab); } },
           { text: 'キャンセル', style: 'cancel' }
         ]);
@@ -66,7 +66,7 @@ export default function App() {
         const defaultSettings: HouseholdSettings = {
           householdId: 'default-household-001', familyMembers: [{ id: 'm1', name: '自分', role: '大人', hasPocketMoney: false, pocketMoneyAmount: 0 }],
           categories: [{ id: 'c1', name: '食費', budget: 50000, isFixed: true }, { id: 'c2', name: '外食', budget: 15000, isFixed: true }, { id: 'c3', name: '日用品', budget: 10000, isFixed: true }, { id: 'c4', name: '養育費', budget: 0, isFixed: true }],
-          payers: [{ id: 'p1', name: 'メイン財布' }], notificationsEnabled: true, updatedAt: new Date(),
+          notificationsEnabled: true, updatedAt: new Date(),
         };
         await updateSettings(defaultSettings);
         await fetchMonthlyBudget(new Date().toISOString().slice(0, 7));
@@ -87,8 +87,8 @@ export default function App() {
       <View style={styles.contentWrapper}>
         {activeTab === 'dashboard' && <DashboardScreen onNavigateToHistory={() => handleTabChange('history')} onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} 
           onNavigateToInput={(categoryId) => {
-            // ダッシュボードから直接入力を呼び出す際はチェック不要で移動し、カテゴリをロックする
-            setExpenseInput({ amount: '0', categoryId, isLocked: true });
+            // モーダルからの直接入力時は状態をリセットし、対象カテゴリをロックして遷移
+            setExpenseInput({ amount: '0', categoryId, paymentMethod: '現金', storeName: '', memo: '', isLocked: true });
             setActiveTab('input');
           }} 
         />}
@@ -104,7 +104,7 @@ export default function App() {
             <Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItemMain} onPress={() => {
-            // ボトムタブから通常入力する際はロックを解除する
+            // ボトムタブからの入力時はロックを解除
             setExpenseInput({ isLocked: false });
             handleTabChange('input');
           }}>
@@ -120,6 +120,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  // ... (既存のスタイル群)
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' },
   contentWrapper: { flex: 1 },

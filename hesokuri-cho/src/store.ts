@@ -8,7 +8,9 @@ const HOUSEHOLD_ID = 'default-household-001';
 interface ExpenseInputState {
   amount: string;
   categoryId: string;
-  payerId: string;
+  paymentMethod: string;
+  storeName: string;
+  memo: string;
   isLocked: boolean; // カテゴリを固定するかどうか
 }
 
@@ -20,7 +22,7 @@ interface HesokuriState {
   isLoading: boolean;
   error: string | null;
 
-  expenseInput: ExpenseInputState; // --- 新規追加：入力画面の状態 ---
+  expenseInput: ExpenseInputState;
   setExpenseInput: (input: Partial<ExpenseInputState>) => void;
   resetExpenseInput: () => void;
 
@@ -36,17 +38,12 @@ interface HesokuriState {
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
-  settings: null,
-  pendingSettings: null,
-  expenses: [],
-  monthlyBudget: null,
-  isLoading: false,
-  error: null,
+  settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null,
 
-  expenseInput: { amount: '0', categoryId: '', payerId: '', isLocked: false },
+  expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
-  resetExpenseInput: () => set((state) => ({ expenseInput: { ...state.expenseInput, amount: '0', isLocked: false } })),
-
+  resetExpenseInput: () => set((state) => ({ expenseInput: { ...state.expenseInput, amount: '0', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
+  
   setPendingSettings: (settings) => set({ pendingSettings: settings }),
 
   fetchSettings: async () => {
@@ -92,9 +89,8 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   updateMonthlyBudget: async (budgets, month) => {
     set({ isLoading: true, error: null });
     try {
-      const budgetData = { month_id: month, budgets };
       const response = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(budgetData),
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets }),
       });
       if (!response.ok) throw new Error(`予算の更新失敗`);
       set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets, updatedAt: new Date().toISOString() }, isLoading: false });
