@@ -13,7 +13,6 @@ interface BudgetEditModalProps {
 export const BudgetEditModal: React.FC<BudgetEditModalProps> = ({ visible, category, onSave, onClose }) => {
   const [inputValue, setInputValue] = useState('');
 
-  // モーダルが開くたびに、選択されたカテゴリの現在の予算額をセットする
   useEffect(() => {
     if (category) {
       setInputValue(String(category.budget));
@@ -23,7 +22,11 @@ export const BudgetEditModal: React.FC<BudgetEditModalProps> = ({ visible, categ
   const handleSave = () => {
     if (!category) return;
     const newBudget = parseInt(inputValue, 10);
-    if (isNaN(newBudget) || newBudget < 0) return;
+    // 空欄の場合は0として扱う
+    if (isNaN(newBudget) || newBudget < 0) {
+      onSave(category.id, 0);
+      return;
+    }
     onSave(category.id, newBudget);
   };
 
@@ -31,10 +34,7 @@ export const BudgetEditModal: React.FC<BudgetEditModalProps> = ({ visible, categ
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade">
-      <KeyboardAvoidingView 
-        style={styles.overlay} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>{category.name}の予算を設定</Text>
           
@@ -46,6 +46,10 @@ export const BudgetEditModal: React.FC<BudgetEditModalProps> = ({ visible, categ
               value={inputValue}
               onChangeText={setInputValue}
               autoFocus={true}
+              selectTextOnFocus={true} // フォーカス時にテキストを全選択
+              onFocus={() => {
+                if (inputValue === '0') setInputValue(''); // 0の場合は空にして入力を受け入れる
+              }}
             />
           </View>
 
