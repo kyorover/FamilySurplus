@@ -26,7 +26,7 @@ interface HesokuriState {
 
   expenseInput: ExpenseInputState;
   returnToCategoryDetail: string | null;
-  returnToCategoryDetailDate: string | null; // 新規追加：帰還時のカレンダー日付
+  returnToCategoryDetailDate: string | null;
 
   setExpenseInput: (input: Partial<ExpenseInputState>) => void;
   resetExpenseInput: () => void;
@@ -42,6 +42,9 @@ interface HesokuriState {
   addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>;
   updateExpense: (expense: ExpenseRecord) => Promise<void>;
   deleteExpense: (date_id: string) => Promise<void>;
+
+  // 新規追加：過去月のカレンダー表示用データフェッチ
+  fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
@@ -52,7 +55,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
   
-  // カテゴリIDと日付の両方をセットできるように変更
   setReturnToCategoryDetail: (id, date = null) => set({ returnToCategoryDetail: id, returnToCategoryDetailDate: date }),
 
   saveExpenseInput: async () => {
@@ -149,4 +151,19 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       set((state) => ({ expenses: state.expenses.filter(e => e.date_id !== date_id), isLoading: false }));
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
   },
+
+  fetchHistoryData: async (month: string) => {
+    try {
+      const [expRes, budRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?month=${month}`),
+        fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`)
+      ]);
+      const expData = await expRes.json();
+      const budData = await budRes.json();
+      return { expenses: expData.expenses || [], budgets: budData.budgets || {} };
+    } catch (e) {
+      console.error(e);
+      return { expenses: [], budgets: {} };
+    }
+  }
 }));
