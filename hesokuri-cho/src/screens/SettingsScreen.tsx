@@ -1,5 +1,5 @@
 // src/screens/SettingsScreen.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { CategoryList } from '../components/settings/CategoryList';
@@ -10,8 +10,9 @@ import { FamilyMember } from '../types';
 
 export const SettingsScreen: React.FC = () => {
   const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
-  const [isCategoryModalVisible, setCategoryModalVisible] = React.useState(false);
-  const [isFamilyModalVisible, setFamilyModalVisible] = React.useState(false);
+  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
+  const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   useEffect(() => {
     if (settings && !pendingSettings) {
@@ -19,20 +20,22 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [settings]);
 
-  if (!pendingSettings) return null;
+  // 修正箇所：Hooksルールの違反を避けるため、早期リターン（return null）の前に配置
+  const activeCategories = useMemo(() => {
+    if (!pendingSettings) return [];
+    const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
+    return pendingSettings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+  }, [pendingSettings]);
 
-  const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
-  const activeCategories = pendingSettings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+  if (!pendingSettings) return null;
 
   const handleUpdateFamily = (updatedMember: FamilyMember) => {
     setPendingSettings({ ...pendingSettings, familyMembers: pendingSettings.familyMembers.map(m => m.id === updatedMember.id ? updatedMember : m) });
   };
-
   const handleAddFamily = (member: FamilyMember) => {
     setPendingSettings({ ...pendingSettings, familyMembers: [...pendingSettings.familyMembers, member] });
     setFamilyModalVisible(false);
   };
-
   const handleDeleteFamily = (memberId: string) => {
     const isAdult = pendingSettings.familyMembers.find(m => m.id === memberId)?.role === '大人';
     const adultCount = pendingSettings.familyMembers.filter(m => m.role === '大人').length;
@@ -44,7 +47,6 @@ export const SettingsScreen: React.FC = () => {
     setPendingSettings({ ...pendingSettings, categories: [...pendingSettings.categories, { id: `c_${Date.now()}`, name, budget: 0, isFixed: false }] });
     setCategoryModalVisible(false);
   };
-
   const handleDeleteCategory = (categoryId: string) => {
     Alert.alert('確認', 'このカテゴリを削除しますか？', [
       { text: 'キャンセル', style: 'cancel' },
@@ -54,20 +56,38 @@ export const SettingsScreen: React.FC = () => {
 
   const handleSaveAll = () => {
     updateSettings(pendingSettings);
-    Alert.alert('完了', '設定を保存しました！\nダッシュボードに反映されます。');
+    Alert.alert('完了', '設定を保存しました！\nダッシュボードの表示順にも反映されます。');
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={isScrollEnabled}>
         
         <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
-        <Text style={styles.hintText}>毎月の固定のお小遣い額を設定します。ここへそくり（余剰金）が加算されます。</Text>
-        <FamilyMemberList members={pendingSettings.familyMembers} onUpdate={handleUpdateFamily} onDelete={handleDeleteFamily} onAdd={() => setFamilyModalVisible(true)} />
+        <Text style={styles.hintText}>「≡」をタップしたままスライドして並び替えます。</Text>
+        <FamilyMemberList 
+          members={pendingSettings.familyMembers} 
+          onUpdate={handleUpdateFamily} 
+          onDelete={handleDeleteFamily} 
+          onAdd={() => setFamilyModalVisible(true)} 
+          onUpdateList={(newList) => setPendingSettings({ ...pendingSettings, familyMembers: newList })}
+          onDragStart={() => setIsScrollEnabled(false)}
+          onDragEnd={() => setIsScrollEnabled(true)}
+        />
 
         <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
-        <Text style={styles.hintText}>趣味や自由費など、不要なものは「削除」できます。（※固定科目は削除不可）</Text>
-        <CategoryList categories={activeCategories} onDeleteCategory={handleDeleteCategory} onAddCategory={() => setCategoryModalVisible(true)} />
+        <Text style={styles.hintText}>ここでの順番がダッシュボードや入力画面にも反映されます。</Text>
+        <CategoryList 
+          categories={activeCategories} 
+          onDeleteCategory={handleDeleteCategory} 
+          onAddCategory={() => setCategoryModalVisible(true)} 
+          onUpdateList={(newList) => {
+            const hiddenCategories = pendingSettings.categories.filter(c => !activeCategories.find(ac => ac.id === c.id));
+            setPendingSettings({ ...pendingSettings, categories: [...newList, ...hiddenCategories] });
+          }}
+          onDragStart={() => setIsScrollEnabled(false)}
+          onDragEnd={() => setIsScrollEnabled(true)}
+        />
 
         <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAll}>
           <Text style={styles.primaryButtonText}>設定を保存する</Text>
