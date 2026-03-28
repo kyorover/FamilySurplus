@@ -1,25 +1,26 @@
 // src/components/dashboard/TotalHesokuriDisplay.tsx
 import React from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 
 interface TotalHesokuriDisplayProps {
   currentMonthHesokuri: number;
+  onPress: () => void;
 }
 
-export const TotalHesokuriDisplay: React.FC<TotalHesokuriDisplayProps> = ({ currentMonthHesokuri }) => {
+export const TotalHesokuriDisplay: React.FC<TotalHesokuriDisplayProps> = ({ currentMonthHesokuri, onPress }) => {
   // ※プロトタイプ用：本来は全期間の (総予算 - 総支出) をバックエンドAPIで集計して取得します
   const pastAccumulated = 185000;
   const total = pastAccumulated + currentMonthHesokuri;
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>🎉 累計へそくり総額</Text>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+      <Text style={styles.title}>🎉 これまで生み出したへそくり額</Text>
       <Text style={styles.amount}>￥{total.toLocaleString()}</Text>
       <Text style={styles.note}>（過去の累計 ￥{pastAccumulated.toLocaleString()} ＋ 今月分）</Text>
       <Text style={styles.description}>
-        このアプリを通じてあなたがこれまでに生み出した、自由のための「余剰金」の総額です。
+        このアプリを通じてあなたがこれまでに生み出した、自由な「タネ銭」の総額です。タップして履歴を見る。
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 

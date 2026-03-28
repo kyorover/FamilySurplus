@@ -11,9 +11,11 @@ import { calculateAverageGuideline, evaluateBudget } from '../functions/budgetUt
 
 interface DashboardScreenProps {
   onNavigateToHistory: () => void;
+  onNavigateToHesokuriHistory: () => void;
+  onNavigateToInput: (categoryId: string) => void; // 新規追加
 }
 
-export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHistory }) => {
+export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHistory, onNavigateToHesokuriHistory, onNavigateToInput }) => {
   const { settings, expenses, monthlyBudget, updateMonthlyBudget, updateExpense, deleteExpense } = useHesokuriStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
@@ -21,21 +23,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
   if (!settings || !monthlyBudget) return null;
 
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
-  const activeCategories = settings.categories.filter(cat => 
-    cat.isFixed && cat.name === '養育費' ? hasChild : true
-  );
-
+  const activeCategories = settings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
   const totalMonthlyBudget = activeCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
-  
   const averageGuideline = calculateAverageGuideline(settings.familyMembers);
   const evaluation = evaluateBudget(totalMonthlyBudget, averageGuideline);
 
-  const spentByCategory = expenses.reduce((acc, exp) => {
-    acc[exp.categoryId] = (acc[exp.categoryId] || 0) + exp.amount;
-    return acc;
-  }, {} as Record<string, number>);
+  const spentByCategory = expenses.reduce((acc, exp) => { acc[exp.categoryId] = (acc[exp.categoryId] || 0) + exp.amount; return acc; }, {} as Record<string, number>);
 
   const handleSaveMonthlyBudget = async (newBudgets: Record<string, number>) => {
     await updateMonthlyBudget(newBudgets, monthlyBudget.month_id);
@@ -48,46 +43,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {/* 統合されたへそくりサマリー＆予算評価カード */}
-        <HesokuriSummaryCard 
-          currentHesokuri={currentHesokuri} 
-          totalMonthlyBudget={totalMonthlyBudget} 
-          totalSpent={totalSpent}
-          averageGuideline={averageGuideline}
-          evaluation={evaluation}
-          onPressEditBudget={() => setBudgetModalVisible(true)}
-        />
-
+        <HesokuriSummaryCard currentHesokuri={currentHesokuri} totalMonthlyBudget={totalMonthlyBudget} totalSpent={totalSpent} averageGuideline={averageGuideline} evaluation={evaluation} onPressEditBudget={() => setBudgetModalVisible(true)} />
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>カテゴリ別状況</Text>
-          <TouchableOpacity onPress={onNavigateToHistory} style={styles.historyBtn}>
-            <Text style={styles.historyBtnText}>履歴を見る ＞</Text>
-          </TouchableOpacity>
+          <TouchableOpacity onPress={onNavigateToHistory} style={styles.historyBtn}><Text style={styles.historyBtnText}>履歴を見る ＞</Text></TouchableOpacity>
         </View>
-
         {activeCategories.map(cat => (
-          <BudgetProgressBar 
-            key={cat.id} categoryId={cat.id} categoryName={cat.name}
-            budget={monthlyBudget.budgets[cat.id] || 0}
-            spent={spentByCategory[cat.id] || 0}
-            onPressDetail={setSelectedCategoryId}
-          />
+          <BudgetProgressBar key={cat.id} categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} onPressDetail={setSelectedCategoryId} />
         ))}
-
-        <TotalHesokuriDisplay currentMonthHesokuri={currentHesokuri} />
+        <TotalHesokuriDisplay currentMonthHesokuri={currentHesokuri} onPress={onNavigateToHesokuriHistory} />
       </ScrollView>
-
-      {/* 明細確認・修正ポップアップ */}
-      <CategoryDetailModal 
-        visible={!!selectedCategoryId} category={selectedCategoryForDetail} expenses={selectedExpenses}
-        onClose={() => setSelectedCategoryId(null)} onUpdate={updateExpense} onDelete={deleteExpense}
-      />
-      
-      {/* 今月の予算一括編集モーダル */}
-      <MonthlyBudgetEditModal 
-        visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget}
-        guideline={averageGuideline} onSave={handleSaveMonthlyBudget} onClose={() => setBudgetModalVisible(false)}
-      />
+      <CategoryDetailModal visible={!!selectedCategoryId} category={selectedCategoryForDetail} expenses={selectedExpenses} onClose={() => setSelectedCategoryId(null)} onUpdate={updateExpense} onDelete={deleteExpense} onAddExpense={onNavigateToInput} />
+      <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={averageGuideline} onSave={handleSaveMonthlyBudget} onClose={() => setBudgetModalVisible(false)} />
     </View>
   );
 };

@@ -1,74 +1,65 @@
 // src/screens/SettingsScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
-import { HouseholdSettings, FamilyMember } from '../types';
+import { FamilyMember } from '../types';
 
 export const SettingsScreen: React.FC = () => {
-  const { settings, updateSettings } = useHesokuriStore();
-  const [localSettings, setLocalSettings] = useState<HouseholdSettings | null>(null);
-  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
-  const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
+  const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
+  const [isCategoryModalVisible, setCategoryModalVisible] = React.useState(false);
+  const [isFamilyModalVisible, setFamilyModalVisible] = React.useState(false);
 
+  // マウント時、pendingSettingsが空なら既存設定をコピーして編集開始
   useEffect(() => {
-    if (settings) {
-      setLocalSettings(JSON.parse(JSON.stringify(settings)));
+    if (settings && !pendingSettings) {
+      setPendingSettings(JSON.parse(JSON.stringify(settings)));
     }
   }, [settings]);
 
-  if (!localSettings) return null;
+  if (!pendingSettings) return null;
 
-  // 家族の中に「子供」がいるか判定
-  const hasChild = localSettings.familyMembers.some(m => m.role === '子供');
-  
-  // 子供がいない場合は「養育費」カテゴリを自動的に除外（非表示化）
-  const activeCategories = localSettings.categories.filter(cat => 
-    cat.isFixed && cat.name === '養育費' ? hasChild : true
-  );
+  const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
+  const activeCategories = pendingSettings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
 
-  // 家族の追加・削除
   const handleAddFamily = (member: FamilyMember) => {
-    setLocalSettings(prev => prev ? { ...prev, familyMembers: [...prev.familyMembers, member] } : prev);
+    setPendingSettings({ ...pendingSettings, familyMembers: [...pendingSettings.familyMembers, member] });
     setFamilyModalVisible(false);
   };
 
   const handleDeleteFamily = (memberId: string) => {
-    const isAdult = localSettings.familyMembers.find(m => m.id === memberId)?.role === '大人';
-    const adultCount = localSettings.familyMembers.filter(m => m.role === '大人').length;
+    const isAdult = pendingSettings.familyMembers.find(m => m.id === memberId)?.role === '大人';
+    const adultCount = pendingSettings.familyMembers.filter(m => m.role === '大人').length;
     if (isAdult && adultCount <= 1) return Alert.alert('エラー', '大人は最低1人必要です');
-
-    setLocalSettings(prev => prev ? { ...prev, familyMembers: prev.familyMembers.filter(m => m.id !== memberId) } : prev);
+    setPendingSettings({ ...pendingSettings, familyMembers: pendingSettings.familyMembers.filter(m => m.id !== memberId) });
   };
 
-  // カスタムカテゴリの追加・削除
   const handleAddCategory = (name: string) => {
-    setLocalSettings(prev => prev ? { ...prev, categories: [...prev.categories, { id: `c_${Date.now()}`, name, budget: 0, isFixed: false }] } : prev);
+    setPendingSettings({ ...pendingSettings, categories: [...pendingSettings.categories, { id: `c_${Date.now()}`, name, budget: 0, isFixed: false }] });
     setCategoryModalVisible(false);
   };
 
   const handleDeleteCategory = (categoryId: string) => {
     Alert.alert('確認', 'このカテゴリを削除しますか？', [
       { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => setLocalSettings(prev => prev ? { ...prev, categories: prev.categories.filter(c => c.id !== categoryId) } : prev) }
+      { text: '削除', style: 'destructive', onPress: () => setPendingSettings({ ...pendingSettings, categories: pendingSettings.categories.filter(c => c.id !== categoryId) }) }
     ]);
   };
 
   const handleSaveAll = () => {
-    updateSettings(localSettings);
+    updateSettings(pendingSettings);
     Alert.alert('完了', '設定を保存しました！\nダッシュボードに反映されます。');
   };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        
         <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成</Text>
         <Text style={styles.hintText}>子供を追加すると「養育費」の枠が自動で解放され、世間の目安計算が補正されます。</Text>
-        <FamilyMemberList members={localSettings.familyMembers} onDelete={handleDeleteFamily} onAdd={() => setFamilyModalVisible(true)} />
+        <FamilyMemberList members={pendingSettings.familyMembers} onDelete={handleDeleteFamily} onAdd={() => setFamilyModalVisible(true)} />
 
         <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
         <Text style={styles.hintText}>趣味や自由費など、不要なものは「削除」できます。（※固定科目は削除不可）</Text>
@@ -77,7 +68,6 @@ export const SettingsScreen: React.FC = () => {
         <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAll}>
           <Text style={styles.primaryButtonText}>設定を保存する</Text>
         </TouchableOpacity>
-        
         <View style={{ height: 100 }} />
       </ScrollView>
 
