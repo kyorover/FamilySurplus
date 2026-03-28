@@ -4,87 +4,37 @@ import { StyleSheet, View, Text } from 'react-native';
 import { BudgetEvaluationResult } from '../../functions/budgetUtils';
 
 interface BudgetEvaluationCardProps {
-  totalMonthlyBudget: number;
+  fixedMonthlyBudget: number; // 変更：総予算ではなく固定費の合計を受け取る
   averageGuideline: number;
   evaluation: BudgetEvaluationResult;
+  hasChild: boolean; // 新規追加
 }
 
-export const BudgetEvaluationCard: React.FC<BudgetEvaluationCardProps> = ({
-  totalMonthlyBudget,
-  averageGuideline,
-  evaluation
-}) => {
+export const BudgetEvaluationCard: React.FC<BudgetEvaluationCardProps> = ({ fixedMonthlyBudget, averageGuideline, evaluation, hasChild }) => {
+  const fixedCategoriesText = hasChild ? '食費、外食、日用品、養育費' : '食費、外食、日用品';
+
   return (
-    <View style={styles.card}>
-      <View style={styles.totalBudgetRow}>
-        <View>
-          <Text style={styles.totalBudgetLabel}>今月の家計予算</Text>
-          <Text style={styles.guidelineCompareText}>
-            世間の目安: ￥{averageGuideline.toLocaleString()}
-          </Text>
-        </View>
-        <Text style={styles.totalBudgetAmount}>
-          ￥{totalMonthlyBudget.toLocaleString()}
-        </Text>
+    <View style={[styles.evaluationContainer, { backgroundColor: evaluation.bgColor }]}>
+      <View style={styles.evalHeader}>
+        <Text style={[styles.evaluationTitle, { color: evaluation.color }]}>{evaluation.title}</Text>
       </View>
-      <View style={[styles.evaluationContainer, { backgroundColor: evaluation.bgColor }]}>
-        <Text style={[styles.evaluationTitle, { color: evaluation.color }]}>
-          {evaluation.title}
-        </Text>
-        <Text style={[styles.evaluationMessage, { color: evaluation.color }]}>
-          {evaluation.message}
-        </Text>
+      <Text style={[styles.evaluationMessage, { color: evaluation.color }]}>{evaluation.message}</Text>
+      
+      <View style={styles.detailsBox}>
+        <Text style={[styles.detailText, { color: evaluation.color }]}>固定費の合計: ￥{fixedMonthlyBudget.toLocaleString()}</Text>
+        <Text style={[styles.detailText, { color: evaluation.color }]}>世間の目安: ￥{averageGuideline.toLocaleString()}</Text>
       </View>
+      <Text style={[styles.guidelineNote, { color: evaluation.color }]}>※固定費（{fixedCategoriesText}）のみで算出しています</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 12, 
-    overflow: 'hidden', 
-    marginBottom: 24,
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 1 }, 
-    shadowOpacity: 0.05, 
-    shadowRadius: 2, 
-    elevation: 1
-  },
-  totalBudgetRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 16 
-  },
-  totalBudgetLabel: { 
-    fontSize: 13, 
-    fontWeight: '600', 
-    color: '#8E8E93', 
-    marginBottom: 4 
-  },
-  guidelineCompareText: { 
-    fontSize: 11, 
-    color: '#8E8E93' 
-  },
-  totalBudgetAmount: { 
-    fontSize: 26, 
-    fontWeight: 'bold', 
-    color: '#1C1C1E' 
-  },
-  evaluationContainer: { 
-    padding: 12, 
-    marginHorizontal: 16, 
-    marginBottom: 16, 
-    borderRadius: 10 
-  },
-  evaluationTitle: { 
-    fontSize: 14, 
-    fontWeight: 'bold', 
-    marginBottom: 4 
-  },
-  evaluationMessage: { 
-    fontSize: 11, 
-    lineHeight: 16 
-  },
+  evaluationContainer: { padding: 16, borderRadius: 12, marginBottom: 24 },
+  evalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  evaluationTitle: { fontSize: 16, fontWeight: 'bold' },
+  evaluationMessage: { fontSize: 13, lineHeight: 18, opacity: 0.9, marginBottom: 12 },
+  detailsBox: { backgroundColor: 'rgba(255,255,255,0.4)', padding: 12, borderRadius: 8, marginBottom: 8 },
+  detailText: { fontSize: 13, fontWeight: 'bold', marginBottom: 4 },
+  guidelineNote: { fontSize: 11, opacity: 0.7, fontWeight: 'bold' },
 });

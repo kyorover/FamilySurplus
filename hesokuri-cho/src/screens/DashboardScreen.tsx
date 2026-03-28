@@ -22,7 +22,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
   const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
 
-  // 入力画面から戻ってきた際の自動展開ロジック
   useEffect(() => {
     if (returnToCategoryDetail === 'ALL') {
       setAllCalendarVisible(true);
@@ -35,11 +34,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
 
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
   const activeCategories = settings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+  
+  // へそくり計算用の「総予算」
   const totalMonthlyBudget = activeCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
+  
+  // 評価バッジ計算用の「固定費予算のみ」
+  const fixedMonthlyBudget = activeCategories.filter(cat => cat.isFixed).reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
+  
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
   const averageGuideline = calculateAverageGuideline(settings.familyMembers);
-  const evaluation = evaluateBudget(totalMonthlyBudget, averageGuideline);
+  
+  // 修正：総予算ではなく、固定費予算のみを評価に渡す
+  const evaluation = evaluateBudget(fixedMonthlyBudget, averageGuideline);
 
   const spentByCategory = expenses.reduce((acc, exp) => { acc[exp.categoryId] = (acc[exp.categoryId] || 0) + exp.amount; return acc; }, {} as Record<string, number>);
 
@@ -57,7 +64,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
         <HesokuriSummaryCard 
           currentHesokuri={currentHesokuri} totalMonthlyBudget={totalMonthlyBudget} totalSpent={totalSpent} 
           averageGuideline={averageGuideline} evaluation={evaluation} hasChild={hasChild}
-          onPressCard={() => setAllCalendarVisible(true)} // サマリータップで全カレンダー表示
+          onPressCard={() => setAllCalendarVisible(true)} 
           onPressEditBudget={() => setBudgetModalVisible(true)} 
         />
         <View style={styles.sectionHeader}>
@@ -70,7 +77,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
         <TotalHesokuriDisplay currentMonthHesokuri={currentHesokuri} onPress={onNavigateToHesokuriHistory} />
       </ScrollView>
 
-      {/* カテゴリごとのカレンダー */}
       <CategoryDetailModal 
         visible={!!selectedCategoryId} category={selectedCategoryForDetail} expenses={selectedExpenses} currentMonth={monthlyBudget.month_id}
         initialDate={returnToCategoryDetail !== 'ALL' ? returnToCategoryDetailDate : null}
@@ -88,7 +94,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHi
         }}
       />
 
-      {/* 全カテゴリ統合カレンダー */}
       <AllCategoryCalendarModal 
         visible={isAllCalendarVisible} categories={activeCategories} expenses={expenses} currentMonth={monthlyBudget.month_id}
         initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null}

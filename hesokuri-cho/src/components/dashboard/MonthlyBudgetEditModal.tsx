@@ -4,7 +4,7 @@ import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, SafeAreaVi
 import { Category, MonthlyBudget } from '../../types';
 import { BudgetEvaluationCard } from '../settings/BudgetEvaluationCard';
 import { BudgetEditModal } from '../settings/BudgetEditModal';
-import { calculateAverageGuideline, evaluateBudget } from '../../functions/budgetUtils';
+import { evaluateBudget } from '../../functions/budgetUtils';
 
 interface MonthlyBudgetEditModalProps {
   visible: boolean;
@@ -23,8 +23,11 @@ export const MonthlyBudgetEditModal: React.FC<MonthlyBudgetEditModalProps> = ({ 
     if (visible) setLocalBudgets({ ...monthlyBudget.budgets });
   }, [visible, monthlyBudget]);
 
-  const totalMonthlyBudget = categories.reduce((sum, cat) => sum + (localBudgets[cat.id] || 0), 0);
-  const evaluation = evaluateBudget(totalMonthlyBudget, guideline);
+  // 評価バッジ計算用の「固定費予算のみ」
+  const fixedMonthlyBudget = categories.filter(cat => cat.isFixed).reduce((sum, cat) => sum + (localBudgets[cat.id] || 0), 0);
+  const evaluation = evaluateBudget(fixedMonthlyBudget, guideline);
+  
+  const hasChild = categories.some(cat => cat.name === '養育費');
 
   const handleSaveItem = (categoryId: string, newBudget: number) => {
     setLocalBudgets(prev => ({ ...prev, [categoryId]: newBudget }));
@@ -43,7 +46,8 @@ export const MonthlyBudgetEditModal: React.FC<MonthlyBudgetEditModalProps> = ({ 
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <BudgetEvaluationCard totalMonthlyBudget={totalMonthlyBudget} averageGuideline={guideline} evaluation={evaluation} />
+          {/* 修正：固定費の合算額を渡して評価バッジを表示する */}
+          <BudgetEvaluationCard fixedMonthlyBudget={fixedMonthlyBudget} averageGuideline={guideline} evaluation={evaluation} hasChild={hasChild} />
           
           <Text style={styles.sectionTitle}>カテゴリ別予算（タップで編集）</Text>
           <View style={styles.listCard}>

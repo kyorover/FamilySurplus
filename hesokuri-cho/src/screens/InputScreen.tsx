@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
-import { DatePickerModal } from '../components/input/DatePickerModal'; // 新規追加
+import { DatePickerModal } from '../components/input/DatePickerModal';
 
 interface InputScreenProps {
   onComplete: () => void;
@@ -14,14 +14,13 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   const paymentMethods = ['現金', 'コード決済', 'クレジット'];
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(false);
-  const [isDatePickerVisible, setDatePickerVisible] = useState(false); // 日付ピッカーの表示状態
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
   if (!settings) return null;
 
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
   const activeCategories = settings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
   
-  // 未設定の場合は今日の日付を表示用とする
   const displayDate = expenseInput.date || new Date().toISOString().slice(0, 10);
   const formattedDate = `${displayDate.split('-')[0]}年${displayDate.split('-')[1]}月${displayDate.split('-')[2]}日`;
 
@@ -47,7 +46,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
 
   const handleSubmit = async () => {
     try {
-      // 保存時に未設定なら今日の日付をStoreに格納する
       if (!expenseInput.date) setExpenseInput({ date: displayDate });
       await saveExpenseInput();
       Alert.alert('完了', '記録を保存しました！');
@@ -66,14 +64,21 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       
       <View style={styles.inputFocusWrapper}>
-        {/* 新規：日付選択ボタン */}
         <TouchableOpacity style={styles.dateSelectorBtn} onPress={() => setDatePickerVisible(true)}>
           <Text style={styles.dateSelectorText}>📅 {formattedDate}  ▼</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused]} activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); setIsAmountFocused(true); }}>
           <Text style={[styles.inputCurrency, isAmountFocused && styles.inputCurrencyFocused]}>￥</Text>
-          <Text style={styles.inputDisplayAmount}>{parseInt(expenseInput.amount, 10).toLocaleString()}<Text style={{ color: cursorVisible ? '#007AFF' : 'transparent' }}>|</Text></Text>
+          <Text style={styles.inputDisplayAmount}>
+            {/* フォーカス中で0の場合は、プレースホルダーとして薄いグレーで0を表示する */}
+            {isAmountFocused && expenseInput.amount === '0' ? (
+              <Text style={{ color: '#C7C7CC' }}>0</Text>
+            ) : (
+              parseInt(expenseInput.amount, 10).toLocaleString()
+            )}
+            <Text style={{ color: cursorVisible ? '#007AFF' : 'transparent' }}>|</Text>
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -112,13 +117,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}><Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text></TouchableOpacity>
       </ScrollView>
 
-      {/* 日付選択モーダル */}
-      <DatePickerModal 
-        visible={isDatePickerVisible} 
-        initialDate={displayDate} 
-        onSelect={(date) => setExpenseInput({ date })} 
-        onClose={() => setDatePickerVisible(false)} 
-      />
+      <DatePickerModal visible={isDatePickerVisible} initialDate={displayDate} onSelect={(date) => setExpenseInput({ date })} onClose={() => setDatePickerVisible(false)} />
     </KeyboardAvoidingView>
   );
 };
