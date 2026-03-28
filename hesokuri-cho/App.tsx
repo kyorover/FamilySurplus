@@ -21,7 +21,6 @@ export default function App() {
   }, []);
 
   const handleTabChange = (targetTab: typeof activeTab) => {
-    // 1. 設定画面の未保存チェック
     if (activeTab === 'settings' && targetTab !== 'settings') {
       const isChanged = JSON.stringify(settings) !== JSON.stringify(pendingSettings);
       if (isChanged && pendingSettings) {
@@ -34,7 +33,6 @@ export default function App() {
       }
     }
 
-    // 2. 入力画面の未保存チェック
     if (activeTab === 'input' && targetTab !== 'input') {
       if (expenseInput.amount !== '0' || expenseInput.storeName !== '' || expenseInput.memo !== '') {
         Alert.alert('未保存の入力データ', '入力途中のデータがあります。保存して移動しますか？', [
@@ -69,7 +67,10 @@ export default function App() {
       <Text style={styles.welcomeTitle}>へそくり帳へようこそ！</Text>
       <TouchableOpacity style={styles.primaryButton} onPress={async () => {
         const defaultSettings: HouseholdSettings = {
-          householdId: 'default-household-001', familyMembers: [{ id: 'm1', name: '自分', role: '大人', hasPocketMoney: false, pocketMoneyAmount: 0 }],
+          householdId: 'default-household-001', 
+          // 変更：初期データにお小遣い額と配分率、赤字ルールを追加
+          familyMembers: [{ id: 'm1', name: '自分', role: '大人', hasPocketMoney: true, pocketMoneyAmount: 30000, surplusRatio: 100 }],
+          deficitRule: '折半',
           categories: [{ id: 'c1', name: '食費', budget: 50000, isFixed: true }, { id: 'c2', name: '外食', budget: 15000, isFixed: true }, { id: 'c3', name: '日用品', budget: 10000, isFixed: true }, { id: 'c4', name: '養育費', budget: 0, isFixed: true }],
           notificationsEnabled: true, updatedAt: new Date(),
         };
@@ -90,7 +91,7 @@ export default function App() {
       )}
 
       <View style={styles.contentWrapper}>
-        {activeTab === 'dashboard' && <DashboardScreen onNavigateToHistory={() => handleTabChange('history')} onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} 
+        {activeTab === 'dashboard' && <DashboardScreen onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} 
           onNavigateToInput={() => setActiveTab('input')} 
         />}
         {activeTab === 'input' && <InputScreen onComplete={() => setActiveTab('dashboard')} />}

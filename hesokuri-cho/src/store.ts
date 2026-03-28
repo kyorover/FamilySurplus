@@ -6,71 +6,30 @@ const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.co
 const HOUSEHOLD_ID = 'default-household-001';
 
 interface ExpenseInputState {
-  id?: string;
-  date?: string;
-  amount: string;
-  categoryId: string;
-  paymentMethod: string;
-  storeName: string;
-  memo: string;
-  isLocked: boolean;
+  id?: string; date?: string; amount: string; categoryId: string; paymentMethod: string; storeName: string; memo: string; isLocked: boolean;
 }
 
 interface HesokuriState {
-  settings: HouseholdSettings | null;
-  pendingSettings: HouseholdSettings | null;
-  expenses: ExpenseRecord[];
-  monthlyBudget: MonthlyBudget | null;
-  isLoading: boolean;
-  error: string | null;
+  settings: HouseholdSettings | null; pendingSettings: HouseholdSettings | null; expenses: ExpenseRecord[]; monthlyBudget: MonthlyBudget | null; isLoading: boolean; error: string | null;
+  expenseInput: ExpenseInputState; returnToCategoryDetail: string | null; returnToCategoryDetailDate: string | null;
 
-  expenseInput: ExpenseInputState;
-  returnToCategoryDetail: string | null;
-  returnToCategoryDetailDate: string | null;
-
-  setExpenseInput: (input: Partial<ExpenseInputState>) => void;
-  resetExpenseInput: () => void;
-  saveExpenseInput: () => Promise<void>;
-  setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
-
-  setPendingSettings: (settings: HouseholdSettings | null) => void;
-  fetchSettings: () => Promise<void>;
-  updateSettings: (newSettings: HouseholdSettings) => Promise<void>;
-  fetchExpenses: (month: string) => Promise<void>;
-  fetchMonthlyBudget: (month: string) => Promise<void>;
-  updateMonthlyBudget: (budgets: Record<string, number>, month: string) => Promise<void>;
-  addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>;
-  updateExpense: (expense: ExpenseRecord) => Promise<void>;
-  deleteExpense: (date_id: string) => Promise<void>;
-
-  // 新規追加：過去月のカレンダー表示用データフェッチ
-  fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
+  setExpenseInput: (input: Partial<ExpenseInputState>) => void; resetExpenseInput: () => void; saveExpenseInput: () => Promise<void>; setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
+  setPendingSettings: (settings: HouseholdSettings | null) => void; fetchSettings: () => Promise<void>; updateSettings: (newSettings: HouseholdSettings) => Promise<void>; fetchExpenses: (month: string) => Promise<void>; fetchMonthlyBudget: (month: string) => Promise<void>; updateMonthlyBudget: (budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule'], month: string) => Promise<void>; addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>; updateExpense: (expense: ExpenseRecord) => Promise<void>; deleteExpense: (date_id: string) => Promise<void>; fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
-  settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null,
-  returnToCategoryDetail: null, returnToCategoryDetailDate: null,
-
+  settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null, returnToCategoryDetail: null, returnToCategoryDetailDate: null,
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
-  
   setReturnToCategoryDetail: (id, date = null) => set({ returnToCategoryDetail: id, returnToCategoryDetailDate: date }),
 
   saveExpenseInput: async () => {
-    const state = get();
-    const input = state.expenseInput;
-    const amountNum = parseInt(input.amount, 10);
+    const state = get(); const input = state.expenseInput; const amountNum = parseInt(input.amount, 10);
     if (amountNum <= 0 || !input.categoryId) throw new Error('金額またはカテゴリが不正です');
-    
     const expenseDate = input.date || new Date().toISOString().slice(0, 10);
     const dataObj = { householdId: HOUSEHOLD_ID, date: expenseDate, categoryId: input.categoryId, amount: amountNum, paymentMethod: input.paymentMethod, storeName: input.storeName.trim(), memo: input.memo.trim() };
-
-    if (input.id) {
-      await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` });
-    } else {
-      await state.addExpense(dataObj);
-    }
+    if (input.id) await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` }); else await state.addExpense(dataObj);
     state.resetExpenseInput();
   },
 
@@ -100,20 +59,25 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       const response = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`);
       const data = await response.json();
       let currentBudgets = data.budgets || {};
+      let currentAllocation = data.bonusAllocation || {};
+      let currentRule = data.deficitRule || 'みんなで折半';
       const currentSettings = get().settings;
+      
       if (Object.keys(currentBudgets).length === 0 && currentSettings) {
         currentSettings.categories.forEach(cat => { currentBudgets[cat.id] = cat.budget; });
-        await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets }) });
+        const adults = currentSettings.familyMembers.filter(m => m.role === '大人');
+        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); }); // デフォルトは均等配分
+        await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule }) });
       }
-      set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, updatedAt: new Date().toISOString() }, isLoading: false });
+      set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule, updatedAt: new Date().toISOString() }, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
   },
 
-  updateMonthlyBudget: async (budgets, month) => {
+  updateMonthlyBudget: async (budgets, bonusAllocation, deficitRule, month) => {
     set({ isLoading: true, error: null });
     try {
-      await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets }) });
-      set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets, updatedAt: new Date().toISOString() }, isLoading: false });
+      await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets, bonusAllocation, deficitRule }) });
+      set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets, bonusAllocation, deficitRule, updatedAt: new Date().toISOString() }, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
   },
 
@@ -154,16 +118,9 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
 
   fetchHistoryData: async (month: string) => {
     try {
-      const [expRes, budRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?month=${month}`),
-        fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`)
-      ]);
-      const expData = await expRes.json();
-      const budData = await budRes.json();
+      const [expRes, budRes] = await Promise.all([ fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?month=${month}`), fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`) ]);
+      const expData = await expRes.json(); const budData = await budRes.json();
       return { expenses: expData.expenses || [], budgets: budData.budgets || {} };
-    } catch (e) {
-      console.error(e);
-      return { expenses: [], budgets: {} };
-    }
+    } catch (e) { return { expenses: [], budgets: {} }; }
   }
 }));

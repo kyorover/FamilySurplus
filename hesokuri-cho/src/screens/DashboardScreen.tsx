@@ -9,6 +9,7 @@ import { AllCategoryCalendarModal } from '../components/dashboard/AllCategoryCal
 import { TotalHesokuriDisplay } from '../components/dashboard/TotalHesokuriDisplay';
 import { MonthlyBudgetEditModal } from '../components/dashboard/MonthlyBudgetEditModal';
 import { calculateAverageGuideline, evaluateBudget } from '../functions/budgetUtils';
+import { MonthlyBudget } from '../types';
 
 interface DashboardScreenProps {
   onNavigateToHesokuriHistory: () => void;
@@ -22,11 +23,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
 
   useEffect(() => {
-    if (returnToCategoryDetail === 'ALL') {
-      setAllCalendarVisible(true);
-    } else if (returnToCategoryDetail) {
-      setSelectedCategoryId(returnToCategoryDetail);
-    }
+    if (returnToCategoryDetail === 'ALL') setAllCalendarVisible(true);
+    else if (returnToCategoryDetail) setSelectedCategoryId(returnToCategoryDetail);
   }, [returnToCategoryDetail]);
 
   if (!settings || !monthlyBudget) return null;
@@ -43,8 +41,36 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
   const spentByCategory = expenses.reduce((acc, exp) => { acc[exp.categoryId] = (acc[exp.categoryId] || 0) + exp.amount; return acc; }, {} as Record<string, number>);
 
-  const handleSaveMonthlyBudget = async (newBudgets: Record<string, number>) => {
-    await updateMonthlyBudget(newBudgets, monthlyBudget.month_id);
+  // 今月のルールに基づいたお小遣い支給額の計算
+  const adults = settings.familyMembers.filter(m => m.role === '大人');
+  const deficitRule = monthlyBudget.deficitRule || 'みんなで折半';
+  
+  const pocketMoneyDetails = adults.map(adult => {
+    let bonus = 0;
+    const ratio = monthlyBudget.bonusAllocation?.[adult.id] || 0;
+
+    if (currentHesokuri > 0) {
+      bonus = currentHesokuri * (ratio / 100);
+    } else if (currentHesokuri < 0) {
+      if (deficitRule === 'みんなで折半') {
+        bonus = currentHesokuri / adults.length;
+      } else if (deficitRule === '配分比率でカバー') {
+        bonus = currentHesokuri * (ratio / 100);
+      } else if (deficitRule === 'お小遣いは減らさない') {
+        bonus = 0;
+      }
+    }
+    return {
+      id: adult.id,
+      name: adult.name,
+      base: adult.pocketMoneyAmount || 0,
+      bonus: Math.round(bonus),
+      total: (adult.pocketMoneyAmount || 0) + Math.round(bonus)
+    };
+  });
+
+  const handleSaveMonthlyBudget = async (newBudgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule']) => {
+    await updateMonthlyBudget(newBudgets, bonusAllocation, deficitRule, monthlyBudget.month_id);
     setBudgetModalVisible(false);
   };
 
@@ -57,13 +83,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
         <HesokuriSummaryCard 
           currentHesokuri={currentHesokuri} totalMonthlyBudget={totalMonthlyBudget} totalSpent={totalSpent} 
           averageGuideline={averageGuideline} evaluation={evaluation} hasChild={hasChild}
+          pocketMoneyDetails={pocketMoneyDetails}
           onPressCard={() => setAllCalendarVisible(true)} 
           onPressEditBudget={() => setBudgetModalVisible(true)} 
         />
         
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>カテゴリ別状況</Text>
-          {/* 古い履歴リスト画面へのリンクを撤去し、カレンダーを直接開くボタンへ変更 */}
           <TouchableOpacity onPress={() => setAllCalendarVisible(true)} style={styles.historyBtn}>
             <Text style={styles.historyBtnText}>📅 過去のカレンダー</Text>
           </TouchableOpacity>
@@ -75,41 +101,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
         <TotalHesokuriDisplay currentMonthHesokuri={currentHesokuri} onPress={onNavigateToHesokuriHistory} />
       </ScrollView>
 
-      <CategoryDetailModal 
-        visible={!!selectedCategoryId} category={selectedCategoryForDetail} expenses={selectedExpenses} currentMonth={monthlyBudget.month_id}
-        initialDate={returnToCategoryDetail !== 'ALL' ? returnToCategoryDetailDate : null}
-        onClose={() => { setSelectedCategoryId(null); if (returnToCategoryDetail !== 'ALL') setReturnToCategoryDetail(null, null); }} 
-        onDelete={deleteExpense}
-        onAddExpense={(categoryId, date) => {
-          setExpenseInput({ id: undefined, date, amount: '0', categoryId, paymentMethod: '現金', storeName: '', memo: '', isLocked: true });
-          setReturnToCategoryDetail(categoryId, date);
-          onNavigateToInput();
-        }}
-        onEditExpense={(exp) => {
-          setExpenseInput({ id: exp.id, date: exp.date, amount: String(exp.amount), categoryId: exp.categoryId, paymentMethod: exp.paymentMethod, storeName: exp.storeName || '', memo: exp.memo || '', isLocked: true });
-          setReturnToCategoryDetail(exp.categoryId, exp.date);
-          onNavigateToInput();
-        }}
-      />
-
-      <AllCategoryCalendarModal 
-        visible={isAllCalendarVisible} categories={activeCategories} currentMonth={monthlyBudget.month_id}
-        initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null}
-        onClose={() => { setAllCalendarVisible(false); if (returnToCategoryDetail === 'ALL') setReturnToCategoryDetail(null, null); }}
-        onDelete={deleteExpense}
-        onAddExpense={(date) => {
-          setExpenseInput({ id: undefined, date, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false });
-          setReturnToCategoryDetail('ALL', date);
-          onNavigateToInput();
-        }}
-        onEditExpense={(exp) => {
-          setExpenseInput({ id: exp.id, date: exp.date, amount: String(exp.amount), categoryId: exp.categoryId, paymentMethod: exp.paymentMethod, storeName: exp.storeName || '', memo: exp.memo || '', isLocked: false });
-          setReturnToCategoryDetail('ALL', exp.date);
-          onNavigateToInput();
-        }}
-      />
-
-      <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={averageGuideline} onSave={handleSaveMonthlyBudget} onClose={() => setBudgetModalVisible(false)} />
+      <CategoryDetailModal visible={!!selectedCategoryId} category={selectedCategoryForDetail} expenses={selectedExpenses} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail !== 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setSelectedCategoryId(null); if (returnToCategoryDetail !== 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(categoryId, date) => { setExpenseInput({ id: undefined, date, amount: '0', categoryId, paymentMethod: '現金', storeName: '', memo: '', isLocked: true }); setReturnToCategoryDetail(categoryId, date); onNavigateToInput(); }} onEditExpense={(exp) => { setExpenseInput({ id: exp.id, date: exp.date, amount: String(exp.amount), categoryId: exp.categoryId, paymentMethod: exp.paymentMethod, storeName: exp.storeName || '', memo: exp.memo || '', isLocked: true }); setReturnToCategoryDetail(exp.categoryId, exp.date); onNavigateToInput(); }} />
+      <AllCategoryCalendarModal visible={isAllCalendarVisible} categories={activeCategories} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setAllCalendarVisible(false); if (returnToCategoryDetail === 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(date) => { setExpenseInput({ id: undefined, date, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false }); setReturnToCategoryDetail('ALL', date); onNavigateToInput(); }} onEditExpense={(exp) => { setExpenseInput({ id: exp.id, date: exp.date, amount: String(exp.amount), categoryId: exp.categoryId, paymentMethod: exp.paymentMethod, storeName: exp.storeName || '', memo: exp.memo || '', isLocked: false }); setReturnToCategoryDetail('ALL', exp.date); onNavigateToInput(); }} />
+      <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} familyMembers={settings.familyMembers} monthlyBudget={monthlyBudget} guideline={averageGuideline} onSave={handleSaveMonthlyBudget} onClose={() => setBudgetModalVisible(false)} />
     </View>
   );
 };

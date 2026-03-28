@@ -13,7 +13,6 @@ export const SettingsScreen: React.FC = () => {
   const [isCategoryModalVisible, setCategoryModalVisible] = React.useState(false);
   const [isFamilyModalVisible, setFamilyModalVisible] = React.useState(false);
 
-  // マウント時、pendingSettingsが空なら既存設定をコピーして編集開始
   useEffect(() => {
     if (settings && !pendingSettings) {
       setPendingSettings(JSON.parse(JSON.stringify(settings)));
@@ -24,6 +23,10 @@ export const SettingsScreen: React.FC = () => {
 
   const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
   const activeCategories = pendingSettings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+
+  const handleUpdateFamily = (updatedMember: FamilyMember) => {
+    setPendingSettings({ ...pendingSettings, familyMembers: pendingSettings.familyMembers.map(m => m.id === updatedMember.id ? updatedMember : m) });
+  };
 
   const handleAddFamily = (member: FamilyMember) => {
     setPendingSettings({ ...pendingSettings, familyMembers: [...pendingSettings.familyMembers, member] });
@@ -57,9 +60,10 @@ export const SettingsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成</Text>
-        <Text style={styles.hintText}>子供を追加すると「養育費」の枠が自動で解放され、世間の目安計算が補正されます。</Text>
-        <FamilyMemberList members={pendingSettings.familyMembers} onDelete={handleDeleteFamily} onAdd={() => setFamilyModalVisible(true)} />
+        
+        <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
+        <Text style={styles.hintText}>毎月の固定のお小遣い額を設定します。ここへそくり（余剰金）が加算されます。</Text>
+        <FamilyMemberList members={pendingSettings.familyMembers} onUpdate={handleUpdateFamily} onDelete={handleDeleteFamily} onAdd={() => setFamilyModalVisible(true)} />
 
         <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
         <Text style={styles.hintText}>趣味や自由費など、不要なものは「削除」できます。（※固定科目は削除不可）</Text>

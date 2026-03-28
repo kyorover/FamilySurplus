@@ -6,7 +6,7 @@ export interface FamilyMember {
   role: '大人' | '子供';
   age?: number;
   hasPocketMoney: boolean;
-  pocketMoneyAmount: number;
+  pocketMoneyAmount: number; // 基本のお小遣い
 }
 
 export interface Category {
@@ -27,19 +27,21 @@ export interface HouseholdSettings {
 export interface ExpenseRecord {
   id: string;
   householdId: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   categoryId: string;
   amount: number;
-  paymentMethod: string; // '現金' | '電子PAY' | 'クレジット'
-  storeName?: string; // 新規：店名（任意）
-  memo?: string;      // 新規：コメント（任意）
+  paymentMethod: string;
+  storeName?: string;
+  memo?: string;
   createdAt?: string;
   date_id?: string;
 }
 
 export interface MonthlyBudget {
   householdId: string;
-  month_id: string; // "YYYY-MM"
+  month_id: string;
   budgets: Record<string, number>;
+  bonusAllocation: Record<string, number>; // 新規：メンバーID -> 今月の配分比率(%)
+  deficitRule: 'みんなで折半' | '配分比率でカバー' | 'お小遣いは減らさない'; // 新規：今月の赤字カバー方法
   updatedAt: string;
 }
