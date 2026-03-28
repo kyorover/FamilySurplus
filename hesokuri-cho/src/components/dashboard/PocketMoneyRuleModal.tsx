@@ -15,16 +15,26 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
   const [localAllocation, setLocalAllocation] = useState<Record<string, number>>({});
   const [localRule, setLocalRule] = useState<MonthlyBudget['deficitRule']>('みんなで折半');
 
+  const adults = familyMembers.filter(m => m.role === '大人');
+
   useEffect(() => {
     if (visible) {
-      setLocalAllocation({ ...monthlyBudget.bonusAllocation });
+      let alloc = { ...monthlyBudget.bonusAllocation };
+      
+      // 大人1人の場合（単身、または親1人+子供）は自動的に100%にする
+      if (adults.length === 1) {
+        alloc[adults[0].id] = 100;
+      } else if (Object.keys(alloc).length === 0 && adults.length > 0) {
+        // 未設定の場合は均等割り
+        const val = Math.floor(100 / adults.length);
+        adults.forEach(a => { alloc[a.id] = val; });
+      }
+      
+      setLocalAllocation(alloc);
       setLocalRule(monthlyBudget.deficitRule || 'みんなで折半');
     }
   }, [visible, monthlyBudget]);
 
-  const adults = familyMembers.filter(m => m.role === '大人');
-
-  // ワンタッチで配分比率を一括設定するロジック
   const applyPreset = (targetId: string | 'equal') => {
     const newAlloc: Record<string, number> = {};
     if (targetId === 'equal') {
@@ -49,26 +59,25 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
           <View style={styles.content}>
             <Text style={styles.ruleLabel}>💰 余ったお金（へそくり）の配分比率</Text>
             
-            {/* 新規追加：ワンタッチクイック設定ボタン */}
-            <View style={styles.presetRow}>
-              <Text style={styles.presetLabel}>💡 クイック設定:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {adults.map(adult => (
-                  <TouchableOpacity key={adult.id} style={styles.presetBtn} onPress={() => applyPreset(adult.id)}>
-                    <Text style={styles.presetBtnText}>{adult.name}に100%</Text>
-                  </TouchableOpacity>
-                ))}
-                {adults.length > 1 && (
-                  <TouchableOpacity style={styles.presetBtn} onPress={() => applyPreset('equal')}>
-                    <Text style={styles.presetBtnText}>均等に分ける</Text>
-                  </TouchableOpacity>
-                )}
-              </ScrollView>
-            </View>
-
             <View style={styles.ruleCard}>
+              {/* 大人が2人以上の場合のみ、フレーム内にワンタッチボタンを表示 */}
+              {adults.length > 1 && (
+                <View style={styles.presetRow}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {adults.map(adult => (
+                      <TouchableOpacity key={adult.id} style={styles.presetBtn} onPress={() => applyPreset(adult.id)}>
+                        <Text style={styles.presetBtnText}>{adult.name}に100%</Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity style={styles.presetBtn} onPress={() => applyPreset('equal')}>
+                      <Text style={styles.presetBtnText}>均等に分ける</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                </View>
+              )}
+
               {adults.map(adult => (
-                <View key={adult.id} style={styles.allocRow}>
+                <View key={adult.id} style={[styles.allocRow, adults.length === 1 && { marginBottom: 0 }]}>
                   <Text style={styles.allocName}>{adult.name}</Text>
                   <View style={styles.allocInputWrap}>
                     <TextInput
@@ -77,6 +86,7 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
                       value={String(localAllocation[adult.id] || 0)}
                       onChangeText={(val) => setLocalAllocation(prev => ({ ...prev, [adult.id]: parseInt(val, 10) || 0 }))}
                       selectTextOnFocus={true}
+                      editable={adults.length > 1} // 1人の場合は編集不可にする
                     />
                     <Text style={styles.allocPercent}>%</Text>
                   </View>
@@ -110,11 +120,10 @@ const styles = StyleSheet.create({
   saveText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF' },
   content: { padding: 16 },
   ruleLabel: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93', marginLeft: 8, marginBottom: 8, marginTop: 16 },
-  presetRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginLeft: 8 },
-  presetLabel: { fontSize: 12, color: '#8E8E93', fontWeight: 'bold', marginRight: 8 },
-  presetBtn: { backgroundColor: '#E5F1FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8 },
-  presetBtnText: { fontSize: 12, color: '#007AFF', fontWeight: 'bold' },
   ruleCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  presetRow: { flexDirection: 'row', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  presetBtn: { backgroundColor: '#F2F2F7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginRight: 8 },
+  presetBtnText: { fontSize: 13, color: '#1C1C1E', fontWeight: 'bold' },
   allocRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   allocName: { fontSize: 16, color: '#1C1C1E', fontWeight: 'bold' },
   allocInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, width: 100 },
