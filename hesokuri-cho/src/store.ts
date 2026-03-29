@@ -1,6 +1,7 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget } from './types';
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, Category } from './types';
+import { DEFAULT_CATEGORY_NAMES } from './constants';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001';
@@ -40,6 +41,21 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     try {
       const response = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`);
       const data = await response.json();
+      
+      // 【変更点】DBから取得したカテゴリ名のうち、固定科目の名前を constants.ts の最新定義で強制的に上書きする
+      if (data && data.categories) {
+        data.categories = data.categories.map((cat: Category) => {
+          if (cat.isFixed) {
+            // 旧名称「養育費」が存在する場合は、新しい名称「子育て費」へ置換
+            if (cat.name === '養育費') {
+              return { ...cat, name: DEFAULT_CATEGORY_NAMES.CHILD_CARE };
+            }
+            // 補足: DB側のID体系が文字列マッピング可能な場合は ID に基づいて上書きするのがより堅牢です
+          }
+          return cat;
+        });
+      }
+
       set({ settings: data.message === 'Settings not found' ? null : data, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
   },
@@ -66,7 +82,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       if (Object.keys(currentBudgets).length === 0 && currentSettings) {
         currentSettings.categories.forEach(cat => { currentBudgets[cat.id] = cat.budget; });
         const adults = currentSettings.familyMembers.filter(m => m.role === '大人');
-        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); }); // デフォルトは均等配分
+        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); }); 
         await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule }) });
       }
       set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule, updatedAt: new Date().toISOString() }, isLoading: false });
