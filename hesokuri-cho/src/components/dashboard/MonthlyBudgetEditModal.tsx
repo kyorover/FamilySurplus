@@ -43,21 +43,41 @@ export const MonthlyBudgetEditModal: React.FC<MonthlyBudgetEditModalProps> = ({ 
           
           <Text style={styles.sectionTitle}>📋 カテゴリ別予算（タップで編集）</Text>
           <View style={styles.listCard}>
-            {categories.map((cat, index) => (
-              <View key={cat.id}>
-                {index > 0 && <View style={styles.divider} />}
-                <TouchableOpacity style={styles.categoryRow} activeOpacity={0.6} onPress={() => setEditingCategory(cat)}>
-                  <View style={styles.categoryInfo}>
-                    <Text style={styles.categoryName}>{cat.name}</Text>
-                    {cat.isFixed && <Text style={styles.fixedBadge}>固定</Text>}
-                  </View>
-                  <View style={styles.budgetActionWrap}>
-                    <Text style={styles.categoryBudgetText}>￥{(localBudgets[cat.id] || 0).toLocaleString()}</Text>
-                    <Text style={styles.chevron}>›</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            ))}
+            {categories.map((cat, index) => {
+              // 固定科目は常に計算対象。カスタム科目でフラグがfalseのものだけ対象外とする
+              const isExcluded = !cat.isFixed && cat.isCalculationTarget === false;
+
+              return (
+                <View key={cat.id}>
+                  {index > 0 && <View style={styles.divider} />}
+                  
+                  {isExcluded ? (
+                    // 計算対象外の場合の非活性UI
+                    <View style={[styles.categoryRow, styles.excludedRow]}>
+                      <View style={styles.categoryInfo}>
+                        <Text style={[styles.categoryName, styles.excludedText]}>{cat.name}</Text>
+                        <Text style={styles.excludedBadge}>対象外</Text>
+                      </View>
+                      <View style={styles.budgetActionWrap}>
+                        <Text style={styles.excludedDescText}>計算対象外の為、非活性</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    // 通常の編集可能なUI
+                    <TouchableOpacity style={styles.categoryRow} activeOpacity={0.6} onPress={() => setEditingCategory(cat)}>
+                      <View style={styles.categoryInfo}>
+                        <Text style={styles.categoryName}>{cat.name}</Text>
+                        {cat.isFixed && <Text style={styles.fixedBadge}>固定</Text>}
+                      </View>
+                      <View style={styles.budgetActionWrap}>
+                        <Text style={styles.categoryBudgetText}>￥{(localBudgets[cat.id] || 0).toLocaleString()}</Text>
+                        <Text style={styles.chevron}>›</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -85,4 +105,10 @@ const styles = StyleSheet.create({
   budgetActionWrap: { flexDirection: 'row', alignItems: 'center' },
   categoryBudgetText: { fontSize: 16, fontWeight: '600', color: '#1C1C1E', marginRight: 8 },
   chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold', paddingBottom: 2 },
+  
+  // 対象外設定用のスタイル
+  excludedRow: { backgroundColor: '#F9F9FB' },
+  excludedText: { color: '#8E8E93' },
+  excludedBadge: { fontSize: 10, backgroundColor: '#8E8E93', color: '#FFFFFF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, fontWeight: 'bold', overflow: 'hidden' },
+  excludedDescText: { fontSize: 12, color: '#8E8E93', fontWeight: '500' },
 });

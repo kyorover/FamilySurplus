@@ -25,7 +25,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
   const [isPocketMoneyModalVisible, setPocketMoneyModalVisible] = useState(false);
   
-  // ★ ベストプラクティス：編集モードの導入
   const [isEditMode, setIsEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
@@ -43,10 +42,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   if (!settings || !monthlyBudget) return null;
 
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
-  const totalMonthlyBudget = activeCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
-  const fixedMonthlyBudget = activeCategories.filter(cat => cat.isFixed).reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
-  const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  
+  // 計算対象となるカテゴリのみを抽出（固定カテゴリ、またはフラグがfalseでないカスタムカテゴリ）
+  const targetCategories = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
+  const targetCategoryIds = new Set(targetCategories.map(c => c.id));
+
+  // 計算対象カテゴリのみで集計
+  const totalMonthlyBudget = targetCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
+  const totalSpent = expenses.filter(exp => targetCategoryIds.has(exp.categoryId)).reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
+
+  const fixedMonthlyBudget = activeCategories.filter(cat => cat.isFixed).reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
   const averageGuideline = calculateAverageGuideline(settings.familyMembers);
   const evaluation = evaluateBudget(fixedMonthlyBudget, averageGuideline);
 
@@ -91,15 +97,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     await updateSettings({ ...settings, categories: newCategories });
   };
 
-  // 編集モード時のみレンダリングされるドラッグ専用の行
   const renderCategoryItem = ({ item: cat, onDragStart, onDragEnd, isActive }: DragListRenderItemInfo<Category>) => (
     <View style={[styles.dragRow, isActive && styles.dragRowActive]}>
-      {/* 確実なタップ（onPressIn）で掴めるように設定 */}
       <TouchableOpacity activeOpacity={0.6} onPressIn={onDragStart} onPressOut={onDragEnd} style={styles.dragHandle}>
         <Text style={[styles.dragIcon, isActive && { color: '#007AFF' }]}>≡</Text>
       </TouchableOpacity>
-      
-      {/* 編集モード中は誤って詳細画面が開かないように、タップ判定を無効化 */}
       <View style={styles.progressWrap} pointerEvents="none">
         <BudgetProgressBar categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} onPressDetail={() => {}} />
       </View>
@@ -126,7 +128,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>カテゴリ別状況</Text>
             
-            {/* モード切り替えボタン群 */}
             <View style={styles.headerActions}>
               <TouchableOpacity onPress={() => setIsEditMode(!isEditMode)} style={[styles.actionBtn, isEditMode && styles.actionBtnActive]}>
                 <Text style={[styles.actionBtnText, isEditMode && styles.actionBtnTextActive]}>{isEditMode ? '✅ 完了' : '↕️ 並び替え'}</Text>
@@ -140,7 +141,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           </View>
         </View>
 
-        {/* 編集モードON：ドラッグリストを表示 */}
         {isEditMode ? (
           <DragList
             data={activeCategories}
@@ -152,7 +152,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
             scrollEnabled={false}
           />
         ) : (
-          /* 編集モードOFF：ノイズの無い綺麗なリストを表示 */
           <View>
             {activeCategories.map(cat => (
               <View key={cat.id} style={styles.viewRow}>

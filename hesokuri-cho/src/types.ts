@@ -14,6 +14,7 @@ export interface Category {
   name: string;
   budget: number; 
   isFixed: boolean;
+  isCalculationTarget?: boolean; // 新規追加：余剰金計算対象フラグ（未設定・固定カテゴリはtrue扱い）
 }
 
 export interface HouseholdSettings {
