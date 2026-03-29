@@ -17,7 +17,7 @@ import { DailyExpenseList } from './DailyExpenseList';
 interface CategoryDetailModalProps {
   visible: boolean;
   category: Category | null;
-  expenses: ExpenseRecord[]; // 互換性のため残置
+  expenses: ExpenseRecord[];
   currentMonth: string;
   initialDate?: string | null;
   onClose: () => void;
@@ -53,7 +53,6 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
     }
   }, [visible, initialDate, currentMonth]);
 
-  // モーダルが開かれた時や月を切り替えた時に、その月のデータを取得して対象カテゴリのみに絞り込む
   useEffect(() => {
     if (!visible || !category) return;
     const loadData = async () => {
@@ -102,13 +101,12 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
       >
         <View style={styles.modalCard}>
           <View style={styles.header}>
-            <Text style={styles.title}>{category.name} の明細カレンダー</Text>
+            <Text style={styles.title}>{category.name} の明細</Text>
             <TouchableOpacity onPress={onClose}>
               <Text style={styles.closeText}>閉じる</Text>
             </TouchableOpacity>
           </View>
 
-          {/* 共通部品化されたカレンダー（土日祝の色付け機能内蔵） */}
           <MonthCalendar
             viewMonth={viewMonth}
             expensesByDate={expensesByDate}
@@ -119,12 +117,19 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
             onSelectDate={setSelectedDate}
           />
 
-          {/* 共通部品化されたリスト */}
+          {/* 新規追加：未選択時のガイドUI（迷子防止） */}
+          {!selectedDate && !isLoading && (
+            <View style={styles.guideContainer}>
+              <Text style={styles.guideEmoji}>👆</Text>
+              <Text style={styles.guideText}>カレンダーの日付をタップすると、{'\n'}その日の明細確認と追加が行えます</Text>
+            </View>
+          )}
+
           {selectedDate && !isLoading && (
             <DailyExpenseList
               selectedDate={selectedDate}
               selectedExpenses={selectedExpenses}
-              categories={[category]} // 単一カテゴリを渡す
+              categories={[category]}
               onAddExpense={(date) => onAddExpense(category.id, date)}
               onEditExpense={onEditExpense}
               onDelete={handleDeleteWrapper}
@@ -160,4 +165,9 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   closeText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
+  
+  // ガイド用のスタイルを追加
+  guideContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 },
+  guideEmoji: { fontSize: 40, marginBottom: 16 },
+  guideText: { fontSize: 14, color: '#8E8E93', textAlign: 'center', lineHeight: 22, fontWeight: '600' },
 });

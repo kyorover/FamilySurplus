@@ -90,9 +90,16 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => setIsScrollEnabled(true)}
         />
 
-        {/* 新規追加：入力履歴マスタ管理ボタン */}
-        <TouchableOpacity style={styles.historyManageBtn} onPress={() => setHistoryModalVisible(true)}>
-          <Text style={styles.historyManageBtnText}>📖 入力履歴マスタの管理</Text>
+        <Text style={styles.sectionTitle}>⚙️ 詳細設定</Text>
+        <TouchableOpacity style={styles.historyManageCard} onPress={() => setHistoryModalVisible(true)} activeOpacity={0.6}>
+          <View style={styles.historyManageContent}>
+            <Text style={styles.historyManageIcon}>📖</Text>
+            <View>
+              <Text style={styles.historyManageTitle}>入力履歴マスタの管理</Text>
+              <Text style={styles.historyManageDesc}>店名やコメントの入力候補を整理します</Text>
+            </View>
+          </View>
+          <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAll}>
@@ -104,7 +111,6 @@ export const SettingsScreen: React.FC = () => {
       <CategoryAddModal visible={isCategoryModalVisible} onSave={handleAddCategory} onClose={() => setCategoryModalVisible(false)} />
       <FamilyMemberAddModal visible={isFamilyModalVisible} onSave={handleAddFamily} onClose={() => setFamilyModalVisible(false)} />
       
-      {/* 新規追加：マスタ管理モーダル */}
       <InputHistoryManagerModal 
         visible={isHistoryModalVisible} 
         settings={pendingSettings} 
@@ -119,8 +125,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginLeft: 8, marginTop: 16, marginBottom: 4 },
   hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 8, marginBottom: 12, lineHeight: 18 },
-  historyManageBtn: { backgroundColor: '#F2F2F7', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, marginBottom: 16, alignItems: 'center' },
-  historyManageBtnText: { color: '#007AFF', fontWeight: 'bold', fontSize: 14 },
+  historyManageCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  historyManageContent: { flexDirection: 'row', alignItems: 'center' },
+  historyManageIcon: { fontSize: 24, marginRight: 16 },
+  historyManageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 2 },
+  historyManageDesc: { fontSize: 10, color: '#8E8E93' },
+  chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
   primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
 });
