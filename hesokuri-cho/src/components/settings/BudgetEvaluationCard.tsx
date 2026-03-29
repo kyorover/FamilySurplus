@@ -2,16 +2,19 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { BudgetEvaluationResult } from '../../functions/budgetUtils';
+import { DEFAULT_CATEGORY_NAMES } from '../../constants';
 
 interface BudgetEvaluationCardProps {
-  fixedMonthlyBudget: number; // 変更：総予算ではなく固定費の合計を受け取る
+  fixedMonthlyBudget: number; 
   averageGuideline: number;
   evaluation: BudgetEvaluationResult;
-  hasChild: boolean; // 新規追加
+  hasChild: boolean; 
 }
 
 export const BudgetEvaluationCard: React.FC<BudgetEvaluationCardProps> = ({ fixedMonthlyBudget, averageGuideline, evaluation, hasChild }) => {
-  const fixedCategoriesText = hasChild ? '食費、外食、日用品、養育費' : '食費、外食、日用品';
+  // 定数から動的にカテゴリ名の文字列を組み立てる
+  const baseCategories = [DEFAULT_CATEGORY_NAMES.FOOD, DEFAULT_CATEGORY_NAMES.EATING_OUT, DEFAULT_CATEGORY_NAMES.DAILY_NECESSITIES].join('、');
+  const fixedCategoriesText = hasChild ? `${baseCategories}、${DEFAULT_CATEGORY_NAMES.CHILD_CARE}` : baseCategories;
 
   return (
     <View style={[styles.evaluationContainer, { backgroundColor: evaluation.bgColor }]}>

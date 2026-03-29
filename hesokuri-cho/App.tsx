@@ -8,6 +8,7 @@ import { SettingsScreen } from './src/screens/SettingsScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HesokuriHistoryScreen } from './src/screens/HesokuriHistoryScreen';
 import { HouseholdSettings } from './src/types';
+import { DEFAULT_CATEGORY_NAMES } from './src/constants';
 
 export default function App() {
   const { settings, pendingSettings, setPendingSettings, monthlyBudget, isLoading, error, fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget, expenseInput, setExpenseInput, resetExpenseInput, saveExpenseInput, setReturnToCategoryDetail } = useHesokuriStore();
@@ -40,7 +41,7 @@ export default function App() {
   if (isLoading && (!settings || !monthlyBudget)) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#007AFF" /><Text style={{ marginTop: 16 }}>読み込み中...</Text></View>;
   if (error && !settings) return <View style={styles.centerContainer}><Text style={{ color: '#FF3B30', marginBottom: 16, fontWeight: 'bold' }}>通信エラー</Text><Text style={{ textAlign: 'center', marginBottom: 24 }}>{error}</Text><TouchableOpacity style={styles.primaryButton} onPress={() => { fetchSettings(); fetchMonthlyBudget(new Date().toISOString().slice(0, 7)); }}><Text style={styles.primaryButtonText}>再試行</Text></TouchableOpacity></View>;
   
-  if (!settings) return <View style={styles.centerContainer}><Text style={styles.welcomeTitle}>節約帖へようこそ！</Text><TouchableOpacity style={styles.primaryButton} onPress={async () => { const defaultSettings: HouseholdSettings = { householdId: 'default-household-001', familyMembers: [{ id: 'm1', name: '自分', role: '大人', hasPocketMoney: true, pocketMoneyAmount: 30000 }], categories: [{ id: 'c1', name: '食費', budget: 50000, isFixed: true }, { id: 'c2', name: '外食', budget: 15000, isFixed: true }, { id: 'c3', name: '日用品', budget: 10000, isFixed: true }, { id: 'c4', name: '養育費', budget: 0, isFixed: true }], notificationsEnabled: true, updatedAt: new Date(), }; await updateSettings(defaultSettings); await fetchMonthlyBudget(new Date().toISOString().slice(0, 7)); }}><Text style={styles.primaryButtonText}>初期データを生成して開始</Text></TouchableOpacity></View>;
+  if (!settings) return <View style={styles.centerContainer}><Text style={styles.welcomeTitle}>節約帖へようこそ！</Text><TouchableOpacity style={styles.primaryButton} onPress={async () => { const defaultSettings: HouseholdSettings = { householdId: 'default-household-001', familyMembers: [{ id: 'm1', name: '自分', role: '大人', hasPocketMoney: true, pocketMoneyAmount: 30000 }], categories: [{ id: 'c1', name: DEFAULT_CATEGORY_NAMES.FOOD, budget: 50000, isFixed: true }, { id: 'c2', name: DEFAULT_CATEGORY_NAMES.EATING_OUT, budget: 15000, isFixed: true }, { id: 'c3', name: DEFAULT_CATEGORY_NAMES.DAILY_NECESSITIES, budget: 10000, isFixed: true }, { id: 'c4', name: DEFAULT_CATEGORY_NAMES.CHILD_CARE, budget: 0, isFixed: true }], notificationsEnabled: true, updatedAt: new Date(), }; await updateSettings(defaultSettings); await fetchMonthlyBudget(new Date().toISOString().slice(0, 7)); }}><Text style={styles.primaryButtonText}>初期データを生成して開始</Text></TouchableOpacity></View>;
 
   const isSubScreen = activeTab === 'history' || activeTab === 'hesokuriHistory';
 
@@ -62,7 +63,6 @@ export default function App() {
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('dashboard')}><Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text></TouchableOpacity>
           
-          {/* 修正箇所：入力画面表示中はナビゲーションの青いボタンを消す */}
           {activeTab === 'input' ? (
             <View style={styles.navItemMainHidden} />
           ) : (

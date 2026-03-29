@@ -2,6 +2,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { BudgetEvaluationResult } from '../../functions/budgetUtils';
+import { DEFAULT_CATEGORY_NAMES } from '../../constants';
 
 interface HesokuriSummaryCardProps {
   currentHesokuri: number;
@@ -13,14 +14,17 @@ interface HesokuriSummaryCardProps {
   pocketMoneyDetails: { id: string, name: string, base: number, bonus: number, total: number }[];
   onPressCard: () => void;
   onPressEditBudget: () => void;
-  onPressPocketMoney: () => void; // 新規追加：ルール設定ダイアログの呼び出し
+  onPressPocketMoney: () => void; 
 }
 
 export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
   currentHesokuri, totalMonthlyBudget, totalSpent, averageGuideline, evaluation, hasChild, pocketMoneyDetails, onPressCard, onPressEditBudget, onPressPocketMoney
 }) => {
   const isNegative = currentHesokuri < 0;
-  const fixedCategoriesText = hasChild ? '食費、外食、日用品、養育費' : '食費、外食、日用品';
+  
+  // 定数から動的にカテゴリ名の文字列を組み立てる
+  const baseCategories = [DEFAULT_CATEGORY_NAMES.FOOD, DEFAULT_CATEGORY_NAMES.EATING_OUT, DEFAULT_CATEGORY_NAMES.DAILY_NECESSITIES].join('、');
+  const fixedCategoriesText = hasChild ? `${baseCategories}、${DEFAULT_CATEGORY_NAMES.CHILD_CARE}` : baseCategories;
 
   return (
     <View style={styles.card}>
@@ -41,7 +45,6 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
 
       <View style={styles.divider} />
 
-      {/* 変更：お小遣いエリアをタップ可能にし、ルール設定への動線を明示 */}
       {pocketMoneyDetails.length > 0 && (
         <TouchableOpacity style={styles.pocketMoneyArea} activeOpacity={0.7} onPress={onPressPocketMoney}>
           <View style={styles.pmHeaderRow}>

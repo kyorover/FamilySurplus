@@ -12,6 +12,7 @@ import { MonthlyBudgetEditModal } from '../components/dashboard/MonthlyBudgetEdi
 import { PocketMoneyRuleModal } from '../components/dashboard/PocketMoneyRuleModal';
 import { calculateAverageGuideline, evaluateBudget } from '../functions/budgetUtils';
 import { MonthlyBudget, Category } from '../types';
+import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 interface DashboardScreenProps {
   onNavigateToHesokuriHistory: () => void;
@@ -36,7 +37,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const activeCategories = useMemo(() => {
     if (!settings) return [];
     const hasChild = settings.familyMembers.some(m => m.role === '子供');
-    return settings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+    return settings.categories.filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
   }, [settings]);
 
   if (!settings || !monthlyBudget) return null;
@@ -106,7 +107,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           categoryName={cat.name} 
           budget={monthlyBudget.budgets[cat.id] || 0} 
           spent={spentByCategory[cat.id] || 0} 
-          isCalculationTarget={cat.isCalculationTarget} // 対象外フラグを渡す
+          isCalculationTarget={cat.isCalculationTarget}
           onPressDetail={() => {}} 
         />
       </View>
@@ -166,7 +167,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
                     categoryName={cat.name} 
                     budget={monthlyBudget.budgets[cat.id] || 0} 
                     spent={spentByCategory[cat.id] || 0} 
-                    isCalculationTarget={cat.isCalculationTarget} // 対象外フラグを渡す
+                    isCalculationTarget={cat.isCalculationTarget}
                     onPressDetail={setSelectedCategoryId} 
                   />
                 </View>

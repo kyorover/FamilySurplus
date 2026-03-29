@@ -8,6 +8,7 @@ import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { FamilyMember } from '../types';
+import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 export const SettingsScreen: React.FC = () => {
   const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
@@ -15,7 +16,6 @@ export const SettingsScreen: React.FC = () => {
   const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   
-  // 家族とカテゴリ、それぞれ独立した並び替えモードを管理
   const [isFamilyEditMode, setIsFamilyEditMode] = useState(false);
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
@@ -29,7 +29,7 @@ export const SettingsScreen: React.FC = () => {
   const activeCategories = useMemo(() => {
     if (!pendingSettings) return [];
     const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
-    return pendingSettings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+    return pendingSettings.categories.filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
   }, [pendingSettings]);
 
   if (!pendingSettings) return null;
@@ -68,7 +68,6 @@ export const SettingsScreen: React.FC = () => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={isScrollEnabled}>
         
-        {/* 家族構成セクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
           <TouchableOpacity onPress={() => setIsFamilyEditMode(!isFamilyEditMode)} style={[styles.actionBtn, isFamilyEditMode && styles.actionBtnActive]}>
@@ -87,7 +86,6 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => setIsScrollEnabled(true)}
         />
 
-        {/* カテゴリ一覧セクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
           <TouchableOpacity onPress={() => setIsCategoryEditMode(!isCategoryEditMode)} style={[styles.actionBtn, isCategoryEditMode && styles.actionBtnActive]}>
@@ -108,7 +106,6 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => setIsScrollEnabled(true)}
         />
 
-        {/* 詳細設定セクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>⚙️ 詳細設定</Text>
         </View>

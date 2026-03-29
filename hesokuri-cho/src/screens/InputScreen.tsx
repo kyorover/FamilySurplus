@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, TextInput,
 import { useHesokuriStore } from '../store';
 import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
 import { DatePickerModal } from '../components/input/DatePickerModal';
+import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 interface InputScreenProps {
   onComplete: () => void;
@@ -19,7 +20,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   if (!settings) return null;
 
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
-  const activeCategories = settings.categories.filter(cat => cat.isFixed && cat.name === '養育費' ? hasChild : true);
+  const activeCategories = settings.categories.filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
   
   const displayDate = expenseInput.date || new Date().toISOString().slice(0, 10);
   const formattedDate = `${displayDate.split('-')[0]}年${displayDate.split('-')[1]}月${displayDate.split('-')[2]}日`;
