@@ -43,11 +43,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
   const hasChild = settings.familyMembers.some(m => m.role === '子供');
   
-  // 計算対象となるカテゴリのみを抽出（固定カテゴリ、またはフラグがfalseでないカスタムカテゴリ）
   const targetCategories = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
   const targetCategoryIds = new Set(targetCategories.map(c => c.id));
 
-  // 計算対象カテゴリのみで集計
   const totalMonthlyBudget = targetCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
   const totalSpent = expenses.filter(exp => targetCategoryIds.has(exp.categoryId)).reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
@@ -103,7 +101,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
         <Text style={[styles.dragIcon, isActive && { color: '#007AFF' }]}>≡</Text>
       </TouchableOpacity>
       <View style={styles.progressWrap} pointerEvents="none">
-        <BudgetProgressBar categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} onPressDetail={() => {}} />
+        <BudgetProgressBar 
+          categoryId={cat.id} 
+          categoryName={cat.name} 
+          budget={monthlyBudget.budgets[cat.id] || 0} 
+          spent={spentByCategory[cat.id] || 0} 
+          isCalculationTarget={cat.isCalculationTarget} // 対象外フラグを渡す
+          onPressDetail={() => {}} 
+        />
       </View>
     </View>
   );
@@ -156,7 +161,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
             {activeCategories.map(cat => (
               <View key={cat.id} style={styles.viewRow}>
                 <View style={styles.progressWrap}>
-                  <BudgetProgressBar categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} onPressDetail={setSelectedCategoryId} />
+                  <BudgetProgressBar 
+                    categoryId={cat.id} 
+                    categoryName={cat.name} 
+                    budget={monthlyBudget.budgets[cat.id] || 0} 
+                    spent={spentByCategory[cat.id] || 0} 
+                    isCalculationTarget={cat.isCalculationTarget} // 対象外フラグを渡す
+                    onPressDetail={setSelectedCategoryId} 
+                  />
                 </View>
               </View>
             ))}
