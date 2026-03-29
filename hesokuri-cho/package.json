@@ -13,6 +13,7 @@
     "@aws-sdk/lib-dynamodb": "^3.1015.0",
     "expo": "~54.0.0",
     "expo-status-bar": "~3.0.9",
+    "japanese-holidays": "^1.0.10",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-draglist": "^3.10.0",

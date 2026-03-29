@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Modal, TouchableOpacity } from 'react-native';
 
+// 確実な require 構文を使用
+const JapaneseHolidays = require('japanese-holidays');
+
 interface DatePickerModalProps {
   visible: boolean;
   initialDate: string; // "YYYY-MM-DD"
@@ -28,7 +31,6 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({ visible, initi
     return `${year}-${String(month).padStart(2, '0')}-${String(i - firstDay + 1).padStart(2, '0')}`;
   });
 
-  // 月・年の切り替えロジック
   const handleMonthChange = (diff: number) => setViewDate(new Date(year, month - 1 + diff, 1));
   const handleYearChange = (diff: number) => setViewDate(new Date(year + diff, month - 1, 1));
 
@@ -50,13 +52,30 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({ visible, initi
           </View>
 
           <View style={styles.calendarGrid}>
-            {['日','月','火','水','木','金','土'].map(d => <Text key={d} style={styles.weekday}>{d}</Text>)}
+            {['日','月','火','水','木','金','土'].map((d, i) => (
+              <Text key={d} style={[styles.weekday, i === 0 && { color: '#FF3B30' }, i === 6 && { color: '#007AFF' }]}>{d}</Text>
+            ))}
             {calendarDays.map((dateStr, idx) => {
               if (!dateStr) return <View key={idx} style={styles.dayCell} />;
               const isSelected = dateStr === initialDate;
+              
+              const dayOfWeek = idx % 7;
+              const [y, m, d] = dateStr.split('-').map(Number);
+              // 修正：正しい関数名 isHoliday を使用
+              const isHoliday = !!JapaneseHolidays.isHoliday(new Date(y, m - 1, d));
+              const isSundayOrHoliday = dayOfWeek === 0 || isHoliday;
+              const isSaturday = dayOfWeek === 6;
+
               return (
                 <TouchableOpacity key={dateStr} style={[styles.dayCell, isSelected && styles.selectedDayCell]} onPress={() => { onSelect(dateStr); onClose(); }}>
-                  <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>{parseInt(dateStr.split('-')[2], 10)}</Text>
+                  <Text style={[
+                    styles.dayText, 
+                    isSundayOrHoliday && { color: '#FF3B30' },
+                    isSaturday && !isHoliday && { color: '#007AFF' },
+                    isSelected && styles.selectedDayText
+                  ]}>
+                    {parseInt(dateStr.split('-')[2], 10)}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -80,5 +99,5 @@ const styles = StyleSheet.create({
   dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: 2 },
   selectedDayCell: { backgroundColor: '#007AFF', borderRadius: 20 },
   dayText: { fontSize: 14, color: '#1C1C1E', fontWeight: '500' },
-  selectedDayText: { color: '#FFFFFF', fontWeight: 'bold' },
+  selectedDayText: { color: '#FFFFFF', fontWeight: 'bold' }, 
 });
