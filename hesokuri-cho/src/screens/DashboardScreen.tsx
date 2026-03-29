@@ -25,7 +25,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
   const [isPocketMoneyModalVisible, setPocketMoneyModalVisible] = useState(false);
   
-  // ダッシュボードでのドラッグ操作中にスクロールをロックする
+  // ★ ベストプラクティス：編集モードの導入
+  const [isEditMode, setIsEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   useEffect(() => {
@@ -33,7 +34,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     else if (returnToCategoryDetail) setSelectedCategoryId(returnToCategoryDetail);
   }, [returnToCategoryDetail]);
 
-  // 配列の再生成によるドラッグキャンセルを防ぐためメモ化
   const activeCategories = useMemo(() => {
     if (!settings) return [];
     const hasChild = settings.familyMembers.some(m => m.role === '子供');
@@ -77,7 +77,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     setPocketMoneyModalVisible(false);
   };
 
-  // ダッシュボードでのカテゴリ並び替え保存ロジック
   const handleReorderCategories = async (fromIndex: number, toIndex: number) => {
     const newCategories = [...settings.categories];
     const itemToMove = activeCategories[fromIndex];
@@ -92,14 +91,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     await updateSettings({ ...settings, categories: newCategories });
   };
 
-  // ダッシュボード用のドラッグ可能なプログレスバー行
+  // 編集モード時のみレンダリングされるドラッグ専用の行
   const renderCategoryItem = ({ item: cat, onDragStart, onDragEnd, isActive }: DragListRenderItemInfo<Category>) => (
     <View style={[styles.dragRow, isActive && styles.dragRowActive]}>
+      {/* 確実なタップ（onPressIn）で掴めるように設定 */}
       <TouchableOpacity activeOpacity={0.6} onPressIn={onDragStart} onPressOut={onDragEnd} style={styles.dragHandle}>
         <Text style={[styles.dragIcon, isActive && { color: '#007AFF' }]}>≡</Text>
       </TouchableOpacity>
-      <View style={styles.progressWrap}>
-        <BudgetProgressBar categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} onPressDetail={setSelectedCategoryId} />
+      
+      {/* 編集モード中は誤って詳細画面が開かないように、タップ判定を無効化 */}
+      <View style={styles.progressWrap} pointerEvents="none">
+        <BudgetProgressBar categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} onPressDetail={() => {}} />
       </View>
     </View>
   );
@@ -123,22 +125,44 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>カテゴリ別状況</Text>
-            <TouchableOpacity onPress={() => setAllCalendarVisible(true)} style={styles.historyBtn}>
-              <Text style={styles.historyBtnText}>📅 過去のカレンダー</Text>
-            </TouchableOpacity>
+            
+            {/* モード切り替えボタン群 */}
+            <View style={styles.headerActions}>
+              <TouchableOpacity onPress={() => setIsEditMode(!isEditMode)} style={[styles.actionBtn, isEditMode && styles.actionBtnActive]}>
+                <Text style={[styles.actionBtnText, isEditMode && styles.actionBtnTextActive]}>{isEditMode ? '✅ 完了' : '↕️ 並び替え'}</Text>
+              </TouchableOpacity>
+              {!isEditMode && (
+                <TouchableOpacity onPress={() => setAllCalendarVisible(true)} style={styles.actionBtn}>
+                  <Text style={styles.actionBtnText}>📅 過去</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
 
-        {/* ダッシュボードに埋め込まれたドラッグ可能なリスト */}
-        <DragList
-          data={activeCategories}
-          keyExtractor={(item) => item.id}
-          onReordered={handleReorderCategories}
-          renderItem={renderCategoryItem}
-          onDragBegin={() => setIsScrollEnabled(false)}
-          onDragEnd={() => setIsScrollEnabled(true)}
-          scrollEnabled={false}
-        />
+        {/* 編集モードON：ドラッグリストを表示 */}
+        {isEditMode ? (
+          <DragList
+            data={activeCategories}
+            keyExtractor={(item) => item.id}
+            onReordered={handleReorderCategories}
+            renderItem={renderCategoryItem}
+            onDragBegin={() => setIsScrollEnabled(false)}
+            onDragEnd={() => setIsScrollEnabled(true)}
+            scrollEnabled={false}
+          />
+        ) : (
+          /* 編集モードOFF：ノイズの無い綺麗なリストを表示 */
+          <View>
+            {activeCategories.map(cat => (
+              <View key={cat.id} style={styles.viewRow}>
+                <View style={styles.progressWrap}>
+                  <BudgetProgressBar categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} onPressDetail={setSelectedCategoryId} />
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
         
         <View style={styles.contentPadding}>
           <TotalHesokuriDisplay currentMonthHesokuri={currentHesokuri} onPress={onNavigateToHesokuriHistory} />
@@ -159,11 +183,15 @@ const styles = StyleSheet.create({
   contentPadding: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8, marginHorizontal: 8 },
   sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93' },
-  historyBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
-  historyBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
-  dragRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent' },
+  headerActions: { flexDirection: 'row', gap: 8 },
+  actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
+  actionBtnActive: { backgroundColor: '#007AFF' },
+  actionBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
+  actionBtnTextActive: { color: '#FFFFFF' },
+  viewRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  dragRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingVertical: 4 },
   dragRowActive: { backgroundColor: '#F0F8FF', zIndex: 999, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
   dragHandle: { paddingLeft: 16, paddingRight: 8, paddingVertical: 16, justifyContent: 'center' },
   dragIcon: { fontSize: 24, color: '#C7C7CC', fontWeight: '300' },
-  progressWrap: { flex: 1, paddingRight: 16 },
+  progressWrap: { flex: 1, paddingHorizontal: 16 },
 });
