@@ -14,7 +14,7 @@ export interface Category {
   name: string;
   budget: number; 
   isFixed: boolean;
-  isCalculationTarget?: boolean; // 新規追加：余剰金計算対象フラグ（未設定・固定カテゴリはtrue扱い）
+  isCalculationTarget?: boolean;
 }
 
 export interface HouseholdSettings {
@@ -23,6 +23,8 @@ export interface HouseholdSettings {
   categories: Category[];
   notificationsEnabled: boolean;
   updatedAt: Date | string;
+  storeNameHistory?: string[]; // 新規：店名の入力履歴マスタ
+  memoHistory?: string[];      // 新規：コメントの入力履歴マスタ
 }
 
 export interface ExpenseRecord {
@@ -42,7 +44,7 @@ export interface MonthlyBudget {
   householdId: string;
   month_id: string;
   budgets: Record<string, number>;
-  bonusAllocation: Record<string, number>; // 新規：メンバーID -> 今月の配分比率(%)
-  deficitRule: 'みんなで折半' | '配分比率でカバー' | 'お小遣いは減らさない'; // 新規：今月の赤字カバー方法
+  bonusAllocation: Record<string, number>;
+  deficitRule: 'みんなで折半' | '配分比率でカバー' | 'お小遣いは減らさない';
   updatedAt: string;
 }

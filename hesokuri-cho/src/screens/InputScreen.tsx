@@ -1,16 +1,17 @@
 // src/screens/InputScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
 import { DatePickerModal } from '../components/input/DatePickerModal';
+import { AutocompleteInput } from '../components/input/AutocompleteInput';
 
 interface InputScreenProps {
   onComplete: () => void;
 }
 
 export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
-  const { settings, expenseInput, setExpenseInput, saveExpenseInput, setReturnToCategoryDetail } = useHesokuriStore();
+  const { settings, expenseInput, setExpenseInput, saveExpenseInput, setReturnToCategoryDetail, updateSettings } = useHesokuriStore();
   const paymentMethods = ['現金', 'コード決済', 'クレジット'];
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(false);
@@ -47,6 +48,32 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   const handleSubmit = async () => {
     try {
       if (!expenseInput.date) setExpenseInput({ date: displayDate });
+
+      // 【新規】入力された店名・コメントをマスタ（履歴）に自動追加する処理
+      let settingsUpdated = false;
+      const newSettings = { ...settings };
+      const newStore = expenseInput.storeName?.trim();
+      const newMemo = expenseInput.memo?.trim();
+
+      if (newStore) {
+        const currentStoreHistory = newSettings.storeNameHistory || [];
+        if (!currentStoreHistory.includes(newStore)) {
+          newSettings.storeNameHistory = [newStore, ...currentStoreHistory].slice(0, 50); // 最新50件を保持
+          settingsUpdated = true;
+        }
+      }
+      if (newMemo) {
+        const currentMemoHistory = newSettings.memoHistory || [];
+        if (!currentMemoHistory.includes(newMemo)) {
+          newSettings.memoHistory = [newMemo, ...currentMemoHistory].slice(0, 50); // 最新50件を保持
+          settingsUpdated = true;
+        }
+      }
+
+      if (settingsUpdated) {
+        await updateSettings(newSettings);
+      }
+
       await saveExpenseInput();
       Alert.alert('完了', '記録を保存しました！');
       setIsAmountFocused(false);
@@ -71,7 +98,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
         <TouchableOpacity style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused]} activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); setIsAmountFocused(true); }}>
           <Text style={[styles.inputCurrency, isAmountFocused && styles.inputCurrencyFocused]}>￥</Text>
           <Text style={styles.inputDisplayAmount}>
-            {/* フォーカス中で0の場合は、プレースホルダーとして薄いグレーで0を表示する */}
             {isAmountFocused && expenseInput.amount === '0' ? (
               <Text style={{ color: '#C7C7CC' }}>0</Text>
             ) : (
@@ -107,9 +133,26 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           </View>
         </ScrollView>
 
-        <View style={styles.optionalInputArea}>
-          <TextInput style={styles.textInput} placeholder="店名（任意）" value={expenseInput.storeName} onChangeText={(text) => setExpenseInput({ storeName: text })} onFocus={() => setIsAmountFocused(false)} />
-          <TextInput style={styles.textInput} placeholder="コメント（任意）" value={expenseInput.memo} onChangeText={(text) => setExpenseInput({ memo: text })} onFocus={() => setIsAmountFocused(false)} />
+        <View style={[styles.optionalInputArea, { zIndex: 10 }]}>
+          {/* プルダウンが重ならないようzIndexを調整 */}
+          <View style={{ zIndex: 2 }}>
+            <AutocompleteInput
+              value={expenseInput.storeName || ''}
+              onChangeText={(text) => setExpenseInput({ storeName: text })}
+              placeholder="店名（任意）"
+              history={settings.storeNameHistory || []}
+              onFocus={() => setIsAmountFocused(false)}
+            />
+          </View>
+          <View style={{ zIndex: 1 }}>
+            <AutocompleteInput
+              value={expenseInput.memo || ''}
+              onChangeText={(text) => setExpenseInput({ memo: text })}
+              placeholder="コメント（任意）"
+              history={settings.memoHistory || []}
+              onFocus={() => setIsAmountFocused(false)}
+            />
+          </View>
         </View>
 
         {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
@@ -142,7 +185,6 @@ const styles = StyleSheet.create({
   chipTextSelected: { color: '#FFFFFF' },
   chipTextDisabled: { color: '#C7C7CC' },
   optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  textInput: { backgroundColor: '#F2F2F7', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, marginBottom: 8, fontSize: 14 },
   submitBtn: { backgroundColor: '#007AFF', margin: 16, paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   submitBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
 });

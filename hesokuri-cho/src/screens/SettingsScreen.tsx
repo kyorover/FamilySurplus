@@ -6,12 +6,14 @@ import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
+import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { FamilyMember } from '../types';
 
 export const SettingsScreen: React.FC = () => {
   const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
+  const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   useEffect(() => {
@@ -20,7 +22,6 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [settings]);
 
-  // 修正箇所：Hooksルールの違反を避けるため、早期リターン（return null）の前に配置
   const activeCategories = useMemo(() => {
     if (!pendingSettings) return [];
     const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
@@ -89,6 +90,11 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => setIsScrollEnabled(true)}
         />
 
+        {/* 新規追加：入力履歴マスタ管理ボタン */}
+        <TouchableOpacity style={styles.historyManageBtn} onPress={() => setHistoryModalVisible(true)}>
+          <Text style={styles.historyManageBtnText}>📖 入力履歴マスタの管理</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAll}>
           <Text style={styles.primaryButtonText}>設定を保存する</Text>
         </TouchableOpacity>
@@ -97,6 +103,14 @@ export const SettingsScreen: React.FC = () => {
 
       <CategoryAddModal visible={isCategoryModalVisible} onSave={handleAddCategory} onClose={() => setCategoryModalVisible(false)} />
       <FamilyMemberAddModal visible={isFamilyModalVisible} onSave={handleAddFamily} onClose={() => setFamilyModalVisible(false)} />
+      
+      {/* 新規追加：マスタ管理モーダル */}
+      <InputHistoryManagerModal 
+        visible={isHistoryModalVisible} 
+        settings={pendingSettings} 
+        onUpdate={(newSettings) => setPendingSettings(newSettings)} 
+        onClose={() => setHistoryModalVisible(false)} 
+      />
     </View>
   );
 };
@@ -105,6 +119,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginLeft: 8, marginTop: 16, marginBottom: 4 },
   hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 8, marginBottom: 12, lineHeight: 18 },
+  historyManageBtn: { backgroundColor: '#F2F2F7', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, marginBottom: 16, alignItems: 'center' },
+  historyManageBtnText: { color: '#007AFF', fontWeight: 'bold', fontSize: 14 },
   primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
 });
