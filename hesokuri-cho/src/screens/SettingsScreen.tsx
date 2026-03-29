@@ -15,8 +15,9 @@ export const SettingsScreen: React.FC = () => {
   const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   
-  // ★ 新規：設定画面全体の並び替えモードを管理
-  const [isReorderMode, setIsReorderMode] = useState(false);
+  // 家族とカテゴリ、それぞれ独立した並び替えモードを管理
+  const [isFamilyEditMode, setIsFamilyEditMode] = useState(false);
+  const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   useEffect(() => {
@@ -67,17 +68,17 @@ export const SettingsScreen: React.FC = () => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={isScrollEnabled}>
         
-        {/* モード切替ボタン群 */}
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setIsReorderMode(!isReorderMode)} style={[styles.actionBtn, isReorderMode && styles.actionBtnActive]}>
-            <Text style={[styles.actionBtnText, isReorderMode && styles.actionBtnTextActive]}>{isReorderMode ? '✅ 並び替え完了' : '↕️ 項目を並び替える'}</Text>
+        {/* 家族構成セクション */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
+          <TouchableOpacity onPress={() => setIsFamilyEditMode(!isFamilyEditMode)} style={[styles.actionBtn, isFamilyEditMode && styles.actionBtnActive]}>
+            <Text style={[styles.actionBtnText, isFamilyEditMode && styles.actionBtnTextActive]}>{isFamilyEditMode ? '✅ 完了' : '↕️ 並び替え'}</Text>
           </TouchableOpacity>
         </View>
-
-        <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
+        <Text style={styles.hintText}>「≡」をタップしたままスライドして並び替えます。</Text>
         <FamilyMemberList 
           members={pendingSettings.familyMembers} 
-          isReorderMode={isReorderMode} // モードを渡す
+          isReorderMode={isFamilyEditMode}
           onUpdate={handleUpdateFamily} 
           onDelete={handleDeleteFamily} 
           onAdd={() => setFamilyModalVisible(true)} 
@@ -86,10 +87,17 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => setIsScrollEnabled(true)}
         />
 
-        <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
+        {/* カテゴリ一覧セクション */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
+          <TouchableOpacity onPress={() => setIsCategoryEditMode(!isCategoryEditMode)} style={[styles.actionBtn, isCategoryEditMode && styles.actionBtnActive]}>
+            <Text style={[styles.actionBtnText, isCategoryEditMode && styles.actionBtnTextActive]}>{isCategoryEditMode ? '✅ 完了' : '↕️ 並び替え'}</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.hintText}>ここでの順番がダッシュボードや入力画面にも反映されます。</Text>
         <CategoryList 
           categories={activeCategories} 
-          isReorderMode={isReorderMode} // モードを渡す
+          isReorderMode={isCategoryEditMode}
           onDeleteCategory={handleDeleteCategory} 
           onAddCategory={() => setCategoryModalVisible(true)} 
           onUpdateList={(newList) => {
@@ -100,7 +108,10 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => setIsScrollEnabled(true)}
         />
 
-        <Text style={styles.sectionTitle}>⚙️ 詳細設定</Text>
+        {/* 詳細設定セクション */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>⚙️ 詳細設定</Text>
+        </View>
         <TouchableOpacity style={styles.historyManageCard} onPress={() => setHistoryModalVisible(true)} activeOpacity={0.6}>
           <View style={styles.historyManageContent}>
             <Text style={styles.historyManageIcon}>📖</Text>
@@ -133,12 +144,13 @@ export const SettingsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerActions: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 },
-  actionBtn: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
   actionBtnActive: { backgroundColor: '#007AFF' },
-  actionBtnText: { fontSize: 13, fontWeight: 'bold', color: '#1C1C1E' },
+  actionBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtnTextActive: { color: '#FFFFFF' },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginLeft: 8, marginTop: 16, marginBottom: 12 },
+  hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 8, marginBottom: 12, lineHeight: 18 },
   historyManageCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   historyManageContent: { flexDirection: 'row', alignItems: 'center' },
   historyManageIcon: { fontSize: 24, marginRight: 16 },
