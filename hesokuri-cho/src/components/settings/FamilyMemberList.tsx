@@ -6,6 +6,7 @@ import { FamilyMember } from '../../types';
 
 interface FamilyMemberListProps {
   members: FamilyMember[];
+  isReorderMode: boolean; // モード判定用
   onUpdate: (member: FamilyMember) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
@@ -14,7 +15,7 @@ interface FamilyMemberListProps {
   onDragEnd: () => void;
 }
 
-export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, onUpdate, onDelete, onAdd, onUpdateList, onDragStart, onDragEnd }) => {
+export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, isReorderMode, onUpdate, onDelete, onAdd, onUpdateList, onDragStart, onDragEnd }) => {
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -37,57 +38,75 @@ export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, onU
     }
   };
 
-  const renderItem = ({ item, onDragStart: startDrag, onDragEnd: endDrag, isActive }: DragListRenderItemInfo<FamilyMember>) => (
+  // 編集モード用のドラッグ専用行（タップ誤爆を防ぐため入力欄などは表示しない）
+  const renderDragItem = ({ item, onDragStart: startDrag, onDragEnd: endDrag, isActive }: DragListRenderItemInfo<FamilyMember>) => (
     <View style={[styles.row, isActive && styles.activeRow]}>
-      
-      {/* ≡アイコンに触れた瞬間に掴む（onPressIn） */}
       <TouchableOpacity activeOpacity={0.6} onPressIn={startDrag} onPressOut={endDrag} style={styles.dragHandle}>
         <Text style={[styles.dragIcon, isActive && { color: '#007AFF' }]}>≡</Text>
       </TouchableOpacity>
-
-      <View style={styles.infoWrapper}>
+      <View style={styles.infoWrapper} pointerEvents="none">
         <View style={styles.infoHeader}>
           <Text style={styles.name}>{item.name}</Text>
           <Text style={[styles.roleBadge, item.role === '子供' && styles.roleBadgeChild]}>{item.role}</Text>
-          {item.role === '子供' && item.age !== undefined && <Text style={styles.ageText}>{item.age}歳</Text>}
         </View>
-        {item.role === '大人' && (
-          <View style={styles.pocketMoneyWrap}>
-            <Text style={styles.pocketMoneyLabel}>基本小遣い：</Text>
-            <View style={styles.inputBox}>
-              <Text style={styles.currency}>￥</Text>
-              <TextInput style={styles.textInput} keyboardType="number-pad" value={item.pocketMoneyAmount === 0 ? '' : String(item.pocketMoneyAmount || '')} placeholder="0" onChangeText={(val) => onUpdate({ ...item, pocketMoneyAmount: parseInt(val, 10) || 0 })} editable={!isActive} />
-            </View>
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.actionWrap}>
-        <TouchableOpacity onPress={() => openEditModal(item)} style={styles.editBtn} disabled={isActive}>
-          <Text style={styles.editBtnText}>編集</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.deleteBtn} disabled={isActive}>
-          <Text style={styles.deleteBtnText}>削除</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
     <View style={styles.card}>
-      <DragList
-        data={members}
-        keyExtractor={(item) => item.id}
-        onReordered={onReordered}
-        renderItem={renderItem}
-        onDragBegin={onDragStart}
-        onDragEnd={onDragEnd}
-        scrollEnabled={false} // リスト自体のスクロールは止め、親のScrollViewに任せる
-      />
+      {isReorderMode ? (
+        // 並び替えモードON：DragListを使用
+        <DragList
+          data={members}
+          keyExtractor={(item) => item.id}
+          onReordered={onReordered}
+          renderItem={renderDragItem}
+          onDragBegin={onDragStart}
+          onDragEnd={onDragEnd}
+          scrollEnabled={false}
+        />
+      ) : (
+        // 並び替えモードOFF：誤タップの無い純粋なViewリスト
+        <View>
+          {members.map((item) => (
+            <View key={item.id} style={styles.row}>
+              <View style={[styles.infoWrapper, { paddingLeft: 16 }]}>
+                <View style={styles.infoHeader}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={[styles.roleBadge, item.role === '子供' && styles.roleBadgeChild]}>{item.role}</Text>
+                  {item.role === '子供' && item.age !== undefined && <Text style={styles.ageText}>{item.age}歳</Text>}
+                </View>
+                {item.role === '大人' && (
+                  <View style={styles.pocketMoneyWrap}>
+                    <Text style={styles.pocketMoneyLabel}>基本小遣い：</Text>
+                    <View style={styles.inputBox}>
+                      <Text style={styles.currency}>￥</Text>
+                      <TextInput style={styles.textInput} keyboardType="number-pad" value={item.pocketMoneyAmount === 0 ? '' : String(item.pocketMoneyAmount || '')} placeholder="0" onChangeText={(val) => onUpdate({ ...item, pocketMoneyAmount: parseInt(val, 10) || 0 })} />
+                    </View>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.actionWrap}>
+                <TouchableOpacity onPress={() => openEditModal(item)} style={styles.editBtn}>
+                  <Text style={styles.editBtnText}>編集</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.deleteBtn}>
+                  <Text style={styles.deleteBtnText}>削除</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={{ height: 1, backgroundColor: '#E5E5EA' }} />
-      <TouchableOpacity style={styles.addBtn} onPress={onAdd}>
-        <Text style={styles.addBtnText}>＋ 家族を追加</Text>
-      </TouchableOpacity>
+      {!isReorderMode && (
+        <TouchableOpacity style={styles.addBtn} onPress={onAdd}>
+          <Text style={styles.addBtnText}>＋ 家族を追加</Text>
+        </TouchableOpacity>
+      )}
 
       {/* 名前編集用の極小モーダル */}
       <Modal visible={!!editingMember} transparent animationType="fade">
@@ -119,7 +138,7 @@ export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, onU
 
 const styles = StyleSheet.create({
   card: { backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', height: 85, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FFFFFF' },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 80, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FFFFFF' },
   activeRow: { backgroundColor: '#F0F8FF', shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 10, zIndex: 999 },
   dragHandle: { paddingLeft: 16, paddingRight: 16, paddingVertical: 16, justifyContent: 'center' },
   dragIcon: { fontSize: 28, color: '#C7C7CC', fontWeight: '300' },

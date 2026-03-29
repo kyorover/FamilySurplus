@@ -1,10 +1,9 @@
 // src/screens/InputScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
 import { DatePickerModal } from '../components/input/DatePickerModal';
-import { AutocompleteInput } from '../components/input/AutocompleteInput';
 
 interface InputScreenProps {
   onComplete: () => void;
@@ -13,13 +12,9 @@ interface InputScreenProps {
 export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   const { settings, expenseInput, setExpenseInput, saveExpenseInput, setReturnToCategoryDetail, updateSettings } = useHesokuriStore();
   const paymentMethods = ['現金', 'コード決済', 'クレジット'];
-  
-  // 確実なフォーカス状態の管理
   const [isAmountFocused, setIsAmountFocused] = useState(false);
-  const [isTextFocused, setIsTextFocused] = useState(false); // 新規追加：文字入力のフォーカス状態
   const [cursorVisible, setCursorVisible] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
   if (!settings) return null;
 
@@ -28,17 +23,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   
   const displayDate = expenseInput.date || new Date().toISOString().slice(0, 10);
   const formattedDate = `${displayDate.split('-')[0]}年${displayDate.split('-')[1]}月${displayDate.split('-')[2]}日`;
-
-  // OSのキーボード検知（フェイルセーフとして併用）
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    
-    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
-    
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -89,7 +73,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
       await saveExpenseInput();
       Alert.alert('完了', '記録を保存しました！');
       setIsAmountFocused(false);
-      setIsTextFocused(false);
       
       if (!expenseInput.isLocked) {
         setReturnToCategoryDetail('ALL', displayDate);
@@ -100,9 +83,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
     }
   };
 
-  // 入力中かどうかの厳密な判定（どれか1つでもTrueならボタンを隠す）
-  const isInputting = isAmountFocused || isTextFocused || isKeyboardVisible;
-
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       
@@ -111,7 +91,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           <Text style={styles.dateSelectorText}>📅 {formattedDate}  ▼</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused]} activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); setIsAmountFocused(true); setIsTextFocused(false); }}>
+        <TouchableOpacity style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused]} activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); setIsAmountFocused(true); }}>
           <Text style={[styles.inputCurrency, isAmountFocused && styles.inputCurrencyFocused]}>￥</Text>
           <Text style={styles.inputDisplayAmount}>
             {isAmountFocused && expenseInput.amount === '0' ? (
@@ -131,7 +111,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
               const isSelected = expenseInput.categoryId === cat.id;
               const isDisabled = expenseInput.isLocked && !isSelected;
               return (
-                <TouchableOpacity key={cat.id} style={[styles.chip, isSelected && styles.chipSelected, isDisabled && styles.chipDisabled]} disabled={expenseInput.isLocked} onPress={() => { setExpenseInput({ categoryId: cat.id }); setIsAmountFocused(false); setIsTextFocused(false); Keyboard.dismiss(); }}>
+                <TouchableOpacity key={cat.id} style={[styles.chip, isSelected && styles.chipSelected, isDisabled && styles.chipDisabled]} disabled={expenseInput.isLocked} onPress={() => { setExpenseInput({ categoryId: cat.id }); setIsAmountFocused(false); }}>
                   <Text style={[styles.chipText, isSelected && styles.chipTextSelected, isDisabled && styles.chipTextDisabled]}>{cat.name} {isSelected && expenseInput.isLocked && ' 🔒'}</Text>
                 </TouchableOpacity>
               );
@@ -142,44 +122,23 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
           <View style={styles.chipContainer}>
             {paymentMethods.map(method => (
-              <TouchableOpacity key={method} style={[styles.chip, expenseInput.paymentMethod === method && styles.chipSelected]} onPress={() => { setExpenseInput({ paymentMethod: method }); setIsAmountFocused(false); setIsTextFocused(false); Keyboard.dismiss(); }}>
+              <TouchableOpacity key={method} style={[styles.chip, expenseInput.paymentMethod === method && styles.chipSelected]} onPress={() => { setExpenseInput({ paymentMethod: method }); setIsAmountFocused(false); }}>
                 <Text style={[styles.chipText, expenseInput.paymentMethod === method && styles.chipTextSelected]}>{method}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </ScrollView>
 
-        <View style={[styles.optionalInputArea, { zIndex: 10 }]}>
-          <View style={{ zIndex: 2 }}>
-            <AutocompleteInput
-              value={expenseInput.storeName || ''}
-              onChangeText={(text) => setExpenseInput({ storeName: text })}
-              placeholder="店名（任意）"
-              history={settings.storeNameHistory || []}
-              onFocus={() => { setIsAmountFocused(false); setIsTextFocused(true); }}
-              onBlur={() => setIsTextFocused(false)}
-            />
-          </View>
-          <View style={{ zIndex: 1 }}>
-            <AutocompleteInput
-              value={expenseInput.memo || ''}
-              onChangeText={(text) => setExpenseInput({ memo: text })}
-              placeholder="コメント（任意）"
-              history={settings.memoHistory || []}
-              onFocus={() => { setIsAmountFocused(false); setIsTextFocused(true); }}
-              onBlur={() => setIsTextFocused(false)}
-            />
-          </View>
+        <View style={styles.optionalInputArea}>
+          <TextInput style={styles.textInput} placeholder="店名（任意）" value={expenseInput.storeName} onChangeText={(text) => setExpenseInput({ storeName: text })} onFocus={() => setIsAmountFocused(false)} />
+          <TextInput style={styles.textInput} placeholder="コメント（任意）" value={expenseInput.memo} onChangeText={(text) => setExpenseInput({ memo: text })} onFocus={() => setIsAmountFocused(false)} />
         </View>
 
         {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
 
-        {/* 確実に入力中でない場合のみ、保存ボタンを描画する */}
-        {!isInputting && (
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-            <Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+          <Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <DatePickerModal visible={isDatePickerVisible} initialDate={displayDate} onSelect={(date) => setExpenseInput({ date })} onClose={() => setDatePickerVisible(false)} />
@@ -207,6 +166,7 @@ const styles = StyleSheet.create({
   chipTextSelected: { color: '#FFFFFF' },
   chipTextDisabled: { color: '#C7C7CC' },
   optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  textInput: { backgroundColor: '#F2F2F7', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, marginBottom: 8, fontSize: 14 },
   submitBtn: { backgroundColor: '#007AFF', margin: 16, paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   submitBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
 });

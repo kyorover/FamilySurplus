@@ -46,7 +46,6 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ダッシュボードタブの時はヘッダー自体を非表示にし、ノイズをなくす */}
       {!isSubScreen && activeTab !== 'dashboard' && (
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{activeTab === 'input' ? '支出の記録' : '家計の設定'}</Text>
@@ -62,7 +61,14 @@ export default function App() {
       {!isSubScreen && (
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('dashboard')}><Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.navItemMain} onPress={() => { setExpenseInput({ isLocked: false }); setReturnToCategoryDetail(null); handleTabChange('input'); }}><Text style={styles.navTextMain}>➕ 入力</Text></TouchableOpacity>
+          
+          {/* 修正箇所：入力画面表示中はナビゲーションの青いボタンを消す */}
+          {activeTab === 'input' ? (
+            <View style={styles.navItemMainHidden} />
+          ) : (
+            <TouchableOpacity style={styles.navItemMain} onPress={() => { setExpenseInput({ isLocked: false }); setReturnToCategoryDetail(null); handleTabChange('input'); }}><Text style={styles.navTextMain}>➕ 入力</Text></TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('settings')}><Text style={[styles.navText, activeTab === 'settings' && styles.navTextActive]}>⚙️ 設定</Text></TouchableOpacity>
         </View>
       )}
@@ -70,4 +76,4 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#F2F2F7' }, centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' }, contentWrapper: { flex: 1 }, header: { alignItems: 'center', paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }, headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' }, welcomeTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 32, color: '#1C1C1E' }, primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8 }, primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 }, bottomNav: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingBottom: 30, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E5E5EA', justifyContent: 'space-around', alignItems: 'center' }, navItem: { flex: 1, alignItems: 'center', paddingVertical: 8 }, navItemMain: { flex: 1, alignItems: 'center', backgroundColor: '#007AFF', paddingVertical: 12, borderRadius: 24, marginHorizontal: 16 }, navText: { fontSize: 12, color: '#8E8E93', fontWeight: '600', marginTop: 4 }, navTextActive: { color: '#007AFF' }, navTextMain: { fontSize: 14, color: '#FFFFFF', fontWeight: 'bold' } });
+const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#F2F2F7' }, centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' }, contentWrapper: { flex: 1 }, header: { alignItems: 'center', paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }, headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' }, welcomeTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 32, color: '#1C1C1E' }, primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8 }, primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 }, bottomNav: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingBottom: 30, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E5E5EA', justifyContent: 'space-around', alignItems: 'center' }, navItem: { flex: 1, alignItems: 'center', paddingVertical: 8 }, navItemMain: { flex: 1, alignItems: 'center', backgroundColor: '#007AFF', paddingVertical: 12, borderRadius: 24, marginHorizontal: 16 }, navItemMainHidden: { flex: 1, marginHorizontal: 16 }, navText: { fontSize: 12, color: '#8E8E93', fontWeight: '600', marginTop: 4 }, navTextActive: { color: '#007AFF' }, navTextMain: { fontSize: 14, color: '#FFFFFF', fontWeight: 'bold' } });

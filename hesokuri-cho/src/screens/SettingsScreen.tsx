@@ -14,6 +14,9 @@ export const SettingsScreen: React.FC = () => {
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
+  
+  // ★ 新規：設定画面全体の並び替えモードを管理
+  const [isReorderMode, setIsReorderMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   useEffect(() => {
@@ -64,10 +67,17 @@ export const SettingsScreen: React.FC = () => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={isScrollEnabled}>
         
+        {/* モード切替ボタン群 */}
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setIsReorderMode(!isReorderMode)} style={[styles.actionBtn, isReorderMode && styles.actionBtnActive]}>
+            <Text style={[styles.actionBtnText, isReorderMode && styles.actionBtnTextActive]}>{isReorderMode ? '✅ 並び替え完了' : '↕️ 項目を並び替える'}</Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
-        <Text style={styles.hintText}>「≡」をタップしたままスライドして並び替えます。</Text>
         <FamilyMemberList 
           members={pendingSettings.familyMembers} 
+          isReorderMode={isReorderMode} // モードを渡す
           onUpdate={handleUpdateFamily} 
           onDelete={handleDeleteFamily} 
           onAdd={() => setFamilyModalVisible(true)} 
@@ -77,9 +87,9 @@ export const SettingsScreen: React.FC = () => {
         />
 
         <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
-        <Text style={styles.hintText}>ここでの順番がダッシュボードや入力画面にも反映されます。</Text>
         <CategoryList 
           categories={activeCategories} 
+          isReorderMode={isReorderMode} // モードを渡す
           onDeleteCategory={handleDeleteCategory} 
           onAddCategory={() => setCategoryModalVisible(true)} 
           onUpdateList={(newList) => {
@@ -123,8 +133,12 @@ export const SettingsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginLeft: 8, marginTop: 16, marginBottom: 4 },
-  hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 8, marginBottom: 12, lineHeight: 18 },
+  headerActions: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 },
+  actionBtn: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  actionBtnActive: { backgroundColor: '#007AFF' },
+  actionBtnText: { fontSize: 13, fontWeight: 'bold', color: '#1C1C1E' },
+  actionBtnTextActive: { color: '#FFFFFF' },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginLeft: 8, marginTop: 16, marginBottom: 12 },
   historyManageCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   historyManageContent: { flexDirection: 'row', alignItems: 'center' },
   historyManageIcon: { fontSize: 24, marginRight: 16 },

@@ -6,6 +6,7 @@ import { Category } from '../../types';
 
 interface CategoryListProps {
   categories: Category[];
+  isReorderMode: boolean; // モード判定用
   onDeleteCategory: (id: string) => void;
   onAddCategory: () => void;
   onUpdateList: (newList: Category[]) => void;
@@ -13,7 +14,7 @@ interface CategoryListProps {
   onDragEnd: () => void;
 }
 
-export const CategoryList: React.FC<CategoryListProps> = ({ categories, onDeleteCategory, onAddCategory, onUpdateList, onDragStart, onDragEnd }) => {
+export const CategoryList: React.FC<CategoryListProps> = ({ categories, isReorderMode, onDeleteCategory, onAddCategory, onUpdateList, onDragStart, onDragEnd }) => {
 
   const onReordered = (fromIndex: number, toIndex: number) => {
     const arr = [...categories];
@@ -31,53 +32,68 @@ export const CategoryList: React.FC<CategoryListProps> = ({ categories, onDelete
     }
   };
 
-  const renderItem = ({ item, onDragStart: startDrag, onDragEnd: endDrag, isActive }: DragListRenderItemInfo<Category>) => (
+  // 編集モード用のドラッグ専用行
+  const renderDragItem = ({ item, onDragStart: startDrag, onDragEnd: endDrag, isActive }: DragListRenderItemInfo<Category>) => (
     <View style={[styles.row, isActive && styles.activeRow]}>
-      
       <TouchableOpacity activeOpacity={0.6} onPressIn={startDrag} onPressOut={endDrag} style={styles.dragHandle}>
         <Text style={[styles.dragIcon, isActive && { color: '#007AFF' }]}>≡</Text>
       </TouchableOpacity>
-
-      <View style={styles.infoWrapper}>
+      <View style={styles.infoWrapper} pointerEvents="none">
         <Text style={styles.name}>{item.name}</Text>
         {item.isFixed && <Text style={styles.fixedBadge}>固定</Text>}
       </View>
-
-      {!item.isFixed ? (
-        <View style={styles.customActions}>
-          <View style={styles.switchWrap}>
-            <Text style={styles.switchLabel}>計算対象</Text>
-            <Switch
-              value={item.isCalculationTarget !== false} // 未設定(undefined)の場合はtrue扱い
-              onValueChange={(val) => handleToggleCalculation(item.id, val)}
-              style={styles.switchControl}
-            />
-          </View>
-          <TouchableOpacity onPress={() => onDeleteCategory(item.id)} style={styles.deleteBtn} disabled={isActive}>
-            <Text style={styles.deleteBtnText}>削除</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.placeholderBtn} />
-      )}
     </View>
   );
 
   return (
     <View style={styles.card}>
-      <DragList
-        data={categories}
-        keyExtractor={(item) => item.id}
-        onReordered={onReordered}
-        renderItem={renderItem}
-        onDragBegin={onDragStart}
-        onDragEnd={onDragEnd}
-        scrollEnabled={false}
-      />
+      {isReorderMode ? (
+        <DragList
+          data={categories}
+          keyExtractor={(item) => item.id}
+          onReordered={onReordered}
+          renderItem={renderDragItem}
+          onDragBegin={onDragStart}
+          onDragEnd={onDragEnd}
+          scrollEnabled={false}
+        />
+      ) : (
+        <View>
+          {categories.map((item) => (
+            <View key={item.id} style={styles.row}>
+              <View style={[styles.infoWrapper, { paddingLeft: 16 }]}>
+                <Text style={styles.name}>{item.name}</Text>
+                {item.isFixed && <Text style={styles.fixedBadge}>固定</Text>}
+              </View>
+
+              {!item.isFixed ? (
+                <View style={styles.customActions}>
+                  <View style={styles.switchWrap}>
+                    <Text style={styles.switchLabel}>計算対象</Text>
+                    <Switch
+                      value={item.isCalculationTarget !== false}
+                      onValueChange={(val) => handleToggleCalculation(item.id, val)}
+                      style={styles.switchControl}
+                    />
+                  </View>
+                  <TouchableOpacity onPress={() => onDeleteCategory(item.id)} style={styles.deleteBtn}>
+                    <Text style={styles.deleteBtnText}>削除</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.placeholderBtn} />
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={{ height: 1, backgroundColor: '#E5E5EA' }} />
-      <TouchableOpacity style={styles.addBtn} onPress={onAddCategory}>
-        <Text style={styles.addBtnText}>＋ カテゴリを追加</Text>
-      </TouchableOpacity>
+      {!isReorderMode && (
+        <TouchableOpacity style={styles.addBtn} onPress={onAddCategory}>
+          <Text style={styles.addBtnText}>＋ カテゴリを追加</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
