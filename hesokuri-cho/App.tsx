@@ -24,22 +24,25 @@ export default function App() {
     fetchMonthlyBudget(currentMonth);
   }, []);
 
-  const executeTabChange = async (targetTab: typeof activeTab) => {
+  // preserveCalendar フラグを追加。ボトムタブ直接押下時は false、保存完了時などは true となる
+  const executeTabChange = async (targetTab: typeof activeTab, preserveCalendar = false) => {
     if (activeTab === 'settings' && targetTab !== 'settings' && pendingSettings) {
       await updateSettings(pendingSettings);
       setPendingSettings(null);
     }
-    if (targetTab === 'dashboard') {
+    
+    // カレンダー維持フラグが false の場合のみ、復帰フラグをリセット（ホームボタン押下時の暴発防止）
+    if (targetTab === 'dashboard' && !preserveCalendar) {
       setReturnToCategoryDetail(null, null);
     }
+
     if (activeTab === 'input' && targetTab !== 'input') {
       resetExpenseInput();
     }
     setActiveTab(targetTab);
   };
 
-  // forceフラグがtrueの場合は入力中の破棄確認をスキップする
-  const handleTabChange = (targetTab: typeof activeTab, force = false) => {
+  const handleTabChange = (targetTab: typeof activeTab, force = false, preserveCalendar = false) => {
     if (!force && activeTab === 'input' && targetTab !== 'input') {
       const isInputting = expenseInput.amount !== '0' || !!expenseInput.storeName || !!expenseInput.memo;
       if (isInputting) {
@@ -48,13 +51,13 @@ export default function App() {
           '入力中の内容は保存されません。',
           [
             { text: 'いいえ', style: 'cancel' },
-            { text: 'はい', style: 'destructive', onPress: () => executeTabChange(targetTab) }
+            { text: 'はい', style: 'destructive', onPress: () => executeTabChange(targetTab, preserveCalendar) }
           ]
         );
         return;
       }
     }
-    executeTabChange(targetTab);
+    executeTabChange(targetTab, preserveCalendar);
   };
 
   if (isLoading && !settings) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#007AFF" /></View>;
@@ -70,9 +73,9 @@ export default function App() {
       </View>
 
       <View style={styles.contentWrapper}>
-        {/* InputScreen完了時は force=true でホームへ戻る */}
+        {/* onComplete時は force=true (ダイアログスキップ), preserveCalendar=true (カレンダー維持) を渡す */}
         {activeTab === 'dashboard' && <DashboardScreen onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} onNavigateToInput={() => handleTabChange('input')} />}
-        {activeTab === 'input' && <InputScreen onComplete={() => handleTabChange('dashboard', true)} />}
+        {activeTab === 'input' && <InputScreen onComplete={() => handleTabChange('dashboard', true, true)} />}
         {activeTab === 'settings' && <SettingsScreen />}
         {activeTab === 'history' && <HistoryScreen />}
         {activeTab === 'hesokuriHistory' && <HesokuriHistoryScreen onBack={() => handleTabChange('dashboard')} />}
@@ -80,6 +83,7 @@ export default function App() {
 
       {activeTab !== 'hesokuriHistory' && (
         <View style={styles.bottomNav}>
+          {/* ボトムタブ押下時は引数なし（force=false, preserveCalendar=false）となり、状態がクリーンアップされる */}
           <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('dashboard')}><Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text></TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('history')}><Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>🌱 庭</Text></TouchableOpacity>
           <TouchableOpacity style={styles.navItemMain} activeOpacity={0.8} onPress={() => handleTabChange('input')}><Text style={styles.navTextMain}>➕ 入力</Text></TouchableOpacity>

@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
 
 export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (val: boolean) => void) => {
-  const { settings, expenseInput, setExpenseInput, saveExpenseInput, returnToCategoryDetail, updateSettings, resetExpenseInput } = useHesokuriStore();
+  const { settings, expenseInput, setExpenseInput, saveExpenseInput, returnToCategoryDetail, setReturnToCategoryDetail, updateSettings, resetExpenseInput } = useHesokuriStore();
   const [isAmountError, setIsAmountError] = useState(false);
 
   const handleCancel = () => {
@@ -17,6 +17,7 @@ export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (va
           text: 'はい', 
           style: 'destructive', 
           onPress: () => {
+            // キャンセル時も onComplete (preserveCalendar=true) が呼ばれ、元のカレンダーに戻る
             resetExpenseInput();
             setIsAmountFocused(false);
             onComplete();
@@ -27,7 +28,6 @@ export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (va
   };
 
   const handleSubmit = async () => {
-    // ゼロ円バリデーション（視覚的エラーを有効化）
     if (!expenseInput.amount || expenseInput.amount === '0') {
       setIsAmountError(true);
       Alert.alert('エラー', '金額が入力されていません');
@@ -63,7 +63,14 @@ export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (va
       await saveExpenseInput();
       Alert.alert('完了', '記録を保存しました！');
       setIsAmountFocused(false);
-      onComplete(); // App.tsx側でforce=trueフラグ付きで処理される
+
+      // --- 【復元】通常の入力から来た場合は、記録後に全カテゴリ(ALL)のカレンダーを開く ---
+      if (!expenseInput.isLocked) {
+        setReturnToCategoryDetail('ALL', displayDate);
+      }
+      // ---------------------------------------------------------------------------------
+
+      onComplete();
     } catch (e: any) {
       Alert.alert('エラー', e.message);
     }
