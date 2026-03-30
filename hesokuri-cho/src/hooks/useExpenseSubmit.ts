@@ -1,9 +1,11 @@
 // src/hooks/useExpenseSubmit.ts
+import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
 
 export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (val: boolean) => void) => {
   const { settings, expenseInput, setExpenseInput, saveExpenseInput, returnToCategoryDetail, updateSettings, resetExpenseInput } = useHesokuriStore();
+  const [isAmountError, setIsAmountError] = useState(false);
 
   const handleCancel = () => {
     Alert.alert(
@@ -15,7 +17,6 @@ export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (va
           text: 'はい', 
           style: 'destructive', 
           onPress: () => {
-            // カレンダー復帰フラグは維持し、入力状態のみをリセットすることで元のカレンダーに戻る
             resetExpenseInput();
             setIsAmountFocused(false);
             onComplete();
@@ -26,6 +27,13 @@ export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (va
   };
 
   const handleSubmit = async () => {
+    // ゼロ円バリデーション（視覚的エラーを有効化）
+    if (!expenseInput.amount || expenseInput.amount === '0') {
+      setIsAmountError(true);
+      Alert.alert('エラー', '金額が入力されていません');
+      return;
+    }
+
     try {
       const displayDate = expenseInput.date || new Date().toISOString().slice(0, 10);
       if (!expenseInput.date) setExpenseInput({ date: displayDate });
@@ -55,13 +63,11 @@ export const useExpenseSubmit = (onComplete: () => void, setIsAmountFocused: (va
       await saveExpenseInput();
       Alert.alert('完了', '記録を保存しました！');
       setIsAmountFocused(false);
-      
-      // 保存完了後も、元の仕様通り returnToCategoryDetail の状態に従ってカレンダーに復帰する
-      onComplete();
+      onComplete(); // App.tsx側でforce=trueフラグ付きで処理される
     } catch (e: any) {
       Alert.alert('エラー', e.message);
     }
   };
 
-  return { handleSubmit, handleCancel, hasReturnTarget: !!returnToCategoryDetail };
+  return { handleSubmit, handleCancel, hasReturnTarget: !!returnToCategoryDetail, isAmountError, setIsAmountError };
 };

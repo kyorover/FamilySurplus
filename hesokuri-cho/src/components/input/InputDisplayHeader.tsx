@@ -6,11 +6,12 @@ interface InputDisplayHeaderProps {
   date: string;
   amount: string;
   isAmountFocused: boolean;
+  hasError?: boolean;
   onPressDate: () => void;
   onPressAmount: () => void;
 }
 
-export const InputDisplayHeader: React.FC<InputDisplayHeaderProps> = ({ date, amount, isAmountFocused, onPressDate, onPressAmount }) => {
+export const InputDisplayHeader: React.FC<InputDisplayHeaderProps> = ({ date, amount, isAmountFocused, hasError, onPressDate, onPressAmount }) => {
   const [cursorVisible, setCursorVisible] = useState(false);
   const formattedDate = `${date.split('-')[0]}年${date.split('-')[1]}月${date.split('-')[2]}日`;
 
@@ -31,15 +32,19 @@ export const InputDisplayHeader: React.FC<InputDisplayHeaderProps> = ({ date, am
         <Text style={styles.dateSelectorText}>📅 {formattedDate}  ▼</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused]} activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); onPressAmount(); }}>
-        <Text style={[styles.inputCurrency, isAmountFocused && styles.inputCurrencyFocused]}>￥</Text>
-        <Text style={styles.inputDisplayAmount}>
+      <TouchableOpacity 
+        style={[styles.inputDisplayArea, isAmountFocused && styles.inputDisplayAreaFocused, hasError && styles.inputDisplayAreaError]} 
+        activeOpacity={0.8} 
+        onPress={() => { Keyboard.dismiss(); onPressAmount(); }}
+      >
+        <Text style={[styles.inputCurrency, isAmountFocused && styles.inputCurrencyFocused, hasError && styles.inputCurrencyError]}>￥</Text>
+        <Text style={[styles.inputDisplayAmount, hasError && styles.inputDisplayAmountError]}>
           {isAmountFocused && amount === '0' ? (
-            <Text style={{ color: '#C7C7CC' }}>0</Text>
+            <Text style={{ color: hasError ? '#FF3B30' : '#C7C7CC' }}>0</Text>
           ) : (
             parseInt(amount, 10).toLocaleString()
           )}
-          <Text style={{ color: cursorVisible ? '#007AFF' : 'transparent' }}>|</Text>
+          <Text style={{ color: cursorVisible && !hasError ? '#007AFF' : cursorVisible && hasError ? '#FF3B30' : 'transparent' }}>|</Text>
         </Text>
       </TouchableOpacity>
     </View>
@@ -52,7 +57,10 @@ const styles = StyleSheet.create({
   dateSelectorText: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E' },
   inputDisplayArea: { marginTop: 16, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, borderWidth: 2, borderColor: '#E5E5EA', backgroundColor: '#FAFAFC', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minWidth: '80%' },
   inputDisplayAreaFocused: { borderColor: '#007AFF', backgroundColor: '#F0F8FF' },
+  inputDisplayAreaError: { borderColor: '#FF3B30', backgroundColor: '#FFE5E5' },
   inputCurrency: { fontSize: 24, color: '#C7C7CC', marginRight: 8, fontWeight: 'bold' },
   inputCurrencyFocused: { color: '#007AFF' },
+  inputCurrencyError: { color: '#FF3B30' },
   inputDisplayAmount: { fontSize: 48, fontWeight: 'bold', color: '#1C1C1E', letterSpacing: -1 },
+  inputDisplayAmountError: { color: '#FF3B30' }
 });

@@ -20,8 +20,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
-  // カスタムフックからロジックを読み込み
-  const { handleSubmit, handleCancel, hasReturnTarget } = useExpenseSubmit(onComplete, setIsAmountFocused);
+  const { handleSubmit, handleCancel, hasReturnTarget, isAmountError, setIsAmountError } = useExpenseSubmit(onComplete, setIsAmountFocused);
 
   if (!settings) return null;
 
@@ -30,12 +29,11 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   const displayDate = expenseInput.date || new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
-    if (!expenseInput.categoryId && activeCategories.length > 0) {
-      setExpenseInput({ categoryId: activeCategories[0].id });
-    }
+    if (!expenseInput.categoryId && activeCategories.length > 0) setExpenseInput({ categoryId: activeCategories[0].id });
   }, [settings]);
 
   const handleNumpadPress = (val: string) => {
+    if (isAmountError) setIsAmountError(false); // 入力を再開したらエラー表示を消す
     if (val === 'BS') setExpenseInput({ amount: expenseInput.amount.length > 1 ? expenseInput.amount.slice(0, -1) : '0' });
     else setExpenseInput({ amount: expenseInput.amount === '0' ? (val === '00' ? '0' : val) : (expenseInput.amount.length >= 8 ? expenseInput.amount : expenseInput.amount + val) });
   };
@@ -44,11 +42,8 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       
       <InputDisplayHeader 
-        date={displayDate} 
-        amount={expenseInput.amount} 
-        isAmountFocused={isAmountFocused} 
-        onPressDate={() => setDatePickerVisible(true)} 
-        onPressAmount={() => setIsAmountFocused(true)} 
+        date={displayDate} amount={expenseInput.amount} isAmountFocused={isAmountFocused} hasError={isAmountError}
+        onPressDate={() => setDatePickerVisible(true)} onPressAmount={() => setIsAmountFocused(true)} 
       />
 
       <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
@@ -82,25 +77,17 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
         </View>
 
         {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
-
         <InputActions isEditing={!!expenseInput.id} hasReturnTarget={hasReturnTarget} onCancel={handleCancel} onSubmit={handleSubmit} />
       </ScrollView>
-
       <DatePickerModal visible={isDatePickerVisible} initialDate={displayDate} onSelect={(date) => setExpenseInput({ date })} onClose={() => setDatePickerVisible(false)} />
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
-  scrollArea: { flex: 1 },
-  chipScroll: { maxHeight: 54, minHeight: 54, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FAFAFC' },
-  chipContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5E5EA', marginRight: 8 },
-  chipSelected: { backgroundColor: '#007AFF' },
-  chipDisabled: { backgroundColor: '#F2F2F7', opacity: 0.5 },
-  chipText: { fontSize: 13, color: '#1C1C1E', fontWeight: '600' },
-  chipTextSelected: { color: '#FFFFFF' },
-  chipTextDisabled: { color: '#C7C7CC' },
+  container: { flex: 1, backgroundColor: '#F2F2F7' }, scrollArea: { flex: 1 },
+  chipScroll: { maxHeight: 54, minHeight: 54, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FAFAFC' }, chipContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
+  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5E5EA', marginRight: 8 }, chipSelected: { backgroundColor: '#007AFF' }, chipDisabled: { backgroundColor: '#F2F2F7', opacity: 0.5 },
+  chipText: { fontSize: 13, color: '#1C1C1E', fontWeight: '600' }, chipTextSelected: { color: '#FFFFFF' }, chipTextDisabled: { color: '#C7C7CC' },
   optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 10 },
 });
