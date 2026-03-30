@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, TextInput,
 import { useHesokuriStore } from '../store';
 import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
 import { DatePickerModal } from '../components/input/DatePickerModal';
+import { AutocompleteInput } from '../components/input/AutocompleteInput'; // ← 追加：サジェストコンポーネントをインポート
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 interface InputScreenProps {
@@ -130,9 +131,22 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           </View>
         </ScrollView>
 
+        {/* 修正：素のTextInputをAutocompleteInputに置き換え、マスタ履歴を渡す */}
         <View style={styles.optionalInputArea}>
-          <TextInput style={styles.textInput} placeholder="店名（任意）" value={expenseInput.storeName} onChangeText={(text) => setExpenseInput({ storeName: text })} onFocus={() => setIsAmountFocused(false)} />
-          <TextInput style={styles.textInput} placeholder="コメント（任意）" value={expenseInput.memo} onChangeText={(text) => setExpenseInput({ memo: text })} onFocus={() => setIsAmountFocused(false)} />
+          <AutocompleteInput 
+            placeholder="店名（任意）" 
+            value={expenseInput.storeName || ''} 
+            onChangeText={(text) => setExpenseInput({ storeName: text })} 
+            history={settings.storeNameHistory || []}
+            onFocus={() => setIsAmountFocused(false)} 
+          />
+          <AutocompleteInput 
+            placeholder="コメント（任意）" 
+            value={expenseInput.memo || ''} 
+            onChangeText={(text) => setExpenseInput({ memo: text })} 
+            history={settings.memoHistory || []}
+            onFocus={() => setIsAmountFocused(false)} 
+          />
         </View>
 
         {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
@@ -166,8 +180,7 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, color: '#1C1C1E', fontWeight: '600' },
   chipTextSelected: { color: '#FFFFFF' },
   chipTextDisabled: { color: '#C7C7CC' },
-  optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  textInput: { backgroundColor: '#F2F2F7', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, marginBottom: 8, fontSize: 14 },
+  optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 10 }, // zIndexを追加しプルダウンが隠れないように補強
   submitBtn: { backgroundColor: '#007AFF', margin: 16, paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   submitBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
 });

@@ -20,7 +20,13 @@ interface DashboardScreenProps {
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHesokuriHistory, onNavigateToInput }) => {
-  const { settings, expenses, monthlyBudget, updateSettings, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail } = useHesokuriStore();
+  const { 
+    settings, expenses, monthlyBudget, 
+    updateSettings, updateMonthlyBudget, deleteExpense, 
+    setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail,
+    waterGarden // 追加：水やりアクション
+  } = useHesokuriStore();
+  
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
@@ -117,6 +123,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const selectedCategoryForDetail = settings.categories.find(c => c.id === selectedCategoryId) || null;
   const selectedExpenses = expenses.filter(e => e.categoryId === selectedCategoryId).sort((a, b) => b.date.localeCompare(a.date));
 
+  // 追加：本日の水やり完了判定
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isWateredToday = settings.lastWateringDate === todayStr;
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 16 }} scrollEnabled={isScrollEnabled}>
@@ -126,9 +136,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
             currentHesokuri={currentHesokuri} totalMonthlyBudget={totalMonthlyBudget} totalSpent={totalSpent} 
             averageGuideline={averageGuideline} evaluation={evaluation} hasChild={hasChild}
             pocketMoneyDetails={pocketMoneyDetails}
+            gardenPoints={settings.gardenPoints || 0} // 追加
+            isWateredToday={isWateredToday} // 追加
             onPressCard={() => setAllCalendarVisible(true)} 
             onPressEditBudget={() => setBudgetModalVisible(true)} 
             onPressPocketMoney={() => setPocketMoneyModalVisible(true)}
+            onPressWatering={waterGarden} // 追加
           />
           
           <View style={styles.sectionHeader}>

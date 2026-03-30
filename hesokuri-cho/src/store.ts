@@ -1,7 +1,7 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, Category } from './types';
-import { DEFAULT_CATEGORY_NAMES } from './constants';
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget } from './types';
+import { isYesterdayNoMoneyDay } from './functions/budgetUtils';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001';
@@ -16,11 +16,14 @@ interface HesokuriState {
 
   setExpenseInput: (input: Partial<ExpenseInputState>) => void; resetExpenseInput: () => void; saveExpenseInput: () => Promise<void>; setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; fetchSettings: () => Promise<void>; updateSettings: (newSettings: HouseholdSettings) => Promise<void>; fetchExpenses: (month: string) => Promise<void>; fetchMonthlyBudget: (month: string) => Promise<void>; updateMonthlyBudget: (budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule'], month: string) => Promise<void>; addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>; updateExpense: (expense: ExpenseRecord) => Promise<void>; deleteExpense: (date_id: string) => Promise<void>; fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
+  // --- ガーデン機能追加 ---
+  waterGarden: () => Promise<void>;
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null, returnToCategoryDetail: null, returnToCategoryDetailDate: null,
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
+  
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
   setReturnToCategoryDetail: (id, date = null) => set({ returnToCategoryDetail: id, returnToCategoryDetailDate: date }),
@@ -30,7 +33,19 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     if (amountNum <= 0 || !input.categoryId) throw new Error('金額またはカテゴリが不正です');
     const expenseDate = input.date || new Date().toISOString().slice(0, 10);
     const dataObj = { householdId: HOUSEHOLD_ID, date: expenseDate, categoryId: input.categoryId, amount: amountNum, paymentMethod: input.paymentMethod, storeName: input.storeName.trim(), memo: input.memo.trim() };
-    if (input.id) await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` }); else await state.addExpense(dataObj);
+    
+    if (input.id) {
+      await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` }); 
+    } else { 
+      await state.addExpense(dataObj);
+      // お手入れポイント（入力完了に対する少量の報酬）を付与
+      const currentSettings = get().settings;
+      if (currentSettings) {
+        const updatedPoints = (currentSettings.gardenPoints || 0) + 2;
+        // 画面操作をブロックしないよう非同期で更新を投げる
+        get().updateSettings({ ...currentSettings, gardenPoints: updatedPoints });
+      }
+    }
     state.resetExpenseInput();
   },
 
@@ -41,21 +56,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     try {
       const response = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`);
       const data = await response.json();
-      
-      // 【変更点】DBから取得したカテゴリ名のうち、固定科目の名前を constants.ts の最新定義で強制的に上書きする
-      if (data && data.categories) {
-        data.categories = data.categories.map((cat: Category) => {
-          if (cat.isFixed) {
-            // 旧名称「養育費」が存在する場合は、新しい名称「子育て費」へ置換
-            if (cat.name === '養育費') {
-              return { ...cat, name: DEFAULT_CATEGORY_NAMES.CHILD_CARE };
-            }
-            // 補足: DB側のID体系が文字列マッピング可能な場合は ID に基づいて上書きするのがより堅牢です
-          }
-          return cat;
-        });
-      }
-
       set({ settings: data.message === 'Settings not found' ? null : data, isLoading: false });
     } catch (error: any) { set({ error: error.message, isLoading: false }); }
   },
@@ -82,7 +82,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       if (Object.keys(currentBudgets).length === 0 && currentSettings) {
         currentSettings.categories.forEach(cat => { currentBudgets[cat.id] = cat.budget; });
         const adults = currentSettings.familyMembers.filter(m => m.role === '大人');
-        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); }); 
+        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); });
         await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule }) });
       }
       set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule, updatedAt: new Date().toISOString() }, isLoading: false });
@@ -138,5 +138,39 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       const expData = await expRes.json(); const budData = await budRes.json();
       return { expenses: expData.expenses || [], budgets: budData.budgets || {} };
     } catch (e) { return { expenses: [], budgets: {} }; }
+  },
+
+  // ==========================================
+  // ガーデン機能・ゲーミフィケーション処理
+  // ==========================================
+  waterGarden: async () => {
+    const state = get();
+    const settings = state.settings;
+    if (!settings) return;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    
+    // 既に本日水やり済みの場合は処理しない
+    if (settings.lastWateringDate === todayStr) {
+      return;
+    }
+
+    // 基本の水やり（確認）ポイント
+    let pointsToAdd = 10; 
+    
+    // NMD（無買日）判定：Store内の支出履歴から前日の支出有無を確認
+    const isNMD = isYesterdayNoMoneyDay(state.expenses, todayStr);
+    if (isNMD) {
+      pointsToAdd += 30; // 昨日は無買日だったのでボーナス！
+    }
+
+    const newSettings: HouseholdSettings = {
+      ...settings,
+      gardenPoints: (settings.gardenPoints || 0) + pointsToAdd,
+      lastWateringDate: todayStr,
+    };
+
+    // Settings更新をリクエスト
+    await state.updateSettings(newSettings);
   }
 }));

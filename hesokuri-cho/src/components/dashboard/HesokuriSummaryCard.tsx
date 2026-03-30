@@ -12,13 +12,18 @@ interface HesokuriSummaryCardProps {
   evaluation: BudgetEvaluationResult;
   hasChild: boolean;
   pocketMoneyDetails: { id: string, name: string, base: number, bonus: number, total: number }[];
+  gardenPoints: number;      // 新規追加
+  isWateredToday: boolean;   // 新規追加
   onPressCard: () => void;
   onPressEditBudget: () => void;
   onPressPocketMoney: () => void; 
+  onPressWatering: () => void; // 新規追加
 }
 
 export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
-  currentHesokuri, totalMonthlyBudget, totalSpent, averageGuideline, evaluation, hasChild, pocketMoneyDetails, onPressCard, onPressEditBudget, onPressPocketMoney
+  currentHesokuri, totalMonthlyBudget, totalSpent, averageGuideline, evaluation, hasChild, pocketMoneyDetails, 
+  gardenPoints, isWateredToday, // 新規追加
+  onPressCard, onPressEditBudget, onPressPocketMoney, onPressWatering // 新規追加
 }) => {
   const isNegative = currentHesokuri < 0;
   
@@ -28,9 +33,17 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.editBudgetBtnTop} onPress={onPressEditBudget}>
-        <Text style={styles.editBudgetBtnText}>今月の予算を編成する</Text>
-      </TouchableOpacity>
+      
+      {/* 予算編成ボタンとガーデンステータスを横並びに配置 */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity style={styles.editBudgetBtn} onPress={onPressEditBudget}>
+          <Text style={styles.editBudgetBtnText}>今月の予算を編成する</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.gardenStatusWrap}>
+          <Text style={styles.gardenPointsText}>🌱 {gardenPoints} pt</Text>
+        </View>
+      </View>
 
       <TouchableOpacity activeOpacity={0.6} onPress={onPressCard} style={styles.topArea}>
         <Text style={styles.label}>今月の余るお金</Text>
@@ -42,6 +55,23 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
         <Text style={styles.spentAmount}>￥{totalSpent.toLocaleString()}</Text>
         <Text style={styles.hintText}>タップして全カテゴリーのカレンダーを見る ＞</Text>
       </TouchableOpacity>
+
+      {/* 水やり（確認）ボタンエリア */}
+      <View style={styles.wateringArea}>
+        <TouchableOpacity 
+          style={[styles.wateringBtn, isWateredToday && styles.wateringBtnDone]} 
+          onPress={onPressWatering}
+          disabled={isWateredToday}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.wateringBtnText, isWateredToday && styles.wateringBtnTextDone]}>
+            {isWateredToday ? '✨ 本日のお世話完了！' : '💧 今日の状況を確認（水やり）'}
+          </Text>
+        </TouchableOpacity>
+        {!isWateredToday && (
+          <Text style={styles.wateringHint}>タップで状況を確認してポイントGET</Text>
+        )}
+      </View>
 
       <View style={styles.divider} />
 
@@ -83,14 +113,23 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
 
 const styles = StyleSheet.create({
   card: { backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 },
-  editBudgetBtnTop: { backgroundColor: '#E5F1FF', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 20 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  editBudgetBtn: { backgroundColor: '#E5F1FF', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' },
   editBudgetBtnText: { color: '#007AFF', fontWeight: 'bold', fontSize: 13 },
+  gardenStatusWrap: { backgroundColor: '#F2F2F7', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16 },
+  gardenPointsText: { fontSize: 13, fontWeight: 'bold', color: '#34C759' },
   topArea: { alignItems: 'center', marginBottom: 8 },
   label: { fontSize: 14, color: '#8E8E93', fontWeight: 'bold', marginBottom: 4 },
   amount: { fontSize: 44, fontWeight: '900', marginBottom: 16, letterSpacing: -1 },
   spentLabel: { fontSize: 14, color: '#8E8E93', fontWeight: 'bold', marginBottom: 2 },
   spentAmount: { fontSize: 28, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 16 },
   hintText: { fontSize: 12, color: '#007AFF', fontWeight: 'bold', paddingVertical: 8 },
+  wateringArea: { alignItems: 'center', marginBottom: 20, marginTop: 4 },
+  wateringBtn: { backgroundColor: '#34C759', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 24, width: '100%', alignItems: 'center', shadowColor: '#34C759', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  wateringBtnDone: { backgroundColor: '#E5E5EA', shadowOpacity: 0, elevation: 0 },
+  wateringBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 },
+  wateringBtnTextDone: { color: '#8E8E93' },
+  wateringHint: { fontSize: 11, color: '#8E8E93', marginTop: 8, fontWeight: 'bold' },
   divider: { height: 1, backgroundColor: '#E5E5EA', marginBottom: 20 },
   pocketMoneyArea: { backgroundColor: '#FAFAFC', padding: 16, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: '#E5E5EA' },
   pmHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
