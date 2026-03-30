@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { useHesokuriStore } from '../store';
+import { GardenShopModal } from '../components/garden/GardenShopModal'; // ← 追加
 
 export const HistoryScreen: React.FC = () => {
   const { settings, fetchHistoryData } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [isLoading, setIsLoading] = useState(false);
+  const [isShopVisible, setIsShopVisible] = useState(false); // ← 追加
   
-  // プロトタイプ用のガーデンステート（支出履歴から動的に算出）
   const [plantLevel, setPlantLevel] = useState(1);
   const [monthlyNMD, setMonthlyNMD] = useState(0);
 
@@ -17,7 +18,6 @@ export const HistoryScreen: React.FC = () => {
       setIsLoading(true);
       const data = await fetchHistoryData(viewMonth);
       
-      // その月の「無買日(NMD: No Money Day)」の数を算出するロジック
       const expensesByDate = data.expenses.reduce((acc, exp) => {
         acc[exp.date] = true;
         return acc;
@@ -29,7 +29,6 @@ export const HistoryScreen: React.FC = () => {
       const daysInMonth = new Date(year, month, 0).getDate();
       
       let nmdCount = 0;
-      // 未来の日付の分はカウントしないよう、現在日までの日数を上限とする
       const today = new Date();
       const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
       const calcTargetDays = isCurrentMonth ? today.getDate() : daysInMonth;
@@ -41,8 +40,6 @@ export const HistoryScreen: React.FC = () => {
       
       setMonthlyNMD(nmdCount);
       
-      // NMDの達成日数に応じた植物のレベル判定 (1〜5)
-      // ※金額の多寡ではなく、管理の継続性（お金を使わなかった日）を評価する
       if (nmdCount >= 20) setPlantLevel(5);
       else if (nmdCount >= 15) setPlantLevel(4);
       else if (nmdCount >= 10) setPlantLevel(3);
@@ -63,11 +60,11 @@ export const HistoryScreen: React.FC = () => {
 
   const getPlantEmoji = (level: number) => {
     switch (level) {
-      case 5: return '🌳'; // 大樹
-      case 4: return '🌷'; // 咲いた花
-      case 3: return '🌿'; // 茂る葉
-      case 2: return '🌱'; // 芽
-      case 1: default: return '🌰'; // 種
+      case 5: return '🌳'; 
+      case 4: return '🌷'; 
+      case 3: return '🌿'; 
+      case 2: return '🌱'; 
+      case 1: default: return '🌰'; 
     }
   };
 
@@ -83,7 +80,6 @@ export const HistoryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* 月切り替えヘッダー */}
       <View style={styles.monthSelector}>
         <TouchableOpacity onPress={() => handleMonthChange(-1)} style={styles.arrowBtn}>
           <Text style={styles.arrowText}>◀</Text>
@@ -96,17 +92,13 @@ export const HistoryScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* ガーデン描画エリア */}
         <View style={styles.gardenCanvas}>
           {isLoading ? (
             <Text style={styles.loadingText}>お庭の様子を確認中...</Text>
           ) : (
             <>
-              {/* 背景の空と地面 */}
               <View style={styles.skyArea} />
               <View style={styles.groundArea} />
-              
-              {/* メインの植物 */}
               <View style={styles.plantWrapper}>
                 <Text style={styles.plantEmoji}>{getPlantEmoji(plantLevel)}</Text>
               </View>
@@ -114,7 +106,6 @@ export const HistoryScreen: React.FC = () => {
           )}
         </View>
 
-        {/* 評価・ステータス表示エリア */}
         <View style={styles.statusCard}>
           <Text style={styles.statusTitle}>成長レポート</Text>
           <Text style={styles.plantMessage}>{getPlantMessage(plantLevel)}</Text>
@@ -131,11 +122,20 @@ export const HistoryScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.infoArea}>
-          <Text style={styles.infoText}>💡 ポイントを使ってお庭を飾り付ける「アイテムショップ」機能は、今後のアップデートで追加されます。</Text>
-        </View>
+        {/* 修正：ショップを開くボタンの設置 */}
+        <TouchableOpacity style={styles.shopBtn} activeOpacity={0.8} onPress={() => setIsShopVisible(true)}>
+          <Text style={styles.shopBtnIcon}>🛒</Text>
+          <View style={styles.shopBtnTextWrap}>
+            <Text style={styles.shopBtnTitle}>アイテムショップへ</Text>
+            <Text style={styles.shopBtnSub}>貯まったポイントでお庭を飾り付けましょう</Text>
+          </View>
+          <Text style={styles.shopBtnArrow}>＞</Text>
+        </TouchableOpacity>
 
       </ScrollView>
+
+      {/* ショップモーダル */}
+      <GardenShopModal visible={isShopVisible} onClose={() => setIsShopVisible(false)} />
     </View>
   );
 };
@@ -165,6 +165,10 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, color: '#8E8E93', fontWeight: 'bold', marginBottom: 4 },
   statValue: { fontSize: 18, fontWeight: '900', color: '#1C1C1E' },
 
-  infoArea: { paddingHorizontal: 8 },
-  infoText: { fontSize: 12, color: '#8E8E93', lineHeight: 18 }
+  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+  shopBtnIcon: { fontSize: 28, marginRight: 16 },
+  shopBtnTextWrap: { flex: 1 },
+  shopBtnTitle: { fontSize: 15, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 4 },
+  shopBtnSub: { fontSize: 11, color: '#8E8E93' },
+  shopBtnArrow: { fontSize: 16, color: '#C7C7CC', fontWeight: 'bold' }
 });
