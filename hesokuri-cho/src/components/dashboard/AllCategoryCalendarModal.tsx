@@ -17,7 +17,9 @@ interface AllCategoryCalendarModalProps {
   onDelete: (date_id: string) => void;
 }
 
-export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> = ({ visible, categories, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete }) => {
+export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> = ({ 
+  visible, categories, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete 
+}) => {
   const { fetchHistoryData } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(currentMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -28,7 +30,18 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
     if (visible) {
       const targetMonth = initialDate ? initialDate.slice(0, 7) : currentMonth;
       setViewMonth(targetMonth);
-      if (initialDate) setSelectedDate(initialDate);
+      
+      // デフォルト日付の決定（指定がなければ、当月なら「今日」、それ以外の月なら「1日」とする）
+      let defaultDate = initialDate;
+      if (!defaultDate) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (todayStr.startsWith(currentMonth)) {
+          defaultDate = todayStr;
+        } else {
+          defaultDate = `${currentMonth}-01`;
+        }
+      }
+      setSelectedDate(defaultDate);
     } else {
       setSelectedDate(null);
     }
@@ -56,15 +69,31 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
   const handleMonthChange = (diff: number) => {
     const [yearStr, monthStr] = viewMonth.split('-');
     const next = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1 + diff, 1);
-    setViewMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
-    setSelectedDate(null);
+    const nextMonthStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+    setViewMonth(nextMonthStr);
+    
+    // 月を切り替えた際も、その月における適切な日付をデフォルト選択する
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (todayStr.startsWith(nextMonthStr)) {
+      setSelectedDate(todayStr);
+    } else {
+      setSelectedDate(`${nextMonthStr}-01`);
+    }
   };
 
   const handleYearChange = (diff: number) => {
     const [yearStr, monthStr] = viewMonth.split('-');
     const next = new Date(parseInt(yearStr, 10) + diff, parseInt(monthStr, 10) - 1, 1);
-    setViewMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
-    setSelectedDate(null);
+    const nextMonthStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+    setViewMonth(nextMonthStr);
+    
+    // 年を切り替えた際も同様にデフォルト選択
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (todayStr.startsWith(nextMonthStr)) {
+      setSelectedDate(todayStr);
+    } else {
+      setSelectedDate(`${nextMonthStr}-01`);
+    }
   };
 
   const handleDeleteWrapper = (exp: ExpenseRecord) => {
@@ -77,7 +106,9 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.modalCard}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}><Text style={styles.closeText}>閉じる</Text></TouchableOpacity>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.closeText}>閉じる</Text>
+            </TouchableOpacity>
             <Text style={styles.title}>全カテゴリーカレンダー</Text>
             <View style={{ width: 40 }} />
           </View>
