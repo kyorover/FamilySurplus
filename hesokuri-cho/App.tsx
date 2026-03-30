@@ -24,58 +24,136 @@ export default function App() {
     fetchMonthlyBudget(currentMonth);
   }, []);
 
-  // preserveCalendar フラグを追加。ボトムタブ直接押下時は false、保存完了時などは true となる
-  const executeTabChange = async (targetTab: typeof activeTab, preserveCalendar = false) => {
+  /**
+   * ============================================================================
+   * [AI・開発者向け TIPS: タブ遷移とカレンダー復帰状態の競合管理について]
+   * ！！警告：ここを適当に書き換えると、キャンセルボタンやタブ操作のデグレが再発します！！
+   *
+   * 【問題の背景】
+   * カレンダーから入力画面に遷移した場合、Zustand に `returnToCategoryDetail` (復帰先ID) が保存される。
+   * これが残っている状態でダッシュボードを描画すると、自動的にカレンダーが開く仕様となっている。
+   *
+   * 【3つのケースと厳密なフラグ制御】
+   * 1. ボトムタブの「ホーム」ボタンを押した時 (通常のタブ遷移)
+   * -> 意図せずカレンダーが開く「暴発バグ」を防ぐため、必ず `preserveCalendarState: false` (デフォルト) で
+   * `setReturnToCategoryDetail(null, null)` を実行し、状態を完全にリセットしてからホームを出す。
+   *
+   * 2. カレンダー経由の入力画面で「保存」または「キャンセル」を押し、完了した時
+   * -> 元のカレンダーに戻る必要があるため、`preserveCalendarState: true` を指定して遷移させる。
+   * これにより状態リセット処理がバイパスされ、ダッシュボード遷移後にカレンダーが再展開される。
+   *
+   * 3. 入力画面(入力途中)から、ボトムタブの他画面を押した時
+   * -> 入力破棄の警告ダイアログを出す必要があるため、`forceTransition: false` (デフォルト) で呼ぶ。
+   * ============================================================================
+   */
+  type TabNavOptions = {
+    forceTransition?: boolean;       // true: 入力中アラートをスキップして強制遷移する
+    preserveCalendarState?: boolean; // true: カレンダーの復帰状態をリセットせずに維持する
+  };
+
+  const executeTabChange = async (targetTab: typeof activeTab, options: TabNavOptions) => {
+    // 設定画面から離れる際の自動保存
     if (activeTab === 'settings' && targetTab !== 'settings' && pendingSettings) {
       await updateSettings(pendingSettings);
       setPendingSettings(null);
     }
-    
-    // カレンダー維持フラグが false の場合のみ、復帰フラグをリセット（ホームボタン押下時の暴発防止）
-    if (targetTab === 'dashboard' && !preserveCalendar) {
+
+    // ダッシュボード遷移時、カレンダー維持フラグ(preserveCalendarState)が「無い」場合のみ状態をリセットする
+    if (targetTab === 'dashboard' && !options.preserveCalendarState) {
       setReturnToCategoryDetail(null, null);
     }
 
+    // 入力画面から離れる場合は入力データを確実に破棄
     if (activeTab === 'input' && targetTab !== 'input') {
       resetExpenseInput();
     }
+
     setActiveTab(targetTab);
   };
 
-  const handleTabChange = (targetTab: typeof activeTab, force = false, preserveCalendar = false) => {
-    if (!force && activeTab === 'input' && targetTab !== 'input') {
+  const handleTabChange = (targetTab: typeof activeTab, options: TabNavOptions = {}) => {
+    // 強制遷移フラグがなく、入力画面から他のタブへ移動しようとした場合は確認ダイアログを出す
+    if (!options.forceTransition && activeTab === 'input' && targetTab !== 'input') {
       const isInputting = expenseInput.amount !== '0' || !!expenseInput.storeName || !!expenseInput.memo;
+      
       if (isInputting) {
         Alert.alert(
           '入力を破棄しますか？',
           '入力中の内容は保存されません。',
           [
             { text: 'いいえ', style: 'cancel' },
-            { text: 'はい', style: 'destructive', onPress: () => executeTabChange(targetTab, preserveCalendar) }
+            { 
+              text: 'はい', 
+              style: 'destructive', 
+              onPress: () => executeTabChange(targetTab, options) 
+            }
           ]
         );
-        return;
+        return; // ダイアログの返答待ち
       }
     }
-    executeTabChange(targetTab, preserveCalendar);
+
+    // 入力途中でない、または強制遷移の場合はそのまま遷移
+    executeTabChange(targetTab, options);
   };
 
-  if (isLoading && !settings) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#007AFF" /></View>;
-  if (error && !settings) return <View style={styles.centerContainer}><Text style={{ color: 'red' }}>エラー: {error}</Text><TouchableOpacity onPress={fetchSettings} style={{ marginTop: 16 }}><Text style={{ color: '#007AFF', fontWeight: 'bold' }}>再試行</Text></TouchableOpacity></View>;
-  if (!settings) return <View style={styles.centerContainer}><Text style={styles.welcomeTitle}>節約帖へようこそ</Text><ActivityIndicator size="small" color="#007AFF" /></View>;
+  if (isLoading && !settings) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (error && !settings) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={{ color: 'red' }}>エラーが発生しました: {error}</Text>
+        <TouchableOpacity onPress={fetchSettings} style={{ marginTop: 16 }}>
+          <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>再試行</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.welcomeTitle}>節約帖へようこそ</Text>
+        <ActivityIndicator size="small" color="#007AFF" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          {activeTab === 'dashboard' ? 'ダッシュボード' : activeTab === 'input' ? '支出の記録' : activeTab === 'history' ? 'ガーデン履歴' : activeTab === 'hesokuriHistory' ? 'へそくり履歴' : '設定'}
-        </Text>
-      </View>
+      
+      {/* 入力画面以外で共通ヘッダーを表示 */}
+      {activeTab !== 'input' && (
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>
+            {activeTab === 'dashboard' ? 'ダッシュボード' : 
+             activeTab === 'history' ? 'ガーデン履歴' : 
+             activeTab === 'hesokuriHistory' ? 'へそくり履歴' : '設定'}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.contentWrapper}>
-        {/* onComplete時は force=true (ダイアログスキップ), preserveCalendar=true (カレンダー維持) を渡す */}
-        {activeTab === 'dashboard' && <DashboardScreen onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} onNavigateToInput={() => handleTabChange('input')} />}
-        {activeTab === 'input' && <InputScreen onComplete={() => handleTabChange('dashboard', true, true)} />}
+        {activeTab === 'dashboard' && (
+          <DashboardScreen 
+            onNavigateToHesokuriHistory={() => handleTabChange('hesokuriHistory')} 
+            onNavigateToInput={() => handleTabChange('input')} 
+          />
+        )}
+        
+        {/* 入力画面の完了時：強制遷移（アラート無視）かつカレンダー状態を維持（元のカレンダーへ戻る） */}
+        {activeTab === 'input' && (
+          <InputScreen 
+            onComplete={() => handleTabChange('dashboard', { forceTransition: true, preserveCalendarState: true })} 
+          />
+        )}
+        
         {activeTab === 'settings' && <SettingsScreen />}
         {activeTab === 'history' && <HistoryScreen />}
         {activeTab === 'hesokuriHistory' && <HesokuriHistoryScreen onBack={() => handleTabChange('dashboard')} />}
@@ -83,11 +161,19 @@ export default function App() {
 
       {activeTab !== 'hesokuriHistory' && (
         <View style={styles.bottomNav}>
-          {/* ボトムタブ押下時は引数なし（force=false, preserveCalendar=false）となり、状態がクリーンアップされる */}
-          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('dashboard')}><Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('history')}><Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>🌱 庭</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.navItemMain} activeOpacity={0.8} onPress={() => handleTabChange('input')}><Text style={styles.navTextMain}>➕ 入力</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('settings')}><Text style={[styles.navText, activeTab === 'settings' && styles.navTextActive]}>⚙️ 設定</Text></TouchableOpacity>
+          {/* ボトムタブからの遷移時：デフォルト動作（カレンダー状態リセット、アラート有効） */}
+          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('dashboard')}>
+            <Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('history')}>
+            <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>🌱 庭</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItemMain} activeOpacity={0.8} onPress={() => handleTabChange('input')}>
+            <Text style={styles.navTextMain}>➕ 入力</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('settings')}>
+            <Text style={[styles.navText, activeTab === 'settings' && styles.navTextActive]}>⚙️ 設定</Text>
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
@@ -95,10 +181,16 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({ 
-  container: { flex: 1, backgroundColor: '#F2F2F7' }, centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' }, contentWrapper: { flex: 1 }, 
-  header: { alignItems: 'center', paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }, headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' }, 
+  container: { flex: 1, backgroundColor: '#F2F2F7' }, 
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' }, 
+  contentWrapper: { flex: 1 }, 
+  header: { alignItems: 'center', paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }, 
+  headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' }, 
   welcomeTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 32, color: '#1C1C1E' }, 
   bottomNav: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingBottom: 30, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E5E5EA', justifyContent: 'space-around', alignItems: 'center' }, 
-  navItem: { flex: 1, alignItems: 'center', paddingVertical: 8 }, navItemMain: { flex: 1, alignItems: 'center', backgroundColor: '#007AFF', paddingVertical: 12, borderRadius: 24, marginHorizontal: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }, 
-  navText: { fontSize: 10, color: '#8E8E93', marginTop: 4, fontWeight: 'bold' }, navTextActive: { color: '#007AFF' }, navTextMain: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' } 
+  navItem: { flex: 1, alignItems: 'center', paddingVertical: 8 }, 
+  navItemMain: { flex: 1, alignItems: 'center', backgroundColor: '#007AFF', paddingVertical: 12, borderRadius: 24, marginHorizontal: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }, 
+  navText: { fontSize: 10, color: '#8E8E93', marginTop: 4, fontWeight: 'bold' }, 
+  navTextActive: { color: '#007AFF' }, 
+  navTextMain: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' } 
 });

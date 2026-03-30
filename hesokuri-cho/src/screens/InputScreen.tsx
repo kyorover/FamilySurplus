@@ -6,7 +6,7 @@ import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
 import { DatePickerModal } from '../components/input/DatePickerModal';
 import { AutocompleteInput } from '../components/input/AutocompleteInput';
 import { InputDisplayHeader } from '../components/input/InputDisplayHeader';
-import { InputActions } from '../components/input/InputActions';
+import { InputScreenHeader } from '../components/input/InputScreenHeader';
 import { useExpenseSubmit } from '../hooks/useExpenseSubmit';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
@@ -33,7 +33,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   }, [settings]);
 
   const handleNumpadPress = (val: string) => {
-    if (isAmountError) setIsAmountError(false); // 入力を再開したらエラー表示を消す
+    if (isAmountError) setIsAmountError(false);
     if (val === 'BS') setExpenseInput({ amount: expenseInput.amount.length > 1 ? expenseInput.amount.slice(0, -1) : '0' });
     else setExpenseInput({ amount: expenseInput.amount === '0' ? (val === '00' ? '0' : val) : (expenseInput.amount.length >= 8 ? expenseInput.amount : expenseInput.amount + val) });
   };
@@ -41,6 +41,14 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       
+      {/* 新設した専用上部ヘッダー */}
+      <InputScreenHeader 
+        isEditing={!!expenseInput.id} 
+        hasReturnTarget={hasReturnTarget} 
+        onCancel={handleCancel} 
+        onSubmit={handleSubmit} 
+      />
+
       <InputDisplayHeader 
         date={displayDate} amount={expenseInput.amount} isAmountFocused={isAmountFocused} hasError={isAmountError}
         onPressDate={() => setDatePickerVisible(true)} onPressAmount={() => setIsAmountFocused(true)} 
@@ -77,7 +85,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
         </View>
 
         {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
-        <InputActions isEditing={!!expenseInput.id} hasReturnTarget={hasReturnTarget} onCancel={handleCancel} onSubmit={handleSubmit} />
+        {/* 画面下部の InputActions は削除しました */}
       </ScrollView>
       <DatePickerModal visible={isDatePickerVisible} initialDate={displayDate} onSelect={(date) => setExpenseInput({ date })} onClose={() => setDatePickerVisible(false)} />
     </KeyboardAvoidingView>
