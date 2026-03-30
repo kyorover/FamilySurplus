@@ -1,7 +1,7 @@
 // src/store.ts
 import { create } from 'zustand';
 import { HouseholdSettings, ExpenseRecord, MonthlyBudget } from './types';
-import { isYesterdayNoMoneyDay } from './functions/budgetUtils';
+import { isYesterdayNoMoneyDay } from './functions/budgetUtils'; // ← 追加: 無買日判定関数
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001';
@@ -16,6 +16,7 @@ interface HesokuriState {
 
   setExpenseInput: (input: Partial<ExpenseInputState>) => void; resetExpenseInput: () => void; saveExpenseInput: () => Promise<void>; setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; fetchSettings: () => Promise<void>; updateSettings: (newSettings: HouseholdSettings) => Promise<void>; fetchExpenses: (month: string) => Promise<void>; fetchMonthlyBudget: (month: string) => Promise<void>; updateMonthlyBudget: (budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule'], month: string) => Promise<void>; addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>; updateExpense: (expense: ExpenseRecord) => Promise<void>; deleteExpense: (date_id: string) => Promise<void>; fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
+  
   // --- ガーデン機能追加 ---
   waterGarden: () => Promise<void>;
 }
@@ -23,7 +24,6 @@ interface HesokuriState {
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null, returnToCategoryDetail: null, returnToCategoryDetailDate: null,
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
-  
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
   setReturnToCategoryDetail: (id, date = null) => set({ returnToCategoryDetail: id, returnToCategoryDetailDate: date }),
@@ -35,10 +35,11 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     const dataObj = { householdId: HOUSEHOLD_ID, date: expenseDate, categoryId: input.categoryId, amount: amountNum, paymentMethod: input.paymentMethod, storeName: input.storeName.trim(), memo: input.memo.trim() };
     
     if (input.id) {
-      await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` }); 
-    } else { 
+      await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` });
+    } else {
       await state.addExpense(dataObj);
-      // お手入れポイント（入力完了に対する少量の報酬）を付与
+      
+      // --- ガーデン機能: お手入れポイント（入力完了に対する少量の報酬）を付与 ---
       const currentSettings = get().settings;
       if (currentSettings) {
         const updatedPoints = (currentSettings.gardenPoints || 0) + 2;
@@ -82,7 +83,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       if (Object.keys(currentBudgets).length === 0 && currentSettings) {
         currentSettings.categories.forEach(cat => { currentBudgets[cat.id] = cat.budget; });
         const adults = currentSettings.familyMembers.filter(m => m.role === '大人');
-        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); });
+        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); }); // デフォルトは均等配分
         await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule }) });
       }
       set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule, updatedAt: new Date().toISOString() }, isLoading: false });
@@ -155,7 +156,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       return;
     }
 
-    // 基本の水やり（確認）ポイント
     let pointsToAdd = 10; 
     
     // NMD（無買日）判定：Store内の支出履歴から前日の支出有無を確認
