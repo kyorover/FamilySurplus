@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { useHesokuriStore } from '../store';
-import { GardenShopModal } from '../components/garden/GardenShopModal'; // ← 追加
+import { GardenShopModal } from '../components/garden/GardenShopModal';
+import { GARDEN_ITEMS } from '../constants/gardenItems'; // ← 追加：アイテムマスター
 
 export const HistoryScreen: React.FC = () => {
   const { settings, fetchHistoryData } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [isLoading, setIsLoading] = useState(false);
-  const [isShopVisible, setIsShopVisible] = useState(false); // ← 追加
+  const [isShopVisible, setIsShopVisible] = useState(false);
   
   const [plantLevel, setPlantLevel] = useState(1);
   const [monthlyNMD, setMonthlyNMD] = useState(0);
@@ -99,9 +100,29 @@ export const HistoryScreen: React.FC = () => {
             <>
               <View style={styles.skyArea} />
               <View style={styles.groundArea} />
+              
+              {/* メインの植物 */}
               <View style={styles.plantWrapper}>
                 <Text style={styles.plantEmoji}>{getPlantEmoji(plantLevel)}</Text>
               </View>
+
+              {/* 購入したアイテムの自動配置 */}
+              {settings?.ownedGardenItemIds?.map((itemId, index) => {
+                const itemDef = GARDEN_ITEMS.find(i => i.id === itemId);
+                if (!itemDef) return null;
+
+                // 簡単な散らし配置ロジック（左右交互、高さを少しずつ変える）
+                const isLeft = index % 2 === 0;
+                const positionStyle = isLeft 
+                  ? { left: `${10 + (index * 10) % 30}%`, bottom: `${5 + (index * 3) % 15}%` }
+                  : { right: `${10 + (index * 10) % 30}%`, bottom: `${5 + (index * 3) % 15}%` };
+
+                return (
+                  <View key={itemId} style={[styles.placedItem, positionStyle]}>
+                    <Text style={styles.placedItemEmoji}>{itemDef.imageUrl}</Text>
+                  </View>
+                );
+              })}
             </>
           )}
         </View>
@@ -122,7 +143,6 @@ export const HistoryScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 修正：ショップを開くボタンの設置 */}
         <TouchableOpacity style={styles.shopBtn} activeOpacity={0.8} onPress={() => setIsShopVisible(true)}>
           <Text style={styles.shopBtnIcon}>🛒</Text>
           <View style={styles.shopBtnTextWrap}>
@@ -153,8 +173,13 @@ const styles = StyleSheet.create({
   gardenCanvas: { height: width * 0.8, backgroundColor: '#87CEEB', borderRadius: 16, overflow: 'hidden', marginBottom: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 4, borderColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
   skyArea: { position: 'absolute', top: 0, left: 0, right: 0, bottom: '25%', backgroundColor: '#E0F7FA' },
   groundArea: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '25%', backgroundColor: '#A5D6A7' },
-  plantWrapper: { position: 'absolute', bottom: '15%', alignItems: 'center', justifyContent: 'center' },
+  
+  plantWrapper: { position: 'absolute', bottom: '15%', alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   plantEmoji: { fontSize: 100, textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 2, height: 4 }, textShadowRadius: 4 },
+  
+  placedItem: { position: 'absolute', zIndex: 2 },
+  placedItemEmoji: { fontSize: 32, textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 1, height: 2 }, textShadowRadius: 2 },
+  
   loadingText: { fontSize: 14, color: '#8E8E93', fontWeight: 'bold', zIndex: 10 },
 
   statusCard: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
