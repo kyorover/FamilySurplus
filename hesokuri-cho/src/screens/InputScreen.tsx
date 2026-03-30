@@ -4,7 +4,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, TextInput,
 import { useHesokuriStore } from '../store';
 import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
 import { DatePickerModal } from '../components/input/DatePickerModal';
-import { AutocompleteInput } from '../components/input/AutocompleteInput'; // ← 追加：サジェストコンポーネントをインポート
+import { AutocompleteInput } from '../components/input/AutocompleteInput';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 interface InputScreenProps {
@@ -12,7 +12,7 @@ interface InputScreenProps {
 }
 
 export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
-  const { settings, expenseInput, setExpenseInput, saveExpenseInput, setReturnToCategoryDetail, updateSettings } = useHesokuriStore();
+  const { settings, expenseInput, setExpenseInput, saveExpenseInput, returnToCategoryDetail, setReturnToCategoryDetail, updateSettings } = useHesokuriStore();
   const paymentMethods = ['現金', 'コード決済', 'クレジット'];
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(false);
@@ -46,6 +46,26 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
     else setExpenseInput({ amount: expenseInput.amount === '0' ? (val === '00' ? '0' : val) : (expenseInput.amount.length >= 8 ? expenseInput.amount : expenseInput.amount + val) });
   };
 
+  const handleCancel = () => {
+    Alert.alert(
+      '入力を破棄しますか？',
+      '入力中の内容は保存されません。',
+      [
+        { text: 'いいえ', style: 'cancel' },
+        { 
+          text: 'はい', 
+          style: 'destructive', 
+          onPress: () => {
+            // カレンダー復帰フラグをリセットし、意図せずカレンダーが開くのを防ぐ
+            setReturnToCategoryDetail(null, null);
+            setIsAmountFocused(false);
+            onComplete();
+          }
+        }
+      ]
+    );
+  };
+
   const handleSubmit = async () => {
     try {
       if (!expenseInput.date) setExpenseInput({ date: displayDate });
@@ -76,9 +96,12 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
       Alert.alert('完了', '記録を保存しました！');
       setIsAmountFocused(false);
       
+      // カレンダーから来ていない場合（またはALL指定の場合）は、記録後に全体のカレンダーに戻す
       if (!expenseInput.isLocked) {
         setReturnToCategoryDetail('ALL', displayDate);
       }
+      // ※ expenseInput.isLocked が true の場合は、既に store.ts 内で returnToCategoryDetail に categoryId がセットされているため維持される
+      
       onComplete();
     } catch (e: any) {
       Alert.alert('エラー', e.message);
@@ -131,7 +154,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           </View>
         </ScrollView>
 
-        {/* 修正：素のTextInputをAutocompleteInputに置き換え、マスタ履歴を渡す */}
         <View style={styles.optionalInputArea}>
           <AutocompleteInput 
             placeholder="店名（任意）" 
@@ -151,9 +173,17 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
 
         {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-          <Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          {/* カレンダーからの遷移など、復帰フラグがある場合はキャンセルボタンを表示 */}
+          {!!returnToCategoryDetail && (
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+              <Text style={styles.cancelBtnText}>キャンセル</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={[styles.submitBtn, !!returnToCategoryDetail && styles.submitBtnHalf]} onPress={handleSubmit}>
+            <Text style={styles.submitBtnText}>{expenseInput.id ? '修正を保存する' : 'この内容で記録する'}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <DatePickerModal visible={isDatePickerVisible} initialDate={displayDate} onSelect={(date) => setExpenseInput({ date })} onClose={() => setDatePickerVisible(false)} />
@@ -180,7 +210,11 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, color: '#1C1C1E', fontWeight: '600' },
   chipTextSelected: { color: '#FFFFFF' },
   chipTextDisabled: { color: '#C7C7CC' },
-  optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 10 }, // zIndexを追加しプルダウンが隠れないように補強
-  submitBtn: { backgroundColor: '#007AFF', margin: 16, paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 10 },
+  actionRow: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 16, marginBottom: 32, gap: 12 },
+  cancelBtn: { flex: 1, backgroundColor: '#E5E5EA', paddingVertical: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  cancelBtnText: { color: '#8E8E93', fontSize: 16, fontWeight: 'bold' },
+  submitBtn: { flex: 1, backgroundColor: '#007AFF', paddingVertical: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  submitBtnHalf: { flex: 2 }, // キャンセルボタンがある場合は広めに幅を取る
   submitBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
 });
