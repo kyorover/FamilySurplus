@@ -24,12 +24,12 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   // 賢者の樹 (tree.png: 横1行 × 5列 を想定)
   'PL-01': {
     sourceId: 'tree',
-    originalWidth: 1024,
-    originalHeight: 1024,
+    originalWidth: 772,
+    originalHeight: 323,
     startX: 12,          // 左端のグレー枠を12pxスキップ
-    startY: 400,         // 上部の余白をスキップして樹の根元に合わせる
-    frameWidth: 190,     // 枠線を除いた純粋な絵の幅
-    frameHeight: 220,    // 枠線を除いた純粋な絵の高さ
+    startY: 12,         // 上部の余白をスキップして樹の根元に合わせる
+    frameWidth: 140,     // 枠線を除いた純粋な絵の幅
+    frameHeight: 311,    // 枠線を除いた純粋な絵の高さ
     frameCount: 5,       // 5段階成長
     frameSpacingX: 10,   // コマ間にあるグレーの枠線の太さ（10pxと仮定）
     frameSpacingY: 0,
