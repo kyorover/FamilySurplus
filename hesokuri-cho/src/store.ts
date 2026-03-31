@@ -1,7 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
 import { HouseholdSettings, ExpenseRecord, MonthlyBudget } from './types';
-import { isYesterdayNoMoneyDay } from './functions/budgetUtils'; // ← 追加: 無買日判定関数
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001';
@@ -39,11 +38,10 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     } else {
       await state.addExpense(dataObj);
       
-      // --- ガーデン機能: お手入れポイント（入力完了に対する少量の報酬）を付与 ---
+      // ガーデン機能: 入力（管理行動）に対する少量の報酬ポイントを付与
       const currentSettings = get().settings;
       if (currentSettings) {
         const updatedPoints = (currentSettings.gardenPoints || 0) + 2;
-        // 画面操作をブロックしないよう非同期で更新を投げる
         get().updateSettings({ ...currentSettings, gardenPoints: updatedPoints });
       }
     }
@@ -83,7 +81,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       if (Object.keys(currentBudgets).length === 0 && currentSettings) {
         currentSettings.categories.forEach(cat => { currentBudgets[cat.id] = cat.budget; });
         const adults = currentSettings.familyMembers.filter(m => m.role === '大人');
-        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); }); // デフォルトは均等配分
+        adults.forEach(adult => { currentAllocation[adult.id] = Math.floor(100 / adults.length); });
         await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule }) });
       }
       set({ monthlyBudget: { householdId: HOUSEHOLD_ID, month_id: month, budgets: currentBudgets, bonusAllocation: currentAllocation, deficitRule: currentRule, updatedAt: new Date().toISOString() }, isLoading: false });
@@ -151,18 +149,13 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
 
     const todayStr = new Date().toISOString().slice(0, 10);
     
-    // 既に本日水やり済みの場合は処理しない
+    // 既に本日水やり（確認）済みの場合は処理しない
     if (settings.lastWateringDate === todayStr) {
       return;
     }
 
-    let pointsToAdd = 10; 
-    
-    // NMD（無買日）判定：Store内の支出履歴から前日の支出有無を確認
-    const isNMD = isYesterdayNoMoneyDay(state.expenses, todayStr);
-    if (isNMD) {
-      pointsToAdd += 30; // 昨日は無買日だったのでボーナス！
-    }
+    // NMD評価を廃止し、1日1回アプリを開いて家計と向き合ったことに対する報酬へ変更
+    const pointsToAdd = 20; 
 
     const newSettings: HouseholdSettings = {
       ...settings,
@@ -170,7 +163,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       lastWateringDate: todayStr,
     };
 
-    // Settings更新をリクエスト
     await state.updateSettings(newSettings);
   }
 }));

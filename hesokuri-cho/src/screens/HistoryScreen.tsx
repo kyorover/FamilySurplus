@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { GardenShopModal } from '../components/garden/GardenShopModal';
-import { GARDEN_ITEMS } from '../constants/gardenItems'; // ← 追加：アイテムマスター
+import { GARDEN_ITEMS } from '../constants/gardenItems';
+import { GardenWisdomTreeItem } from '../components/garden/GardenWisdomTreeItem';
 
 export const HistoryScreen: React.FC = () => {
   const { settings, fetchHistoryData } = useHesokuriStore();
@@ -12,39 +13,27 @@ export const HistoryScreen: React.FC = () => {
   const [isShopVisible, setIsShopVisible] = useState(false);
   
   const [plantLevel, setPlantLevel] = useState(1);
-  const [monthlyNMD, setMonthlyNMD] = useState(0);
+  const [managementDays, setManagementDays] = useState(0);
 
   useEffect(() => {
     const loadGardenData = async () => {
       setIsLoading(true);
       const data = await fetchHistoryData(viewMonth);
       
+      // その月に「家計と向き合い記録した日数」をカウント
       const expensesByDate = data.expenses.reduce((acc, exp) => {
         acc[exp.date] = true;
         return acc;
       }, {} as Record<string, boolean>);
       
-      const [yearStr, monthStr] = viewMonth.split('-');
-      const year = parseInt(yearStr, 10);
-      const month = parseInt(monthStr, 10);
-      const daysInMonth = new Date(year, month, 0).getDate();
+      const recordedDaysCount = Object.keys(expensesByDate).length;
+      setManagementDays(recordedDaysCount);
       
-      let nmdCount = 0;
-      const today = new Date();
-      const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
-      const calcTargetDays = isCurrentMonth ? today.getDate() : daysInMonth;
-
-      for (let i = 1; i <= calcTargetDays; i++) {
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        if (!expensesByDate[dateStr]) nmdCount++;
-      }
-      
-      setMonthlyNMD(nmdCount);
-      
-      if (nmdCount >= 20) setPlantLevel(5);
-      else if (nmdCount >= 15) setPlantLevel(4);
-      else if (nmdCount >= 10) setPlantLevel(3);
-      else if (nmdCount >= 5) setPlantLevel(2);
+      // 管理達成日数による成長レベル判定（閾値はプロトタイプ用）
+      if (recordedDaysCount >= 20) setPlantLevel(5);
+      else if (recordedDaysCount >= 15) setPlantLevel(4);
+      else if (recordedDaysCount >= 10) setPlantLevel(3);
+      else if (recordedDaysCount >= 5) setPlantLevel(2);
       else setPlantLevel(1);
       
       setIsLoading(false);
@@ -59,23 +48,13 @@ export const HistoryScreen: React.FC = () => {
     setViewMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
   };
 
-  const getPlantEmoji = (level: number) => {
-    switch (level) {
-      case 5: return '🌳'; 
-      case 4: return '🌷'; 
-      case 3: return '🌿'; 
-      case 2: return '🌱'; 
-      case 1: default: return '🌰'; 
-    }
-  };
-
   const getPlantMessage = (level: number) => {
     switch (level) {
-      case 5: return '見事な大樹に育ちました！お金を使わない日をたくさん作れた素晴らしい月でした！';
-      case 4: return '綺麗なお花が咲きました！日々のやりくりの努力の結晶です！';
-      case 3: return '順調に葉が茂っています。この調子で自分のペースで育てていきましょう！';
+      case 5: return '見事な大樹に育ちました！家計としっかり向き合えた素晴らしい月でした！';
+      case 4: return '綺麗なお花が咲きました！日々の管理の努力の結晶です！';
+      case 3: return '順調に葉が茂っています。この調子で自分のペースで記録を続けましょう！';
       case 2: return '可愛い芽が出ました。これからの成長が楽しみですね。';
-      case 1: default: return 'まだ種の状態です。ここからゆっくり育てていきましょう！';
+      case 1: default: return 'まだ小さな苗です。ここからゆっくり育てていきましょう！';
     }
   };
 
@@ -101,17 +80,16 @@ export const HistoryScreen: React.FC = () => {
               <View style={styles.skyArea} />
               <View style={styles.groundArea} />
               
-              {/* メインの植物 */}
+              {/* メインの植物（絵文字からAI生成のスプライトへ変更） */}
               <View style={styles.plantWrapper}>
-                <Text style={styles.plantEmoji}>{getPlantEmoji(plantLevel)}</Text>
+                <GardenWisdomTreeItem level={plantLevel} />
               </View>
 
-              {/* 購入したアイテムの自動配置 */}
+              {/* 購入したアイテムの自動配置（プロトタイプ用） */}
               {settings?.ownedGardenItemIds?.map((itemId, index) => {
                 const itemDef = GARDEN_ITEMS.find(i => i.id === itemId);
                 if (!itemDef) return null;
 
-                // 簡単な散らし配置ロジック（左右交互、高さを少しずつ変える）
                 const isLeft = index % 2 === 0;
                 const positionStyle = isLeft 
                   ? { left: `${10 + (index * 10) % 30}%`, bottom: `${5 + (index * 3) % 15}%` }
@@ -133,8 +111,8 @@ export const HistoryScreen: React.FC = () => {
           
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>無買日 (NMD)</Text>
-              <Text style={styles.statValue}>{monthlyNMD} 日</Text>
+              <Text style={styles.statLabel}>管理日数</Text>
+              <Text style={styles.statValue}>{managementDays} 日</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>現在のポイント</Text>
@@ -175,7 +153,6 @@ const styles = StyleSheet.create({
   groundArea: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '25%', backgroundColor: '#A5D6A7' },
   
   plantWrapper: { position: 'absolute', bottom: '15%', alignItems: 'center', justifyContent: 'center', zIndex: 1 },
-  plantEmoji: { fontSize: 100, textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 2, height: 4 }, textShadowRadius: 4 },
   
   placedItem: { position: 'absolute', zIndex: 2 },
   placedItemEmoji: { fontSize: 32, textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 1, height: 2 }, textShadowRadius: 2 },

@@ -2,51 +2,57 @@
 import React from 'react';
 import { View, Image, StyleSheet, ImageSourcePropType } from 'react-native';
 
-/**
- * スプライトシート（横並びの複数コマ画像）から特定のコマを切り出して表示するコンポーネント。
- * 管理達成度（レベル）に応じて、1枚の画像内の表示領域をシフトさせます。
- */
-
 interface PlantSpriteProps {
-  source: ImageSourcePropType; // 例: require('../../../assets/plant_sprite.png')
-  level: number;               // 現在のレベル (1〜5)
-  frameWidth: number;          // 1コマあたりの幅 (px)
-  frameHeight: number;         // 1コマあたりの高さ (px)
-  totalFrames?: number;        // 総コマ数 (デフォルト: 5)
+  source: ImageSourcePropType;
+  level: number;
+  displaySize: number; // 画面上に表示したい1マスの正方形サイズ
 }
 
 export const PlantSprite: React.FC<PlantSpriteProps> = ({
   source,
   level,
-  frameWidth,
-  frameHeight,
-  totalFrames = 5,
+  displaySize,
 }) => {
-  // レベルを安全な範囲(1〜totalFrames)に収める
-  const safeLevel = Math.max(1, Math.min(level, totalFrames));
+  // レベルを1〜5に安全に制限
+  const safeLevel = Math.max(1, Math.min(level, 5));
   
-  // 表示するコマのX座標のオフセット（左にずらす距離）
-  // レベル1なら 0、レベル2なら -frameWidth ...
-  const translateX = -(safeLevel - 1) * frameWidth;
+  // 3x3グリッド（3行3列）の定義
+  const COLUMNS = 3;
+  
+  // レベル(1〜5)から、表示すべき列(col)と行(row)を算出（0インデックス）
+  // Lv1: col=0, row=0 | Lv2: col=1, row=0 | Lv3: col=2, row=0
+  // Lv4: col=0, row=1 | Lv5: col=1, row=1
+  const zeroBasedIndex = safeLevel - 1;
+  const col = zeroBasedIndex % COLUMNS;
+  const row = Math.floor(zeroBasedIndex / COLUMNS);
+
+  // マス目を表示サイズに合わせて移動させる距離
+  const translateX = -(col * displaySize);
+  const translateY = -(row * displaySize);
 
   return (
     <View
       style={[
         styles.container,
         {
-          width: frameWidth,
-          height: frameHeight,
+          width: displaySize,
+          height: displaySize,
         },
       ]}
     >
       <Image
         source={source}
         style={{
-          width: frameWidth * totalFrames, // スプライトシート全体の幅
-          height: frameHeight,
-          transform: [{ translateX }],     // 目的のコマまで画像を左にスライド
+          // 画像全体のサイズを、1マスのサイズの3倍（3x3グリッド）に固定
+          width: displaySize * 3,
+          height: displaySize * 3,
+          transform: [
+            { translateX },
+            { translateY }
+          ],
         }}
-        resizeMode="stretch" // ピクセルアートの崩れを防ぐため実寸表示を維持
+        // 歪み防止。3x3の正方形画像が、displaySize*3の正方形領域にピッタリ収まる
+        resizeMode="contain" 
       />
     </View>
   );
@@ -54,9 +60,6 @@ export const PlantSprite: React.FC<PlantSpriteProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    overflow: 'hidden', // 枠外にはみ出た他のコマを隠す
-    justifyContent: 'center',
-    alignItems: 'center',
-    // 配置時のドラッグ＆ドロップコンポーネント（DraggableGardenItem）と組み合わせる前提
+    overflow: 'hidden', // 枠外にはみ出た他のマス目を確実に隠す
   },
 });
