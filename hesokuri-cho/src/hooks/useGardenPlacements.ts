@@ -51,7 +51,6 @@ export const useGardenPlacements = () => {
   };
 
   const handlePressTile = (x: number, y: number) => {
-    // 未確定状態で別マスをタップしたらキャンセル（元に戻す）
     if (selectedPlacedItemIndex !== null) {
       if (settings) setPlacements(settings.gardenPlacements || [{ itemId: 'PL-01', x: 2, y: 2 }]);
       setSelectedPlacedItemIndex(null);
@@ -98,6 +97,6 @@ export const useGardenPlacements = () => {
 
   return {
     placements, selectedPlacedItemIndex, selectedTargetItem: selectedPlacedItemIndex !== null ? placements[selectedPlacedItemIndex] : null,
-    ownedItems, handleInventoryPress, handlePressTile, handleMovePlacedItem, handleToggleMirror, handleConfirmPlacement, handleRemovePlacedItem
+    ownedItems, isLoaded: !!settings, handleInventoryPress, handlePressTile, handleMovePlacedItem, handleToggleMirror, handleConfirmPlacement, handleRemovePlacedItem
   };
 };
