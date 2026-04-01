@@ -28,9 +28,12 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
  */
 export const GLOBAL_GARDEN_SETTINGS = {
   // ▼アイテムドロップ時の吸着ズレをマス目（グリッド）単位で調整する補正値
-  // 例: 視覚的な感覚より1マス右上にズレて配置されてしまう場合は、xを-1, yを-1にして相殺します。
   dropGridOffsetX: 0, 
   dropGridOffsetY: 0, 
+
+  // ▼マップをドラッグ（パン）した際の移動感度（倍率）
+  // 例: 1.0 なら指の動きと完全に等倍。遅く/細かく動かしたい場合は 0.5、速くしたい場合は 1.5 などに調整してください。
+  panSensitivity: 1.0,
 };
 
 /**
