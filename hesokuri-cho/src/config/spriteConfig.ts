@@ -44,7 +44,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 5,       
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 0,
+    offsetY: 20,
   },
 
   // --------------------------------------------------
@@ -63,7 +63,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 4,
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 0,
+    offsetY: 20,
   },
 
   // EF-02: ポイント獲得の光 (2行目: 3コマ)
@@ -78,7 +78,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 3,
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 0,
+    offsetY: 20,
   },
 
   // BG-01: ベース床板（芝/レンガ） (3行目: 1コマ)
@@ -93,7 +93,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 1,
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 100,
+    offsetY: 20,
   },
 
   // IT-01: アンティークな街灯 (4行目: 2コマ ON/OFF)
@@ -108,7 +108,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 2,
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 0,
+    offsetY: 20,
   },
 
   // IT-02: 木製のベンチ (5行目: 1コマ)
@@ -123,7 +123,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 1,
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 0,
+    offsetY: 20,
   },
 
   // IT-03: 小さな多肉植物の鉢 (6行目: 1コマ)
@@ -138,7 +138,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 1,
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 0,
+    offsetY: 20,
   },
 
   // IT-04: へそくり箱/宝箱 (7行目: 状態変化)
@@ -152,7 +152,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 80,
     frameCount: 4,
     frameSpacingX: 0,
-    offsetX: 0,
-    offsetY: 0,
+    offsetX: 40,
+    offsetY: 180,
   },
 };

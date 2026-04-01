@@ -49,8 +49,24 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
   }, [placements]);
 
+  // 背景全体を覆う透明なタップ判定レイヤーのハンドラ
+  const handleBackgroundPress = (e: any) => {
+    if (!onPressTile) return;
+    const { locationX, locationY } = e.nativeEvent;
+    // タッチしたピクセル座標から、アイソメトリックのグリッド座標(X, Y)を数学的に逆算
+    const grid = getGridCoordsFromScreen(locationX, locationY, SCREEN_WIDTH);
+    
+    // 盤面内のタップであれば親へ通知
+    if (grid.x >= 0 && grid.x < GARDEN_CONFIG.GRID_SIZE && grid.y >= 0 && grid.y < GARDEN_CONFIG.GRID_SIZE) {
+      onPressTile(grid.x, grid.y);
+    }
+  };
+
   return (
     <View style={styles.canvasContainer}>
+      {/* 床の重なり干渉を防ぐため、一番奥に巨大なタップ判定エリアを敷く */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={handleBackgroundPress} />
+
       {renderList.map((node) => {
         const coords = getIsometricCoords(node.x, node.y, SCREEN_WIDTH);
         
@@ -58,6 +74,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
           const floorConfig = SPRITE_CONFIG['BG-01'];
           const customOffsetX = floorConfig?.offsetX || 0;
           const customOffsetY = floorConfig?.offsetY || 0;
+
           return (
             <View
               key={node.id}
@@ -65,18 +82,17 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
                 styles.tileWrapper,
                 { left: coords.left + customOffsetX, top: coords.top + customOffsetY, width: GARDEN_CONFIG.TILE_WIDTH, height: GARDEN_CONFIG.TILE_WIDTH, zIndex: node.zIndex },
               ]}
+              // 個別の床タイルはタッチ判定を持たず、背景の巨大Pressableに貫通させる
+              pointerEvents="none"
             >
-              <Pressable style={{flex:1}} onPress={() => onPressTile && onPressTile(node.x, node.y)}>
-                <UniversalSprite itemId="BG-01" frameIndex={0} displaySize={GARDEN_CONFIG.TILE_WIDTH} />
-              </Pressable>
+              <UniversalSprite itemId="BG-01" frameIndex={0} displaySize={GARDEN_CONFIG.TILE_WIDTH} />
             </View>
           );
         } else {
           const isLarge = node.type === 'large_item';
           const displaySize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * 2 : GARDEN_CONFIG.TILE_WIDTH;
-          
-          // 画像の縦横比から高さを算出し、底面がマスの中心に合うよう正確に絶対配置を計算
           const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
+          
           const aspectRatio = spriteDef ? (spriteDef.frameHeight / spriteDef.frameWidth) : 1;
           const displayHeight = displaySize * aspectRatio;
 
@@ -90,11 +106,13 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
             <View
               key={node.id}
               style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }}
+              pointerEvents="box-none"
             >
               <DraggableGardenItem
                 index={node.originalIndex!}
                 onDragRelease={(idx, dx, dy) => {
                   if (!onMoveItem || (Math.abs(dx) < 5 && Math.abs(dy) < 5)) return;
+                  // ドラッグされた距離(dx, dy)を加算して新しいマス目を計算
                   const newGrid = getGridCoordsFromScreen(coords.left + dx, coords.top + dy, SCREEN_WIDTH);
                   onMoveItem(idx, newGrid.x, newGrid.y);
                 }}

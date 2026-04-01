@@ -6,6 +6,7 @@ import { GardenShopModal } from './GardenShopModal';
 import { GardenPlacement } from '../../types';
 import { useHesokuriStore } from '../../store';
 import { UniversalSprite } from './UniversalSprite';
+import { SPRITE_CONFIG } from '../../config/spriteConfig';
 import { GARDEN_CONFIG } from '../../functions/gardenUtils';
 
 export const GardenBuilderTest: React.FC = () => {
@@ -18,17 +19,18 @@ export const GardenBuilderTest: React.FC = () => {
   const [isShopVisible, setShopVisible] = useState(false);
   const [selectedItemIdToPlace, setSelectedItemIdToPlace] = useState<string | null>(null);
 
-  const ownedItems = settings?.ownedGardenItemIds || [];
+  // AsyncStorageに残っている古いテストデータ（item_flower_01等）をフィルタリングして除外
+  const ownedItems = (settings?.ownedGardenItemIds || []).filter(itemId => SPRITE_CONFIG[itemId]);
 
   const handlePressTile = (x: number, y: number) => {
     if (!selectedItemIdToPlace) {
-      Alert.alert('案内', '下のリストから配置したいアイテムを選択してください。');
+      Alert.alert('案内', '下のリストから配置したいアイテムを選択してから、お庭をタップしてください。');
       return;
     }
 
     const isOccupied = placements.some(p => p.x === x && p.y === y);
     if (isOccupied) {
-      Alert.alert('エラー', 'そのマスには既にアイテムがあります。');
+      Alert.alert('配置不可', 'そのマスには既にアイテムがあります。空いているマスをタップしてください。');
       return;
     }
 
@@ -38,12 +40,19 @@ export const GardenBuilderTest: React.FC = () => {
 
   const handleMoveItem = (index: number, newX: number, newY: number) => {
     // 盤面外に出た場合はキャンセル
-    if (newX < 0 || newX >= GARDEN_CONFIG.GRID_SIZE || newY < 0 || newY >= GARDEN_CONFIG.GRID_SIZE) return;
+    if (newX < 0 || newX >= GARDEN_CONFIG.GRID_SIZE || newY < 0 || newY >= GARDEN_CONFIG.GRID_SIZE) {
+      Alert.alert('移動キャンセル', 'お庭の枠外には配置できません。');
+      return;
+    }
 
     // 他アイテムとの衝突判定
     const isOccupied = placements.some((p, i) => i !== index && p.x === newX && p.y === newY);
-    if (isOccupied) return;
+    if (isOccupied) {
+      Alert.alert('移動キャンセル', '移動先のマスには既に他のアイテムがあります。');
+      return;
+    }
 
+    // 正常に移動
     setPlacements(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], x: newX, y: newY };
