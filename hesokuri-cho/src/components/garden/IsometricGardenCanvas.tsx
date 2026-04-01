@@ -5,6 +5,7 @@ import { UniversalSprite } from './UniversalSprite';
 import { InteractiveGardenItem } from './InteractiveGardenItem';
 import { GardenPlacement } from '../../types';
 import { getIsometricCoords, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
+import { SPRITE_CONFIG } from '../../config/spriteConfig';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -47,12 +48,21 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
         const coords = getIsometricCoords(node.x, node.y, SCREEN_WIDTH);
         
         if (node.type === 'floor') {
+          const floorConfig = SPRITE_CONFIG['BG-01'];
+          const customOffsetX = floorConfig?.offsetX || 0;
+          const customOffsetY = floorConfig?.offsetY || 0;
+
           return (
             <Pressable
               key={node.id}
               style={[
                 styles.tileWrapper,
-                { left: coords.left, top: coords.top, width: GARDEN_CONFIG.TILE_WIDTH, height: GARDEN_CONFIG.TILE_WIDTH },
+                { 
+                  left: coords.left + customOffsetX, 
+                  top: coords.top + customOffsetY, 
+                  width: GARDEN_CONFIG.TILE_WIDTH, 
+                  height: GARDEN_CONFIG.TILE_WIDTH 
+                },
               ]}
               onPress={() => onPressTile && onPressTile(node.x, node.y)}
             >
@@ -62,8 +72,15 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
         } else {
           const isLarge = node.type === 'large_item';
           const displaySize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * 2 : GARDEN_CONFIG.TILE_WIDTH;
-          const anchorOffsetY = isLarge ? -GARDEN_CONFIG.TILE_HEIGHT * 1.5 : -GARDEN_CONFIG.TILE_HEIGHT * 0.5;
-          const translateX = isLarge ? -GARDEN_CONFIG.TILE_WIDTH / 2 : 0;
+          
+          // SPRITE_CONFIG からアイテム固有のオフセット値を取得
+          const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
+          const customOffsetX = spriteDef?.offsetX || 0;
+          const customOffsetY = spriteDef?.offsetY || 0;
+
+          // ベースのアンカー調整にカスタムオフセットを加算
+          const anchorOffsetY = (isLarge ? -GARDEN_CONFIG.TILE_HEIGHT * 1.5 : -GARDEN_CONFIG.TILE_HEIGHT * 0.5) + customOffsetY;
+          const translateX = (isLarge ? -GARDEN_CONFIG.TILE_WIDTH / 2 : 0) + customOffsetX;
 
           return (
             <View

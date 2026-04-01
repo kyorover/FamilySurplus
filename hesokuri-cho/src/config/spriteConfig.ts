@@ -13,6 +13,8 @@ export interface SpriteDefinition {
   frameHeight: number;    // 1コマの純粋な高さ (px)
   frameCount: number;     // アニメーション/状態の総コマ数
   frameSpacingX: number;  // コマとコマの間の枠線幅（X軸の移動計算にのみ使用 px）
+  offsetX?: number;       // キャンバス配置時のX軸微調整 (px)
+  offsetY?: number;       // キャンバス配置時のY軸微調整 (px)
 }
 
 // React Native の Image に渡すためのソースマップ
@@ -35,12 +37,14 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'tree',
     originalWidth: 772,
     originalHeight: 323,
-    startX: 12,          
+    startX: 10,          
     startY: 12,          
-    frameWidth: 140,     
+    frameWidth: 151,     
     frameHeight: 311,    
     frameCount: 5,       
-    frameSpacingX: 10,   
+    frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 0,
   },
 
   // --------------------------------------------------
@@ -58,6 +62,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 256,
     frameCount: 4,
     frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 0,
   },
 
   // EF-02: ポイント獲得の光 (2行目: 3コマ)
@@ -71,6 +77,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 256,
     frameCount: 3,
     frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 0,
   },
 
   // BG-01: ベース床板（芝/レンガ） (3行目: 1コマ)
@@ -84,6 +92,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 80,
     frameCount: 1,
     frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 100,
   },
 
   // IT-01: アンティークな街灯 (4行目: 2コマ ON/OFF)
@@ -97,6 +107,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 100,
     frameCount: 2,
     frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 0,
   },
 
   // IT-02: 木製のベンチ (5行目: 1コマ)
@@ -110,6 +122,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 83,
     frameCount: 1,
     frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 0,
   },
 
   // IT-03: 小さな多肉植物の鉢 (6行目: 1コマ)
@@ -123,10 +137,11 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 80,
     frameCount: 1,
     frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 0,
   },
 
   // IT-04: へそくり箱/宝箱 (7行目: 状態変化)
-  // ※発注書では2コマですが、画像には4コマ描画されているため、frameCount: 4 としています。
   'IT-04': {
     sourceId: 'other',
     originalWidth: 342,
@@ -137,5 +152,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 80,
     frameCount: 4,
     frameSpacingX: 0,
+    offsetX: 0,
+    offsetY: 0,
   },
 };
