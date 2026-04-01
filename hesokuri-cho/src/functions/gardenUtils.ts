@@ -8,13 +8,6 @@ export const GARDEN_CONFIG = {
   OFFSET_Y: 100,
 };
 
-/**
- * グリッド座標からアイソメトリックのスクリーン座標（ピクセル）を計算する純粋関数
- * @param x グリッドX座標 (0〜4)
- * @param y グリッドY座標 (0〜4)
- * @param screenWidth 画面幅 (Dimensionsから取得)
- * @returns ピクセル座標 { left, top }
- */
 export const getIsometricCoords = (x: number, y: number, screenWidth: number): { left: number; top: number } => {
   const offsetX = screenWidth / 2 - GARDEN_CONFIG.TILE_WIDTH / 2;
   const left = offsetX + (x - y) * (GARDEN_CONFIG.TILE_WIDTH / 2);
@@ -23,25 +16,27 @@ export const getIsometricCoords = (x: number, y: number, screenWidth: number): {
 };
 
 /**
- * Z-index用の描画順序スコアを計算する純粋関数（値が小さいほど奥）
- * @param x グリッドX座標
- * @param y グリッドY座標
- * @param itemType アイテムの種別
- * @returns 描画順を決める数値スコア
+ * ピクセル座標（スクリーン座標）からアイソメトリックのグリッド座標（X, Y）を逆算する純粋関数
+ * タッチ位置から「どのマスを触っているか」を数学的に判定します。
  */
+export const getGridCoordsFromScreen = (left: number, top: number, screenWidth: number): { x: number; y: number } => {
+  const offsetX = screenWidth / 2 - GARDEN_CONFIG.TILE_WIDTH / 2;
+  const dx = left - offsetX;
+  const dy = top - GARDEN_CONFIG.OFFSET_Y;
+
+  const halfW = GARDEN_CONFIG.TILE_WIDTH / 2;
+  const halfH = GARDEN_CONFIG.TILE_HEIGHT / 2;
+
+  // 連立方程式を解いて X と Y を算出
+  const x = Math.round((dx / halfW + dy / halfH) / 2);
+  const y = Math.round((dy / halfH - dx / halfW) / 2);
+
+  return { x, y };
+};
+
 export const getZIndexScore = (x: number, y: number, itemType: 'floor' | 'item' | 'large_item'): number => {
-  // 基本スコアは奥から手前へ (x + y) に比例
   const baseScore = (x + y) * 100;
-  
-  if (itemType === 'floor') {
-    // 床は同じマスにあるアイテムより必ず下に描画されるようベース値そのまま
-    return baseScore;
-  } else if (itemType === 'large_item') {
-    // 2x2の大型アイテム(賢者の樹など)は、専有するマスのうち最も奥の(x,y)を基準とするが、
-    // 重なりを自然に見せるために少し手前にオフセットする
-    return baseScore + 150; 
-  } else {
-    // 通常の1x1アイテムは床のすぐ上に描画
-    return baseScore + 10;
-  }
+  if (itemType === 'floor') return baseScore;
+  if (itemType === 'large_item') return baseScore + 150; 
+  return baseScore + 10;
 };

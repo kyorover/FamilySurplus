@@ -1,62 +1,42 @@
 // src/components/garden/DraggableGardenItem.tsx
-import React, { useRef } from 'react';
-import { Animated, PanResponder, StyleSheet, View } from 'react-native';
-
-/**
- * 外部参照: React Native 組み込みの Animated, PanResponder を使用。
- * 追加ライブラリ不要でドラッグ＆ドロップを実現します。
- */
-
-export interface GardenItemPlacement {
-  id: string;
-  itemId: string;
-  x: number;
-  y: number;
-}
+import React, { useRef, useState } from 'react';
+import { Animated, PanResponder, StyleSheet } from 'react-native';
 
 interface DraggableGardenItemProps {
-  placement: GardenItemPlacement;
-  // TODO: 本番ではここに imageSource 等の画像アセットパスを渡す
-  onDragRelease: (id: string, newX: number, newY: number) => void;
-  children?: React.ReactNode; // 画像やアイコンを内包させる
+  index: number;
+  onDragRelease: (index: number, dx: number, dy: number) => void;
+  children?: React.ReactNode;
 }
 
 export const DraggableGardenItem: React.FC<DraggableGardenItemProps> = ({
-  placement,
+  index,
   onDragRelease,
   children,
 }) => {
-  // アニメーション用のXY座標値（初期位置をセット）
-  const pan = useRef(new Animated.ValueXY({ x: placement.x, y: placement.y })).current;
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const [isDragging, setIsDragging] = useState(false);
 
-  // ドラッグ操作のハンドラー設定
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       
-      // ドラッグ中の動きを Animated.Value に紐付け
       onPanResponderMove: Animated.event(
         [null, { dx: pan.x, dy: pan.y }],
-        { useNativeDriver: false } // PanResponderのXYトラッキングではfalseが必須
+        { useNativeDriver: false }
       ),
       
-      // ドラッグ終了時（指を離した時）の処理
       onPanResponderRelease: (e, gestureState) => {
-        // 現在の絶対座標を計算して親へ通知（状態保存用）
-        // ※ initial value + drag distance
-        const newX = placement.x + gestureState.dx;
-        const newY = placement.y + gestureState.dy;
-        
-        // 次回のドラッグ開始位置をリセット（オフセットを現在の値に統合）
+        setIsDragging(false);
+        // ドロップしたらアニメーションオフセットをリセット（親からの再描画で位置が確定するため）
         pan.flattenOffset();
+        pan.setValue({ x: 0, y: 0 });
         
-        onDragRelease(placement.id, newX, newY);
+        onDragRelease(index, gestureState.dx, gestureState.dy);
       },
       
-      // ドラッグ開始時
       onPanResponderGrant: () => {
-        // 現在の位置から相対移動を開始するためにオフセットを設定
+        setIsDragging(true);
         pan.setOffset({
           x: (pan.x as any)._value,
           y: (pan.y as any)._value,
@@ -69,36 +49,16 @@ export const DraggableGardenItem: React.FC<DraggableGardenItemProps> = ({
   return (
     <Animated.View
       style={[
-        styles.container,
         {
           transform: [{ translateX: pan.x }, { translateY: pan.y }],
+          // ドラッグ中は他のアイテムの上に表示されるようにする
+          zIndex: isDragging ? 1000 : 1,
+          elevation: isDragging ? 1000 : 0,
         },
       ]}
       {...panResponder.panHandlers}
     >
-      {children ? (
-        children
-      ) : (
-        // デフォルトのプレースホルダー（画像が渡されなかった場合）
-        <View style={styles.placeholder} />
-      )}
+      {children}
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute', // 親要素（お庭エリア）内での絶対配置
-    zIndex: 10,
-  },
-  placeholder: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#81C784',
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#388E3C',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

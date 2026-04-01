@@ -3,8 +3,9 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 import { InteractiveGardenItem } from './InteractiveGardenItem';
+import { DraggableGardenItem } from './DraggableGardenItem';
 import { GardenPlacement } from '../../types';
-import { getIsometricCoords, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
+import { getIsometricCoords, getGridCoordsFromScreen, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
 import { SPRITE_CONFIG } from '../../config/spriteConfig';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -12,6 +13,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 interface Props {
   placements?: GardenPlacement[];
   onPressTile?: (x: number, y: number) => void;
+  onMoveItem?: (index: number, newX: number, newY: number) => void; // 追加
 }
 
 type RenderNode = {
@@ -21,9 +23,10 @@ type RenderNode = {
   y: number;
   zIndex: number;
   placementData?: GardenPlacement;
+  originalIndex?: number; // 追加：配列のインデックスを保持
 };
 
-export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPressTile }) => {
+export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPressTile, onMoveItem }) => {
   const renderList = useMemo(() => {
     const nodes: RenderNode[] = [];
 
@@ -36,7 +39,15 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
     placements.forEach((p, index) => {
       const isLargeItem = p.itemId === 'PL-01';
       const itemType = isLargeItem ? 'large_item' : 'item';
-      nodes.push({ id: `item-${p.itemId}-${index}`, type: itemType, x: p.x, y: p.y, zIndex: getZIndexScore(p.x, p.y, itemType), placementData: p });
+      nodes.push({ 
+        id: `item-${p.itemId}-${index}`, 
+        type: itemType, 
+        x: p.x, 
+        y: p.y, 
+        zIndex: getZIndexScore(p.x, p.y, itemType), 
+        placementData: p,
+        originalIndex: index 
+      });
     });
 
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
@@ -61,7 +72,8 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
                   left: coords.left + customOffsetX, 
                   top: coords.top + customOffsetY, 
                   width: GARDEN_CONFIG.TILE_WIDTH, 
-                  height: GARDEN_CONFIG.TILE_WIDTH 
+                  height: GARDEN_CONFIG.TILE_WIDTH,
+                  zIndex: node.zIndex 
                 },
               ]}
               onPress={() => onPressTile && onPressTile(node.x, node.y)}
@@ -73,12 +85,10 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
           const isLarge = node.type === 'large_item';
           const displaySize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * 2 : GARDEN_CONFIG.TILE_WIDTH;
           
-          // SPRITE_CONFIG からアイテム固有のオフセット値を取得
           const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
           const customOffsetX = spriteDef?.offsetX || 0;
           const customOffsetY = spriteDef?.offsetY || 0;
 
-          // ベースのアンカー調整にカスタムオフセットを加算
           const anchorOffsetY = (isLarge ? -GARDEN_CONFIG.TILE_HEIGHT * 1.5 : -GARDEN_CONFIG.TILE_HEIGHT * 0.5) + customOffsetY;
           const translateX = (isLarge ? -GARDEN_CONFIG.TILE_WIDTH / 2 : 0) + customOffsetX;
 
@@ -87,15 +97,30 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
               key={node.id}
               style={[
                 styles.itemWrapper,
-                { left: coords.left, top: coords.top + anchorOffsetY, transform: [{ translateX }] },
+                { 
+                  left: coords.left, 
+                  top: coords.top + anchorOffsetY, 
+                  transform: [{ translateX }],
+                  zIndex: node.zIndex 
+                },
               ]}
               pointerEvents="box-none"
             >
-              {isLarge ? (
-                <UniversalSprite itemId={node.placementData!.itemId} frameIndex={4} displaySize={displaySize} />
-              ) : (
-                <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={true} />
-              )}
+              <DraggableGardenItem
+                index={node.originalIndex!}
+                onDragRelease={(idx, dx, dy) => {
+                  if (!onMoveItem) return;
+                  // ドラッグの移動距離（dx, dy）を元の純粋なタイルの基準座標に足して逆算する
+                  const newGrid = getGridCoordsFromScreen(coords.left + dx, coords.top + dy, SCREEN_WIDTH);
+                  onMoveItem(idx, newGrid.x, newGrid.y);
+                }}
+              >
+                {isLarge ? (
+                  <UniversalSprite itemId={node.placementData!.itemId} frameIndex={4} displaySize={displaySize} />
+                ) : (
+                  <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={true} />
+                )}
+              </DraggableGardenItem>
             </View>
           );
         }
