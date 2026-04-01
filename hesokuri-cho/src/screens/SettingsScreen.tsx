@@ -1,12 +1,13 @@
 // src/screens/SettingsScreen.tsx
 import React, { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert } from 'react-native';
+import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert, Modal, SafeAreaView } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
+import { GardenBuilderTest } from '../components/garden/GardenBuilderTest';
 import { FamilyMember } from '../types';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
@@ -15,6 +16,7 @@ export const SettingsScreen: React.FC = () => {
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
+  const [isGardenTestVisible, setGardenTestVisible] = useState(false);
   
   const [isFamilyEditMode, setIsFamilyEditMode] = useState(false);
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
@@ -120,6 +122,17 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.historyManageCard} onPress={() => setGardenTestVisible(true)} activeOpacity={0.6}>
+          <View style={styles.historyManageContent}>
+            <Text style={styles.historyManageIcon}>🌻</Text>
+            <View>
+              <Text style={styles.historyManageTitle}>お庭機能のテスト（開発用）</Text>
+              <Text style={styles.historyManageDesc}>アイテムの購入・配置・描画を検証します</Text>
+            </View>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAll}>
           <Text style={styles.primaryButtonText}>設定を保存する</Text>
         </TouchableOpacity>
@@ -135,6 +148,19 @@ export const SettingsScreen: React.FC = () => {
         onUpdate={(newSettings) => setPendingSettings(newSettings)} 
         onClose={() => setHistoryModalVisible(false)} 
       />
+
+      <Modal visible={isGardenTestVisible} animationType="slide">
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>お庭デバッグ検証</Text>
+            <TouchableOpacity onPress={() => setGardenTestVisible(false)}>
+              <Text style={styles.modalCloseText}>閉じる</Text>
+            </TouchableOpacity>
+          </View>
+          <GardenBuilderTest />
+        </SafeAreaView>
+      </Modal>
+
     </View>
   );
 };
@@ -148,7 +174,7 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtnTextActive: { color: '#FFFFFF' },
   hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 8, marginBottom: 12, lineHeight: 18 },
-  historyManageCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  historyManageCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   historyManageContent: { flexDirection: 'row', alignItems: 'center' },
   historyManageIcon: { fontSize: 24, marginRight: 16 },
   historyManageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 2 },
@@ -156,4 +182,9 @@ const styles = StyleSheet.create({
   chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
   primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
+  
+  modalSafeArea: { flex: 1, backgroundColor: '#F5F5F5' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
+  modalTitle: { fontSize: 16, fontWeight: 'bold' },
+  modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
 });
