@@ -53,8 +53,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 311,    
     frameCount: 5,       
     frameSpacingX: 0,
-    offsetX: 0,
-    offsetY: 20,
+    offsetX: 20,
+    offsetY: 104,
   },
 
   // --------------------------------------------------
@@ -111,14 +111,14 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'other',
     originalWidth: 342,
     originalHeight: 729,
-    startX: 6,
+    startX: 0,
     startY: 265,          // 4行目
-    frameWidth: 75,
+    frameWidth: 84,
     frameHeight: 100,
     frameCount: 2,
     frameSpacingX: 0,
-    offsetX: 0,
-    offsetY: 20,
+    offsetX: -5,
+    offsetY: 40,
   },
 
   // IT-02: 木製のベンチ (5行目: 1コマ)
@@ -133,7 +133,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameCount: 1,
     frameSpacingX: 0,
     offsetX: 0,
-    offsetY: 20,
+    offsetY: 47,
   },
 
   // IT-03: 小さな多肉植物の鉢 (6行目: 1コマ)
@@ -156,13 +156,13 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'other',
     originalWidth: 342,
     originalHeight: 729,
-    startX: 6,
+    startX: 0,
     startY: 577,         // 7行目
-    frameWidth: 73,
+    frameWidth: 86,
     frameHeight: 80,
     frameCount: 4,
     frameSpacingX: 0,
-    offsetX: 28,
-    offsetY: 3,
+    offsetX: -6,
+    offsetY: 53,
   },
 };
