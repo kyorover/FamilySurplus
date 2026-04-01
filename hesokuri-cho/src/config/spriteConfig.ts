@@ -52,7 +52,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'other',
     originalWidth: 342,
     originalHeight: 729,
-    startX: 0,
+    startX: 6,
     startY: 0,            // 1行目
     frameWidth: 256,
     frameHeight: 256,
@@ -91,10 +91,10 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'other',
     originalWidth: 342,
     originalHeight: 729,
-    startX: 0,
-    startY: 768,          // 4行目
-    frameWidth: 256,
-    frameHeight: 256,
+    startX: 6,
+    startY: 265,          // 4行目
+    frameWidth: 75,
+    frameHeight: 100,
     frameCount: 2,
     frameSpacingX: 0,
   },
@@ -104,10 +104,10 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'other',
     originalWidth: 342,
     originalHeight: 729,
-    startX: 0,
-    startY: 1024,         // 5行目
-    frameWidth: 256,
-    frameHeight: 256,
+    startX: 6,
+    startY: 380,         // 5行目
+    frameWidth: 76,
+    frameHeight: 83,
     frameCount: 1,
     frameSpacingX: 0,
   },
@@ -117,10 +117,10 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'other',
     originalWidth: 342,
     originalHeight: 729,
-    startX: 0,
-    startY: 1280,         // 6行目
-    frameWidth: 256,
-    frameHeight: 256,
+    startX: 6,
+    startY: 486,         // 6行目
+    frameWidth: 80,
+    frameHeight: 80,
     frameCount: 1,
     frameSpacingX: 0,
   },
@@ -131,11 +131,11 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'other',
     originalWidth: 342,
     originalHeight: 729,
-    startX: 0,
-    startY: 1536,         // 7行目
-    frameWidth: 256,
-    frameHeight: 256,
-    frameCount: 4,        
+    startX: 6,
+    startY: 577,         // 7行目
+    frameWidth: 73,
+    frameHeight: 80,
+    frameCount: 4,
     frameSpacingX: 0,
   },
 };
