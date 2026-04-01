@@ -18,46 +18,65 @@ export const GardenBuilderTest: React.FC = () => {
   
   const [isShopVisible, setShopVisible] = useState(false);
   const [selectedItemIdToPlace, setSelectedItemIdToPlace] = useState<string | null>(null);
+  
+  const [selectedPlacedItemIndex, setSelectedPlacedItemIndex] = useState<number | null>(null);
 
-  // AsyncStorageに残っている古いテストデータ（item_flower_01等）をフィルタリングして除外
   const ownedItems = (settings?.ownedGardenItemIds || []).filter(itemId => SPRITE_CONFIG[itemId]);
 
   const handlePressTile = (x: number, y: number) => {
-    if (!selectedItemIdToPlace) {
-      Alert.alert('案内', '下のリストから配置したいアイテムを選択してから、お庭をタップしてください。');
+    // 1. タップしたマスにアイテムがあるかチェック
+    const clickedItemIndex = placements.findIndex(p => {
+      if (p.itemId === 'PL-01') {
+        return x >= p.x && x <= p.x + 1 && y >= p.y && y <= p.y + 1;
+      }
+      return p.x === x && p.y === y;
+    });
+
+    if (clickedItemIndex !== -1) {
+      setSelectedPlacedItemIndex(clickedItemIndex);
+      setSelectedItemIdToPlace(null);
       return;
     }
 
-    const isOccupied = placements.some(p => p.x === x && p.y === y);
-    if (isOccupied) {
-      Alert.alert('配置不可', 'そのマスには既にアイテムがあります。空いているマスをタップしてください。');
-      return;
+    // 2. 空マスをタップした場合（配置）
+    if (selectedItemIdToPlace) {
+      setPlacements(prev => {
+        const newPlacements = [...prev, { itemId: selectedItemIdToPlace, x, y }];
+        // 配置したアイテムを即座に選択状態にして操作ボタンを出す
+        setSelectedPlacedItemIndex(newPlacements.length - 1);
+        return newPlacements;
+      });
+      setSelectedItemIdToPlace(null);
+    } else {
+      // 何も持たずに空マスをタップしたら選択解除
+      setSelectedPlacedItemIndex(null);
     }
-
-    setPlacements(prev => [...prev, { itemId: selectedItemIdToPlace, x, y }]);
-    setSelectedItemIdToPlace(null);
   };
 
-  const handleMoveItem = (index: number, newX: number, newY: number) => {
-    // 盤面外に出た場合はキャンセル
-    if (newX < 0 || newX >= GARDEN_CONFIG.GRID_SIZE || newY < 0 || newY >= GARDEN_CONFIG.GRID_SIZE) {
-      Alert.alert('移動キャンセル', 'お庭の枠外には配置できません。');
-      return;
-    }
+  const handleMovePlacedItem = (dx: number, dy: number) => {
+    if (selectedPlacedItemIndex === null) return;
+    
+    const target = placements[selectedPlacedItemIndex];
+    // クォータービューのマス目単位での移動
+    const newX = target.x + dx;
+    const newY = target.y + dy;
 
-    // 他アイテムとの衝突判定
-    const isOccupied = placements.some((p, i) => i !== index && p.x === newX && p.y === newY);
-    if (isOccupied) {
-      Alert.alert('移動キャンセル', '移動先のマスには既に他のアイテムがあります。');
-      return;
-    }
+    if (newX < 0 || newX >= GARDEN_CONFIG.GRID_SIZE || newY < 0 || newY >= GARDEN_CONFIG.GRID_SIZE) return;
 
-    // 正常に移動
+    const isOccupied = placements.some((p, i) => i !== selectedPlacedItemIndex && p.x === newX && p.y === newY);
+    if (isOccupied) return;
+
     setPlacements(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], x: newX, y: newY };
+      updated[selectedPlacedItemIndex] = { ...target, x: newX, y: newY };
       return updated;
     });
+  };
+
+  const handleRemovePlacedItem = () => {
+    if (selectedPlacedItemIndex === null) return;
+    setPlacements(prev => prev.filter((_, i) => i !== selectedPlacedItemIndex));
+    setSelectedPlacedItemIndex(null);
   };
 
   return (
@@ -69,11 +88,45 @@ export const GardenBuilderTest: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <IsometricGardenCanvas 
-        placements={placements} 
-        onPressTile={handlePressTile} 
-        onMoveItem={handleMoveItem}
-      />
+      <View style={styles.canvasWrapper}>
+        <IsometricGardenCanvas 
+          placements={placements} 
+          onPressTile={handlePressTile} 
+          selectedItemIndex={selectedPlacedItemIndex} 
+        />
+
+        {/* アイテム操作用の斜め配置（ひし形）ボタン 
+          背景の白枠を無くし、キャンバスを隠さないようにしています 
+        */}
+        {selectedPlacedItemIndex !== null && (
+          <View style={styles.isoControlsOverlay} pointerEvents="box-none">
+            <View style={styles.isoDiamond}>
+              {/* ↗ 奥・右（Y軸を-1） */}
+              <TouchableOpacity style={[styles.isoBtn, styles.btnTop]} onPress={() => handleMovePlacedItem(0, -1)}>
+                <Text style={styles.isoArrow}>↗</Text>
+              </TouchableOpacity>
+              
+              {/* ↖ 奥・左（X軸を-1） */}
+              <TouchableOpacity style={[styles.isoBtn, styles.btnLeft]} onPress={() => handleMovePlacedItem(-1, 0)}>
+                <Text style={styles.isoArrow}>↖</Text>
+              </TouchableOpacity>
+              
+              {/* ↘ 手前・右（X軸を+1） */}
+              <TouchableOpacity style={[styles.isoBtn, styles.btnRight]} onPress={() => handleMovePlacedItem(1, 0)}>
+                <Text style={styles.isoArrow}>↘</Text>
+              </TouchableOpacity>
+              
+              {/* ↙ 手前・左（Y軸を+1） */}
+              <TouchableOpacity style={[styles.isoBtn, styles.btnBottom]} onPress={() => handleMovePlacedItem(0, 1)}>
+                <Text style={styles.isoArrow}>↙</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.removeBtn} onPress={handleRemovePlacedItem}>
+              <Text style={styles.removeBtnText}>片付ける</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
       <View style={styles.inventory}>
         <Text style={styles.inventoryTitle}>配置アイテムを選択（所持品）</Text>
@@ -82,7 +135,10 @@ export const GardenBuilderTest: React.FC = () => {
             <TouchableOpacity
               key={itemId}
               style={[styles.inventoryItem, itemId === selectedItemIdToPlace && styles.activeItem]}
-              onPress={() => setSelectedItemIdToPlace(itemId)}
+              onPress={() => {
+                setSelectedItemIdToPlace(itemId);
+                setSelectedPlacedItemIndex(null); // 在庫を選んだら庭の選択は解除
+              }}
             >
               <UniversalSprite itemId={itemId} frameIndex={0} displaySize={32} />
             </TouchableOpacity>
@@ -104,9 +160,62 @@ const styles = StyleSheet.create({
   headerText: { fontSize: 16, fontWeight: 'bold' },
   shopBtn: { backgroundColor: '#4CAF50', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16 },
   shopBtnText: { color: '#FFF', fontWeight: 'bold' },
+  
+  canvasWrapper: { position: 'relative' }, 
+  
   inventory: { padding: 16, backgroundColor: '#FFF', borderTopWidth: 1, borderColor: '#EEE' },
   inventoryTitle: { fontSize: 12, color: '#666', marginBottom: 8 },
   inventoryItem: { padding: 8, backgroundColor: '#E0E0E0', borderRadius: 8, marginRight: 8, borderWidth: 2, borderColor: 'transparent' },
   activeItem: { borderColor: '#4CAF50' },
-  emptyText: { color: '#999', paddingVertical: 8 }
+  emptyText: { color: '#999', paddingVertical: 8 },
+  
+  // ひし形（アイソメトリック）コントローラーのスタイル
+  isoControlsOverlay: { 
+    position: 'absolute', 
+    bottom: 12, 
+    right: 12, 
+    alignItems: 'center',
+    // 背景色とパディングを削除し、マップを隠さないように変更
+  },
+  isoDiamond: {
+    width: 120,
+    height: 120,
+    position: 'relative',
+    marginBottom: 8,
+  },
+  isoBtn: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
+  },
+  // クォータービューのマス目に合わせて45度傾けた配置
+  btnTop: { top: 0, left: 38 },
+  btnLeft: { top: 38, left: 0 },
+  btnRight: { top: 38, left: 76 },
+  btnBottom: { top: 76, left: 38 },
+  isoArrow: { fontSize: 22, color: '#333', fontWeight: 'bold' },
+  
+  removeBtn: { 
+    paddingVertical: 8, 
+    paddingHorizontal: 16, 
+    backgroundColor: 'rgba(255, 59, 48, 0.9)', 
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  removeBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 13 }
 });
