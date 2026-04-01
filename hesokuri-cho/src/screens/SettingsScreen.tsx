@@ -1,7 +1,7 @@
 // src/screens/SettingsScreen.tsx
-import React, { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert, SafeAreaView } from 'react-native';
-import { useHesokuriStore } from '../store';
+import React from 'react';
+import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView } from 'react-native';
+import { useSettingsManager } from '../hooks/useSettingsManager';
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
@@ -9,40 +9,17 @@ import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModa
 import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditModal';
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { GardenBuilderTest } from '../components/garden/GardenBuilderTest';
-import { FamilyMember } from '../types';
-import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 export const SettingsScreen: React.FC = () => {
-  const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
-  
-  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
-  const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
-  const [editingFamilyMember, setEditingFamilyMember] = useState<FamilyMember | null>(null);
-  const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
-  const [isGardenTestVisible, setGardenTestVisible] = useState(false);
-  
-  const [isFamilyEditMode, setIsFamilyEditMode] = useState(false);
-  const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
-  const [isScrollEnabled, setIsScrollEnabled] = useState(true);
+  const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions } = useSettingsManager();
 
-  useEffect(() => {
-    if (settings && !pendingSettings) {
-      setPendingSettings(JSON.parse(JSON.stringify(settings)));
-    }
-  }, [settings]);
-
-  const activeCategories = useMemo(() => {
-    if (!pendingSettings) return [];
-    const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
-    return pendingSettings.categories.filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
-  }, [pendingSettings]);
-
-  if (isGardenTestVisible) {
+  // テスト用画面のオーバーライド
+  if (modals.garden) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: '#F5F5F5' }]}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>お庭デバッグ検証</Text>
-          <TouchableOpacity onPress={() => setGardenTestVisible(false)}>
+          <TouchableOpacity onPress={() => modals.setGarden(false)}>
             <Text style={styles.modalCloseText}>閉じる</Text>
           </TouchableOpacity>
         </View>
@@ -51,85 +28,56 @@ export const SettingsScreen: React.FC = () => {
     );
   }
 
+  // 読み込み完了前は表示しない
   if (!pendingSettings) return null;
-
-  const handleUpdateFamily = (updatedMember: FamilyMember) => {
-    setPendingSettings({ ...pendingSettings, familyMembers: pendingSettings.familyMembers.map(m => m.id === updatedMember.id ? updatedMember : m) });
-  };
-  const handleAddFamily = (member: FamilyMember) => {
-    setPendingSettings({ ...pendingSettings, familyMembers: [...pendingSettings.familyMembers, member] });
-    setFamilyModalVisible(false);
-  };
-  const handleDeleteFamily = (memberId: string) => {
-    const isAdult = pendingSettings.familyMembers.find(m => m.id === memberId)?.role === '大人';
-    const adultCount = pendingSettings.familyMembers.filter(m => m.role === '大人').length;
-    if (isAdult && adultCount <= 1) return Alert.alert('エラー', '大人は最低1人必要です');
-    setPendingSettings({ ...pendingSettings, familyMembers: pendingSettings.familyMembers.filter(m => m.id !== memberId) });
-  };
-
-  const handleAddCategory = (name: string) => {
-    setPendingSettings({ ...pendingSettings, categories: [...pendingSettings.categories, { id: `c_${Date.now()}`, name, budget: 0, isFixed: false }] });
-    setCategoryModalVisible(false);
-  };
-  const handleDeleteCategory = (categoryId: string) => {
-    Alert.alert('確認', 'このカテゴリを削除しますか？', [
-      { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => setPendingSettings({ ...pendingSettings, categories: pendingSettings.categories.filter(c => c.id !== categoryId) }) }
-    ]);
-  };
-
-  const handleSaveAll = () => {
-    updateSettings(pendingSettings);
-    Alert.alert('完了', '設定を保存しました！\nダッシュボードの表示順にも反映されます。');
-  };
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={isScrollEnabled}>
+      <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={modes.scroll}>
         
+        {/* 家族構成セクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
-          <TouchableOpacity onPress={() => setIsFamilyEditMode(!isFamilyEditMode)} style={[styles.actionBtn, isFamilyEditMode && styles.actionBtnActive]}>
-            <Text style={[styles.actionBtnText, isFamilyEditMode && styles.actionBtnTextActive]}>{isFamilyEditMode ? '✅ 完了' : '↕️ 並び替え'}</Text>
+          <TouchableOpacity onPress={() => modes.setFamilyEdit(!modes.familyEdit)} style={[styles.actionBtn, modes.familyEdit && styles.actionBtnActive]}>
+            <Text style={[styles.actionBtnText, modes.familyEdit && styles.actionBtnTextActive]}>{modes.familyEdit ? '✅ 完了' : '↕️ 並び替え'}</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.hintText}>「≡」をタップしたままスライドして並び替えます。</Text>
         <FamilyMemberList 
           members={pendingSettings.familyMembers} 
-          isReorderMode={isFamilyEditMode}
-          onUpdate={handleUpdateFamily} 
-          onDelete={handleDeleteFamily} 
-          onAdd={() => setFamilyModalVisible(true)} 
-          onEditClick={(member) => setEditingFamilyMember(member)}
-          onUpdateList={(newList) => setPendingSettings({ ...pendingSettings, familyMembers: newList })}
-          onDragStart={() => setIsScrollEnabled(false)}
-          onDragEnd={() => setIsScrollEnabled(true)}
+          isReorderMode={modes.familyEdit}
+          onUpdate={actions.updateFamily} 
+          onDelete={actions.deleteFamily} 
+          onAdd={() => modals.setFamilyAdd(true)} 
+          onEditClick={modals.setFamilyEdit}
+          onUpdateList={actions.updateFamilyList}
+          onDragStart={() => modes.setScroll(false)}
+          onDragEnd={() => modes.setScroll(true)}
         />
 
+        {/* カテゴリセクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
-          <TouchableOpacity onPress={() => setIsCategoryEditMode(!isCategoryEditMode)} style={[styles.actionBtn, isCategoryEditMode && styles.actionBtnActive]}>
-            <Text style={[styles.actionBtnText, isCategoryEditMode && styles.actionBtnTextActive]}>{isCategoryEditMode ? '✅ 完了' : '↕️ 並び替え'}</Text>
+          <TouchableOpacity onPress={() => modes.setCategoryEdit(!modes.categoryEdit)} style={[styles.actionBtn, modes.categoryEdit && styles.actionBtnActive]}>
+            <Text style={[styles.actionBtnText, modes.categoryEdit && styles.actionBtnTextActive]}>{modes.categoryEdit ? '✅ 完了' : '↕️ 並び替え'}</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.hintText}>ここでの順番がダッシュボードや入力画面にも反映されます。</Text>
         <CategoryList 
           categories={activeCategories} 
-          isReorderMode={isCategoryEditMode}
-          onDeleteCategory={handleDeleteCategory} 
-          onAddCategory={() => setCategoryModalVisible(true)} 
-          onUpdateList={(newList) => {
-            const hiddenCategories = pendingSettings.categories.filter(c => !activeCategories.find(ac => ac.id === c.id));
-            setPendingSettings({ ...pendingSettings, categories: [...newList, ...hiddenCategories] });
-          }}
-          onDragStart={() => setIsScrollEnabled(false)}
-          onDragEnd={() => setIsScrollEnabled(true)}
+          isReorderMode={modes.categoryEdit}
+          onDeleteCategory={actions.deleteCategory} 
+          onAddCategory={() => modals.setCategory(true)} 
+          onUpdateList={actions.updateCategoryList}
+          onDragStart={() => modes.setScroll(false)}
+          onDragEnd={() => modes.setScroll(true)}
         />
 
+        {/* 詳細設定セクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>⚙️ 詳細設定</Text>
         </View>
-        <TouchableOpacity style={styles.historyManageCard} onPress={() => setHistoryModalVisible(true)} activeOpacity={0.6}>
+        <TouchableOpacity style={styles.historyManageCard} onPress={() => modals.setHistory(true)} activeOpacity={0.6}>
           <View style={styles.historyManageContent}>
             <Text style={styles.historyManageIcon}>📖</Text>
             <View>
@@ -140,7 +88,7 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.historyManageCard} onPress={() => setGardenTestVisible(true)} activeOpacity={0.6}>
+        <TouchableOpacity style={styles.historyManageCard} onPress={() => modals.setGarden(true)} activeOpacity={0.6}>
           <View style={styles.historyManageContent}>
             <Text style={styles.historyManageIcon}>🌻</Text>
             <View>
@@ -151,27 +99,18 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.primaryButton} onPress={handleSaveAll}>
+        {/* 保存ボタン */}
+        <TouchableOpacity style={styles.primaryButton} onPress={actions.saveAll}>
           <Text style={styles.primaryButtonText}>設定を保存する</Text>
         </TouchableOpacity>
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <CategoryAddModal visible={isCategoryModalVisible} onSave={handleAddCategory} onClose={() => setCategoryModalVisible(false)} />
-      <FamilyMemberAddModal visible={isFamilyModalVisible} onSave={handleAddFamily} onClose={() => setFamilyModalVisible(false)} />
-      
-      <FamilyMemberEditModal 
-        member={editingFamilyMember} 
-        onSave={handleUpdateFamily} 
-        onClose={() => setEditingFamilyMember(null)} 
-      />
-
-      <InputHistoryManagerModal 
-        visible={isHistoryModalVisible} 
-        settings={pendingSettings} 
-        onUpdate={(newSettings) => setPendingSettings(newSettings)} 
-        onClose={() => setHistoryModalVisible(false)} 
-      />
+      {/* 各種モーダル */}
+      <CategoryAddModal visible={modals.category} onSave={actions.addCategory} onClose={() => modals.setCategory(false)} />
+      <FamilyMemberAddModal visible={modals.familyAdd} onSave={actions.addFamily} onClose={() => modals.setFamilyAdd(false)} />
+      <FamilyMemberEditModal member={modals.familyEdit} onSave={actions.updateFamily} onClose={() => modals.setFamilyEdit(null)} />
+      <InputHistoryManagerModal visible={modals.history} settings={pendingSettings} onUpdate={setPendingSettings} onClose={() => modals.setHistory(false)} />
     </View>
   );
 };
