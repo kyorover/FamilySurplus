@@ -8,9 +8,6 @@ import { useHesokuriStore } from '../../store';
 import { UniversalSprite } from './UniversalSprite';
 import { GARDEN_CONFIG } from '../../functions/gardenUtils';
 
-/**
- * 開発・動作確認用：ストアと連動したアイテム購入＆配置テストコンポーネント
- */
 export const GardenBuilderTest: React.FC = () => {
   const { settings } = useHesokuriStore();
   
@@ -39,21 +36,14 @@ export const GardenBuilderTest: React.FC = () => {
     setSelectedItemIdToPlace(null);
   };
 
-  // ドラッグ＆ドロップによる移動ハンドラ
   const handleMoveItem = (index: number, newX: number, newY: number) => {
-    // 盤面外にドロップされた場合は元の位置に戻す（何もしない）
-    if (newX < 0 || newX >= GARDEN_CONFIG.GRID_SIZE || newY < 0 || newY >= GARDEN_CONFIG.GRID_SIZE) {
-      return;
-    }
+    // 盤面外に出た場合はキャンセル
+    if (newX < 0 || newX >= GARDEN_CONFIG.GRID_SIZE || newY < 0 || newY >= GARDEN_CONFIG.GRID_SIZE) return;
 
-    // 他のアイテムとの衝突判定（自分自身は除外）
+    // 他アイテムとの衝突判定
     const isOccupied = placements.some((p, i) => i !== index && p.x === newX && p.y === newY);
-    if (isOccupied) {
-      // 衝突した場合は元の位置に戻る
-      return;
-    }
+    if (isOccupied) return;
 
-    // 配置を更新
     setPlacements(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], x: newX, y: newY };
@@ -73,7 +63,7 @@ export const GardenBuilderTest: React.FC = () => {
       <IsometricGardenCanvas 
         placements={placements} 
         onPressTile={handlePressTile} 
-        onMoveItem={handleMoveItem} // 追加
+        onMoveItem={handleMoveItem}
       />
 
       <View style={styles.inventory}>

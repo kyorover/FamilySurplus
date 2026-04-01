@@ -1,6 +1,6 @@
 // src/screens/SettingsScreen.tsx
 import React, { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert, Modal, SafeAreaView } from 'react-native';
+import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Alert, SafeAreaView } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
@@ -33,6 +33,21 @@ export const SettingsScreen: React.FC = () => {
     const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
     return pendingSettings.categories.filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
   }, [pendingSettings]);
+
+  // フリーズを回避するため、お庭テストはModalを使わず画面全体を上書きレンダリングします
+  if (isGardenTestVisible) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: '#F5F5F5' }]}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>お庭デバッグ検証</Text>
+          <TouchableOpacity onPress={() => setGardenTestVisible(false)}>
+            <Text style={styles.modalCloseText}>閉じる</Text>
+          </TouchableOpacity>
+        </View>
+        <GardenBuilderTest />
+      </SafeAreaView>
+    );
+  }
 
   if (!pendingSettings) return null;
 
@@ -122,6 +137,7 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
+        {/* お庭機能テスト用の導線 */}
         <TouchableOpacity style={styles.historyManageCard} onPress={() => setGardenTestVisible(true)} activeOpacity={0.6}>
           <View style={styles.historyManageContent}>
             <Text style={styles.historyManageIcon}>🌻</Text>
@@ -148,19 +164,6 @@ export const SettingsScreen: React.FC = () => {
         onUpdate={(newSettings) => setPendingSettings(newSettings)} 
         onClose={() => setHistoryModalVisible(false)} 
       />
-
-      <Modal visible={isGardenTestVisible} animationType="slide">
-        <SafeAreaView style={styles.modalSafeArea}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>お庭デバッグ検証</Text>
-            <TouchableOpacity onPress={() => setGardenTestVisible(false)}>
-              <Text style={styles.modalCloseText}>閉じる</Text>
-            </TouchableOpacity>
-          </View>
-          <GardenBuilderTest />
-        </SafeAreaView>
-      </Modal>
-
     </View>
   );
 };
@@ -183,7 +186,7 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
   
-  modalSafeArea: { flex: 1, backgroundColor: '#F5F5F5' },
+  // デバッグ画面用追加スタイル
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
