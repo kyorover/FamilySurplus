@@ -5,13 +5,14 @@ import { IsometricGardenCanvas } from './IsometricGardenCanvas';
 import { GardenShopModal } from './GardenShopModal';
 import { GardenControllerOverlay } from './GardenControllerOverlay';
 import { GardenInventoryTray } from './GardenInventoryTray';
+import { GardenMapResetButton } from './GardenMapResetButton';
 import { GardenPlacement } from '../../types';
 import { useHesokuriStore } from '../../store';
 import { SPRITE_CONFIG } from '../../config/spriteConfig';
 import { GARDEN_CONFIG } from '../../functions/gardenUtils';
 
 export const GardenBuilderTest: React.FC = () => {
-  const { settings } = useHesokuriStore();
+  const { settings, updateSettings } = useHesokuriStore();
   
   const [placements, setPlacements] = useState<GardenPlacement[]>([
     { itemId: 'PL-01', x: 2, y: 2 } 
@@ -19,7 +20,16 @@ export const GardenBuilderTest: React.FC = () => {
   const [isShopVisible, setShopVisible] = useState(false);
   const [selectedPlacedItemIndex, setSelectedPlacedItemIndex] = useState<number | null>(null);
 
-  // ▼ 重大修正: 賢者の樹(PL-01)を配列の先頭に強制追加し、重複を排除
+  // ▼ マップの表示オフセット（初期値はストアから取得して記憶を復元）
+  const [baseOffset, setBaseOffset] = useState<{x: number, y: number}>(settings?.gardenMapOffset || { x: 0, y: 0 });
+  const [panOffset, setPanOffset] = useState<{x: number, y: number}>({ x: 0, y: 0 });
+
+  // 実際の描画オフセットは、ベース（確定分）＋ドラッグ中（一時分）の合算
+  const currentViewOffset = {
+    x: baseOffset.x + panOffset.x,
+    y: baseOffset.y + panOffset.y,
+  };
+
   const ownedItems = useMemo(() => {
     const rawItems = ['PL-01', ...(settings?.ownedGardenItemIds || [])];
     const uniqueItems = Array.from(new Set(rawItems));
@@ -105,6 +115,25 @@ export const GardenBuilderTest: React.FC = () => {
     setSelectedPlacedItemIndex(null);
   };
 
+  // ▼ ドラッグ移動（パン）のハンドラ
+  const handlePanMove = (dx: number, dy: number) => {
+    setPanOffset({ x: dx, y: dy });
+  };
+
+  const handlePanRelease = (dx: number, dy: number) => {
+    const newBaseOffset = { x: baseOffset.x + dx, y: baseOffset.y + dy };
+    setBaseOffset(newBaseOffset);
+    setPanOffset({ x: 0, y: 0 });
+    // 設定に保存して記憶させる
+    updateSettings({ ...settings, gardenMapOffset: newBaseOffset });
+  };
+
+  const handleResetMapPosition = () => {
+    setBaseOffset({ x: 0, y: 0 });
+    setPanOffset({ x: 0, y: 0 });
+    updateSettings({ ...settings, gardenMapOffset: { x: 0, y: 0 } });
+  };
+
   const selectedTargetItem = selectedPlacedItemIndex !== null ? placements[selectedPlacedItemIndex] : null;
 
   return (
@@ -117,10 +146,15 @@ export const GardenBuilderTest: React.FC = () => {
       </View>
 
       <View style={styles.canvasWrapper}>
+        <GardenMapResetButton onReset={handleResetMapPosition} />
+        
         <IsometricGardenCanvas 
           placements={placements} 
           onPressTile={handlePressTile} 
-          selectedItemIndex={selectedPlacedItemIndex} 
+          selectedItemIndex={selectedPlacedItemIndex}
+          viewOffset={currentViewOffset}
+          onPanMove={handlePanMove}
+          onPanRelease={handlePanRelease}
         />
 
         {selectedTargetItem && (
@@ -128,7 +162,7 @@ export const GardenBuilderTest: React.FC = () => {
             onMove={handleMovePlacedItem}
             onRemove={handleRemovePlacedItem}
             onConfirm={handleConfirmPlacement}
-            showRemoveButton={selectedTargetItem.itemId !== 'PL-01'} // 木は片付け不可
+            showRemoveButton={selectedTargetItem.itemId !== 'PL-01'} 
           />
         )}
       </View>

@@ -37,6 +37,7 @@ export const getGridCoordsFromScreen = (left: number, top: number, screenWidth: 
 export const getZIndexScore = (x: number, y: number, itemType: 'floor' | 'item' | 'large_item'): number => {
   const baseScore = (x + y) * 100;
   if (itemType === 'floor') return baseScore;
-  if (itemType === 'large_item') return baseScore + 150; 
+  // 【修正】手前の床（+200）より上に描画させるため加算値を 210 に変更
+  if (itemType === 'large_item') return baseScore + 210; 
   return baseScore + 10;
 };
