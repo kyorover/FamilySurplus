@@ -24,6 +24,16 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
 };
 
 /**
+ * お庭全体のグローバル設定（環境変数）
+ */
+export const GLOBAL_GARDEN_SETTINGS = {
+  // ▼アイテムドロップ時の吸着ズレをマス目（グリッド）単位で調整する補正値
+  // 例: 視覚的な感覚より1マス右上にズレて配置されてしまう場合は、xを-1, yを-1にして相殺します。
+  dropGridOffsetX: 0, 
+  dropGridOffsetY: 0, 
+};
+
+/**
  * アイテムIDごとの切り出し座標設定（環境変数の代替マスタ）
  * ※ other.png は横4列×縦7行のグリッドと仮定し、1マスを256x256として計算しています。
  * ※ 実際の画像のピクセル定規で測った値に後から微調整してください。
@@ -152,7 +162,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 80,
     frameCount: 4,
     frameSpacingX: 0,
-    offsetX: 40,
-    offsetY: 180,
+    offsetX: 28,
+    offsetY: 3,
   },
 };

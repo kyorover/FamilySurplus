@@ -6,7 +6,7 @@ import { InteractiveGardenItem } from './InteractiveGardenItem';
 import { DraggableGardenItem } from './DraggableGardenItem';
 import { GardenPlacement } from '../../types';
 import { getIsometricCoords, getGridCoordsFromScreen, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
-import { SPRITE_CONFIG } from '../../config/spriteConfig';
+import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -112,9 +112,15 @@ export const IsometricGardenCanvas: React.FC<Props> = ({ placements = [], onPres
                 index={node.originalIndex!}
                 onDragRelease={(idx, dx, dy) => {
                   if (!onMoveItem || (Math.abs(dx) < 5 && Math.abs(dy) < 5)) return;
-                  // ドラッグされた距離(dx, dy)を加算して新しいマス目を計算
+                  
+                  // ドラッグされた距離(dx, dy)から計算上のマス目を算出
                   const newGrid = getGridCoordsFromScreen(coords.left + dx, coords.top + dy, SCREEN_WIDTH);
-                  onMoveItem(idx, newGrid.x, newGrid.y);
+                  
+                  // 環境変数からマス目単位の補正値を足し込む
+                  const finalX = newGrid.x + GLOBAL_GARDEN_SETTINGS.dropGridOffsetX;
+                  const finalY = newGrid.y + GLOBAL_GARDEN_SETTINGS.dropGridOffsetY;
+                  
+                  onMoveItem(idx, finalX, finalY);
                 }}
               >
                 {isLarge ? (
