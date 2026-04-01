@@ -1,6 +1,7 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, MonthlyGarden } from './types';
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement } from './types';
+import { GARDEN_CONSTANTS } from './constants';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001';
@@ -12,21 +13,18 @@ interface ExpenseInputState {
 interface HesokuriState {
   settings: HouseholdSettings | null; pendingSettings: HouseholdSettings | null; expenses: ExpenseRecord[]; monthlyBudget: MonthlyBudget | null; isLoading: boolean; error: string | null;
   expenseInput: ExpenseInputState; returnToCategoryDetail: string | null; returnToCategoryDetailDate: string | null;
-  // --- ガーデン機能追加 ---
-  monthlyGarden: MonthlyGarden | null; // 今月の庭データ
 
   setExpenseInput: (input: Partial<ExpenseInputState>) => void; resetExpenseInput: () => void; saveExpenseInput: () => Promise<void>; setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; fetchSettings: () => Promise<void>; updateSettings: (newSettings: HouseholdSettings) => Promise<void>; fetchExpenses: (month: string) => Promise<void>; fetchMonthlyBudget: (month: string) => Promise<void>; updateMonthlyBudget: (budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule'], month: string) => Promise<void>; addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>; updateExpense: (expense: ExpenseRecord) => Promise<void>; deleteExpense: (date_id: string) => Promise<void>; fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
   
   // --- ガーデン機能追加 ---
   waterGarden: () => Promise<void>;
-  fetchMonthlyGarden: (month: string) => Promise<void>;
-  saveMonthlyGarden: (gardenData: MonthlyGarden) => Promise<void>;
+  updateGardenPlacements: (placements: GardenPlacement[]) => Promise<void>;
+  levelUpTree: () => Promise<void>;
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null, returnToCategoryDetail: null, returnToCategoryDetailDate: null,
-  monthlyGarden: null,
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
@@ -42,8 +40,6 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
       await state.updateExpense({ ...dataObj, id: input.id, date_id: `${expenseDate}#${input.id}` });
     } else {
       await state.addExpense(dataObj);
-      
-      // ガーデン機能: 入力（管理行動）に対する少量の報酬ポイントを付与
       const currentSettings = get().settings;
       if (currentSettings) {
         const updatedPoints = (currentSettings.gardenPoints || 0) + 2;
@@ -74,6 +70,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   },
 
   fetchMonthlyBudget: async (month) => {
+    // 略: 変更なし
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`);
@@ -94,6 +91,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   },
 
   updateMonthlyBudget: async (budgets, bonusAllocation, deficitRule, month) => {
+    // 略: 変更なし
     set({ isLoading: true, error: null });
     try {
       await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month_id: month, budgets, bonusAllocation, deficitRule }) });
@@ -102,6 +100,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   },
 
   fetchExpenses: async (month) => {
+    // 略: 変更なし
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?month=${month}`);
@@ -111,6 +110,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   },
 
   addExpense: async (expenseData) => {
+    // 略: 変更なし
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/expenses`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...expenseData, householdId: HOUSEHOLD_ID }) });
@@ -120,6 +120,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   },
 
   updateExpense: async (expenseData) => {
+    // 略: 変更なし
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${API_BASE_URL}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(expenseData) });
@@ -129,6 +130,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   },
 
   deleteExpense: async (date_id) => {
+    // 略: 変更なし
     set({ isLoading: true, error: null });
     try {
       await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?date_id=${encodeURIComponent(date_id)}`, { method: 'DELETE' });
@@ -144,76 +146,45 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     } catch (e) { return { expenses: [], budgets: {} }; }
   },
 
-  // ==========================================
-  // ガーデン機能・ゲーミフィケーション処理
-  // ==========================================
   waterGarden: async () => {
     const state = get();
     const settings = state.settings;
     if (!settings) return;
-
     const todayStr = new Date().toISOString().slice(0, 10);
-    
-    // 既に本日水やり（確認）済みの場合は処理しない
-    if (settings.lastWateringDate === todayStr) {
-      return;
-    }
-
-    // NMD評価を廃止し、1日1回アプリを開いて家計と向き合ったことに対する報酬へ変更
-    const pointsToAdd = 20; 
-
-    const newSettings: HouseholdSettings = {
+    if (settings.lastWateringDate === todayStr) return;
+    await state.updateSettings({
       ...settings,
-      gardenPoints: (settings.gardenPoints || 0) + pointsToAdd,
+      gardenPoints: (settings.gardenPoints || 0) + 20,
       lastWateringDate: todayStr,
+    });
+  },
+
+  updateGardenPlacements: async (placements) => {
+    const state = get();
+    if (!state.settings) return;
+    // オプティミスティック更新
+    set({ settings: { ...state.settings, gardenPlacements: placements } });
+    await state.updateSettings({ ...state.settings, gardenPlacements: placements });
+  },
+
+  levelUpTree: async () => {
+    const state = get();
+    if (!state.settings) return;
+    const currentLevel = state.settings.plantLevel || 1;
+    if (currentLevel >= GARDEN_CONSTANTS.MAX_PLANT_LEVEL) return;
+
+    const cost = GARDEN_CONSTANTS.LEVEL_UP_COSTS[currentLevel];
+    if ((state.settings.gardenPoints || 0) < cost) return;
+
+    const newPoints = (state.settings.gardenPoints || 0) - cost;
+    const newSettings = {
+      ...state.settings,
+      plantLevel: currentLevel + 1,
+      gardenPoints: newPoints
     };
-
+    
+    // オプティミスティック更新
+    set({ settings: newSettings });
     await state.updateSettings(newSettings);
-  },
-
-  fetchMonthlyGarden: async (month: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      // APIエンドポイントが未整備の可能性があるため、エラー時は初期状態フォールバック
-      const response = await fetch(`${API_BASE_URL}/garden/${HOUSEHOLD_ID}?month=${month}`);
-      if (!response.ok) {
-        throw new Error('Garden data not found');
-      }
-      const data = await response.json();
-      // データが存在しない場合は初期の知恵の木を配置
-      const gardenData: MonthlyGarden = data.garden || {
-        householdId: HOUSEHOLD_ID,
-        month_id: month,
-        placements: [{ itemId: 'PL-01', x: 2, y: 2 }],
-        plantLevel: 1,
-        savedAt: new Date().toISOString()
-      };
-      set({ monthlyGarden: gardenData, isLoading: false });
-    } catch (error: any) {
-      // エラー時（未実装など）はローカルの初期状態をセットして続行
-      const initialGarden: MonthlyGarden = {
-        householdId: HOUSEHOLD_ID,
-        month_id: month,
-        placements: [{ itemId: 'PL-01', x: 2, y: 2 }],
-        plantLevel: 1,
-        savedAt: new Date().toISOString()
-      };
-      set({ monthlyGarden: initialGarden, isLoading: false, error: null }); // エラーは握り潰す（API未実装対応）
-    }
-  },
-
-  saveMonthlyGarden: async (gardenData: MonthlyGarden) => {
-    // ローカルステートを即時更新（オプティミスティック）
-    set({ monthlyGarden: gardenData });
-    try {
-      // API呼び出し（未実装の場合は404等になるが画面操作は継続可能とする）
-      await fetch(`${API_BASE_URL}/garden/${HOUSEHOLD_ID}`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(gardenData) 
-      });
-    } catch (error: any) {
-      console.warn('Failed to save garden data to remote:', error);
-    }
   }
 }));

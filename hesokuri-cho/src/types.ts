@@ -23,12 +23,14 @@ export interface HouseholdSettings {
   categories: Category[];
   notificationsEnabled: boolean;
   updatedAt: Date | string;
-  storeNameHistory?: string[]; // 新規：店名の入力履歴マスタ
-  memoHistory?: string[];      // 新規：コメントの入力履歴マスタ
+  storeNameHistory?: string[];
+  memoHistory?: string[];
   // --- ガーデン機能追加分 ---
-  gardenPoints: number;        // 現在のガーデンポイント残高
-  lastWateringDate: string | null; // 最後に水やり(確認)をした日付 (YYYY-MM-DD)
-  ownedGardenItemIds: string[];    // 所持しているガーデンアイテムのIDリスト
+  gardenPoints: number;
+  lastWateringDate: string | null;
+  ownedGardenItemIds: string[];
+  gardenPlacements?: GardenPlacement[]; // 永続化されるお庭の配置情報
+  plantLevel?: number; // 知恵の木のレベル(1〜5)
 }
 
 export interface ExpenseRecord {
@@ -53,15 +55,11 @@ export interface MonthlyBudget {
   updatedAt: string;
 }
 
-// ==========================================
-// ガーデン機能・ゲーミフィケーション用 追加型定義
-// ==========================================
-
 export interface GardenItem {
   id: string;
   name: string;
   type: 'flower' | 'pot' | 'ornament';
-  cost: number; // 交換に必要なガーデンポイント
+  cost: number;
   imageUrl?: string; 
 }
 
@@ -70,12 +68,4 @@ export interface GardenPlacement {
   x: number;
   y: number;
   scale?: number;
-}
-
-export interface MonthlyGarden {
-  householdId: string;
-  month_id: string; // YYYY-MM
-  placements: GardenPlacement[]; // ガーデンに配置されたアイテム
-  plantLevel: number; // その月のメイン植物の成長度合い（0〜5など）
-  savedAt: string;
 }
