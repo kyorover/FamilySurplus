@@ -25,7 +25,6 @@ export interface HouseholdSettings {
   updatedAt: Date | string;
   storeNameHistory?: string[];
   memoHistory?: string[];
-  // --- ガーデン機能追加分 ---
   gardenPoints: number;
   lastWateringDate: string | null;
   ownedGardenItemIds: string[];
@@ -68,4 +67,5 @@ export interface GardenPlacement {
   x: number;
   y: number;
   scale?: number;
+  isFlipped?: boolean; // 新規追加: アイコンの鏡写し反転
 }
