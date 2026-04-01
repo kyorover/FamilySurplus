@@ -6,6 +6,7 @@ import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
+import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditModal';
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { GardenBuilderTest } from '../components/garden/GardenBuilderTest';
 import { FamilyMember } from '../types';
@@ -13,8 +14,10 @@ import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 export const SettingsScreen: React.FC = () => {
   const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
+  
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
+  const [editingFamilyMember, setEditingFamilyMember] = useState<FamilyMember | null>(null);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   const [isGardenTestVisible, setGardenTestVisible] = useState(false);
   
@@ -34,7 +37,6 @@ export const SettingsScreen: React.FC = () => {
     return pendingSettings.categories.filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
   }, [pendingSettings]);
 
-  // フリーズを回避するため、お庭テストはModalを使わず画面全体を上書きレンダリングします
   if (isGardenTestVisible) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: '#F5F5F5' }]}>
@@ -98,6 +100,7 @@ export const SettingsScreen: React.FC = () => {
           onUpdate={handleUpdateFamily} 
           onDelete={handleDeleteFamily} 
           onAdd={() => setFamilyModalVisible(true)} 
+          onEditClick={(member) => setEditingFamilyMember(member)}
           onUpdateList={(newList) => setPendingSettings({ ...pendingSettings, familyMembers: newList })}
           onDragStart={() => setIsScrollEnabled(false)}
           onDragEnd={() => setIsScrollEnabled(true)}
@@ -137,7 +140,6 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        {/* お庭機能テスト用の導線 */}
         <TouchableOpacity style={styles.historyManageCard} onPress={() => setGardenTestVisible(true)} activeOpacity={0.6}>
           <View style={styles.historyManageContent}>
             <Text style={styles.historyManageIcon}>🌻</Text>
@@ -158,6 +160,12 @@ export const SettingsScreen: React.FC = () => {
       <CategoryAddModal visible={isCategoryModalVisible} onSave={handleAddCategory} onClose={() => setCategoryModalVisible(false)} />
       <FamilyMemberAddModal visible={isFamilyModalVisible} onSave={handleAddFamily} onClose={() => setFamilyModalVisible(false)} />
       
+      <FamilyMemberEditModal 
+        member={editingFamilyMember} 
+        onSave={handleUpdateFamily} 
+        onClose={() => setEditingFamilyMember(null)} 
+      />
+
       <InputHistoryManagerModal 
         visible={isHistoryModalVisible} 
         settings={pendingSettings} 
@@ -185,8 +193,6 @@ const styles = StyleSheet.create({
   chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
   primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
-  
-  // デバッグ画面用追加スタイル
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
