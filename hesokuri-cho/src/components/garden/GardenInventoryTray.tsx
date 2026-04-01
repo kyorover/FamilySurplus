@@ -14,15 +14,21 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
     <View style={styles.inventory}>
       <Text style={styles.inventoryTitle}>配置アイテムを選択（所持品）</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {ownedItems.map((itemId) => (
-          <TouchableOpacity
-            key={itemId}
-            style={[styles.inventoryItem, selectedItemId === itemId && styles.activeItem]}
-            onPress={() => onSelectItem(itemId)}
-          >
-            <UniversalSprite itemId={itemId} frameIndex={0} displaySize={32} />
-          </TouchableOpacity>
-        ))}
+        {ownedItems.map((itemId) => {
+          // ▼ 修正：キャンバス側の表示仕様と完全に一致させる
+          // 賢者の樹(PL-01)は第5段階の姿（frameIndex: 4）をアイコンとして表示する
+          const displayFrameIndex = itemId === 'PL-01' ? 4 : 0;
+
+          return (
+            <TouchableOpacity
+              key={itemId}
+              style={[styles.inventoryItem, selectedItemId === itemId && styles.activeItem]}
+              onPress={() => onSelectItem(itemId)}
+            >
+              <UniversalSprite itemId={itemId} frameIndex={displayFrameIndex} displaySize={32} />
+            </TouchableOpacity>
+          );
+        })}
         {ownedItems.length === 0 && (
           <Text style={styles.emptyText}>アイテムがありません</Text>
         )}
