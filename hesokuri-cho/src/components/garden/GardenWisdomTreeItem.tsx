@@ -1,38 +1,25 @@
 // src/components/garden/GardenWisdomTreeItem.tsx
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 
-/**
- * 管理達成度（レベル）に応じて「賢者の樹」のスプライトを表示するコンポーネント。
- * 新しい UniversalSprite コンポーネントと spriteConfig.ts の設定を利用します。
- */
-
-interface GardenWisdomTreeItemProps {
-  level: number;
+interface Props {
+  plantLevel: number; // 0〜4 の5段階を想定
+  displaySize: number;
 }
 
-export const GardenWisdomTreeItem: React.FC<GardenWisdomTreeItemProps> = ({ level }) => {
-  // アプリ上で表示したいサイズ (dp)
-  const DISPLAY_SIZE = 180;
-
-  // レベル(1〜5)を、コマのインデックス(0〜4)に変換
-  const frameIndex = Math.max(0, level - 1);
+/**
+ * 賢者の樹（PL-01）の表示コンポーネント
+ * 外部から渡された plantLevel（月間予算の達成度など）に応じて表示するコマを切り替える単一責務コンポーネント
+ */
+export const GardenWisdomTreeItem: React.FC<Props> = ({ plantLevel, displaySize }) => {
+  // plantLevelが0〜4の範囲に収まるように正規化
+  const normalizedLevel = Math.max(0, Math.min(Math.floor(plantLevel), 4));
 
   return (
-    <View style={styles.container}>
-      <UniversalSprite
-        itemId="PL-01" // spriteConfig.ts で定義した賢者の樹のID
-        frameIndex={frameIndex}
-        displaySize={DISPLAY_SIZE}
-      />
-    </View>
+    <UniversalSprite
+      itemId="PL-01"
+      frameIndex={normalizedLevel} // 成長レベル＝コマ番号
+      displaySize={displaySize}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'flex-end', // クォータービューのマス目の下端に合わせるため
-  },
-});
