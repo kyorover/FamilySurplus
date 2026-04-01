@@ -5,16 +5,13 @@ import { UniversalSprite } from './UniversalSprite';
 import { SPRITE_CONFIG } from '../../config/spriteConfig';
 
 interface Props {
-  effectId: string;          // 例: 'EF-01' (水やり), 'EF-02' (光)
+  effectId: string;
   displaySize: number;
-  durationPerFrame?: number; // 1コマの表示時間（ミリ秒）
-  loop?: boolean;            // ループ再生するかどうか
-  onAnimationEnd?: () => void; // ループしない場合の終了時コールバック
+  durationPerFrame?: number;
+  loop?: boolean;
+  onAnimationEnd?: () => void;
 }
 
-/**
- * コード側で順に画像を切り出し、アニメーションとして再生するエフェクトコンポーネント
- */
 export const EffectSprite: React.FC<Props> = ({ 
   effectId, 
   displaySize, 
@@ -24,7 +21,7 @@ export const EffectSprite: React.FC<Props> = ({
 }) => {
   const [currentFrame, setCurrentFrame] = useState(0);
   const config = SPRITE_CONFIG[effectId];
-  const maxFrames = config ? config.frames : 1;
+  const maxFrames = config ? config.frameCount : 1; // framesからframeCountに修正
 
   useEffect(() => {
     if (maxFrames <= 1) return;
@@ -46,9 +43,7 @@ export const EffectSprite: React.FC<Props> = ({
       timer = setTimeout(tick, durationPerFrame);
     };
 
-    // アニメーション開始
     timer = setTimeout(tick, durationPerFrame);
-
     return () => clearTimeout(timer);
   }, [effectId, maxFrames, durationPerFrame, loop, onAnimationEnd]);
 
@@ -56,11 +51,7 @@ export const EffectSprite: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <UniversalSprite 
-        itemId={effectId} 
-        frameIndex={currentFrame} 
-        displaySize={displaySize} 
-      />
+      <UniversalSprite itemId={effectId} frameIndex={currentFrame} displaySize={displaySize} />
     </View>
   );
 };
@@ -70,7 +61,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
-    // 親要素のタップイベントを妨げないようにする
     pointerEvents: 'none', 
   },
 });

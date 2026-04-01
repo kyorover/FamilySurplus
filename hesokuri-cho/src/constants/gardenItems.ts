@@ -2,12 +2,8 @@
 import { GardenItem } from '../types';
 
 export const GARDEN_ITEMS: GardenItem[] = [
-  { id: 'item_flower_01', name: 'ひまわりの種', type: 'flower', cost: 100, imageUrl: '🌻' },
-  { id: 'item_flower_02', name: 'チューリップの種', type: 'flower', cost: 150, imageUrl: '🌷' },
-  { id: 'item_flower_03', name: 'バラの種', type: 'flower', cost: 200, imageUrl: '🌹' },
-  { id: 'item_pot_01', name: 'テラコッタの鉢', type: 'pot', cost: 120, imageUrl: '🏺' },
-  { id: 'item_ornament_01', name: '木のベンチ', type: 'ornament', cost: 300, imageUrl: '🪑' },
-  { id: 'item_ornament_02', name: 'ガーデンノーム', type: 'ornament', cost: 250, imageUrl: '🧙' },
-  { id: 'item_ornament_03', name: '石のランタン', type: 'ornament', cost: 400, imageUrl: '🏮' },
-  { id: 'item_ornament_04', name: '小さな噴水', type: 'ornament', cost: 500, imageUrl: '⛲' },
+  { id: 'IT-01', name: 'レトロな街灯', type: 'ornament', cost: 100 },
+  { id: 'IT-02', name: '木のベンチ', type: 'ornament', cost: 150 },
+  { id: 'IT-04', name: '秘密の宝箱', type: 'ornament', cost: 300 },
+  // ※PL-01（賢者の樹）は月間予算達成度による自動配置を想定するためショップからは除外
 ];

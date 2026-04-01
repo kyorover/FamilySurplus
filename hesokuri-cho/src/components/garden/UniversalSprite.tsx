@@ -1,17 +1,18 @@
 // src/components/garden/UniversalSprite.tsx
 import React from 'react';
 import { View, Image, StyleSheet, ViewStyle } from 'react-native';
-import { SPRITE_CONFIG } from '../../config/spriteConfig';
+import { SPRITE_CONFIG, IMAGE_SOURCES } from '../../config/spriteConfig';
 
 interface Props {
   itemId: string;
-  frameIndex?: number; // 切り出すコマのインデックス（0始まり）
+  frameIndex?: number;
   displaySize: number; // 画面上に表示する基準サイズ（幅）
   style?: ViewStyle;
 }
 
 /**
- * スプライト画像から指定されたコマ（frameIndex）を切り出して表示する汎用コンポーネント
+ * 複雑なスプライトシートから指定の座標計算（startX, startY等）を用いて
+ * 正確にコマを切り出すコンポーネント
  */
 export const UniversalSprite: React.FC<Props> = ({ 
   itemId, 
@@ -22,18 +23,29 @@ export const UniversalSprite: React.FC<Props> = ({
   const config = SPRITE_CONFIG[itemId];
 
   if (!config) {
-    // 設定がない場合はプレースホルダー領域を表示
-    return (
-      <View style={[styles.placeholder, { width: displaySize, height: displaySize }, style]} />
-    );
+    return <View style={[styles.placeholder, { width: displaySize, height: displaySize }, style]} />;
   }
 
-  // アスペクト比を維持して表示用の高さを計算
-  const aspectRatio = config.height / config.width;
-  const displayHeight = displaySize * aspectRatio;
+  // 安全対策: frameIndex がコマ数を超えないようにする
+  const safeFrameIndex = Math.max(0, Math.min(frameIndex, config.frameCount - 1));
 
-  // 安全対策: frameIndex が定義されているコマ数を超えないようにする
-  const safeFrameIndex = Math.max(0, Math.min(frameIndex, config.frames - 1));
+  // 表示サイズ(displaySize)と1コマの元サイズ(frameWidth)のスケール比を計算
+  const scale = displaySize / config.frameWidth;
+  const displayHeight = config.frameHeight * scale;
+
+  // X軸の切り出し開始位置を計算 (startX + (frameWidth + spacing) * index)
+  const sourceX = config.startX + safeFrameIndex * (config.frameWidth + config.frameSpacingX);
+  const sourceY = config.startY;
+
+  // React Nativeで正しく切り出すため、元の画像全体をスケール倍したサイズにする
+  const scaledImageWidth = config.originalWidth * scale;
+  const scaledImageHeight = config.originalHeight * scale;
+
+  // 切り出し位置もスケールに合わせてずらす
+  const leftOffset = -sourceX * scale;
+  const topOffset = -sourceY * scale;
+
+  const imageSource = IMAGE_SOURCES[config.sourceId];
 
   return (
     <View 
@@ -44,14 +56,16 @@ export const UniversalSprite: React.FC<Props> = ({
       ]}
     >
       <Image
-        source={config.source}
+        source={imageSource}
         style={{
-          width: displaySize * config.frames, // 画像全体の表示幅
-          height: displayHeight,
-          // 左にずらして目的のコマを表示領域（コンテナ）の枠内に合わせる
-          transform: [{ translateX: -displaySize * safeFrameIndex }],
+          width: scaledImageWidth,
+          height: scaledImageHeight,
+          position: 'absolute',
+          left: leftOffset,
+          top: topOffset,
         }}
-        resizeMode="stretch"
+        // stretchで強制的に指定サイズに引き伸ばし、コンテナ外をoverflowで隠す
+        resizeMode="stretch" 
       />
     </View>
   );
@@ -59,9 +73,10 @@ export const UniversalSprite: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   container: {
-    overflow: 'hidden', // 枠外の画像を隠す（コマ切り出しの要）
+    overflow: 'hidden',
+    position: 'relative',
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   placeholder: {
     backgroundColor: '#CCCCCC',
