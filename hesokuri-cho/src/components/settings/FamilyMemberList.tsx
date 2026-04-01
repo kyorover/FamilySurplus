@@ -6,7 +6,7 @@ import { FamilyMember } from '../../types';
 
 interface FamilyMemberListProps {
   members: FamilyMember[];
-  isReorderMode: boolean; // モード判定用
+  isReorderMode: boolean;
   onUpdate: (member: FamilyMember) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
@@ -15,7 +15,9 @@ interface FamilyMemberListProps {
   onDragEnd: () => void;
 }
 
-export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, isReorderMode, onUpdate, onDelete, onAdd, onUpdateList, onDragStart, onDragEnd }) => {
+export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ 
+  members, isReorderMode, onUpdate, onDelete, onAdd, onUpdateList, onDragStart, onDragEnd 
+}) => {
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -38,17 +40,13 @@ export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, isR
     }
   };
 
-  // 編集モード用のドラッグ専用行（タップ誤爆を防ぐため入力欄などは表示しない）
-  const renderDragItem = ({ item, onDragStart: startDrag, onDragEnd: endDrag, isActive }: DragListRenderItemInfo<FamilyMember>) => (
+  const renderDragItem = ({ item, onDragStart: s, onDragEnd: e, isActive }: DragListRenderItemInfo<FamilyMember>) => (
     <View style={[styles.row, isActive && styles.activeRow]}>
-      <TouchableOpacity activeOpacity={0.6} onPressIn={startDrag} onPressOut={endDrag} style={styles.dragHandle}>
-        <Text style={[styles.dragIcon, isActive && { color: '#007AFF' }]}>≡</Text>
+      <TouchableOpacity onPressIn={s} onPressOut={e} style={styles.dragHandle}>
+        <Text style={styles.dragIcon}>≡</Text>
       </TouchableOpacity>
       <View style={styles.infoWrapper} pointerEvents="none">
-        <View style={styles.infoHeader}>
-          <Text style={styles.name}>{item.name}</Text>
-          <Text style={[styles.roleBadge, item.role === '子供' && styles.roleBadgeChild]}>{item.role}</Text>
-        </View>
+        <Text style={styles.name}>{item.name}</Text>
       </View>
     </View>
   );
@@ -56,78 +54,41 @@ export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, isR
   return (
     <View style={styles.card}>
       {isReorderMode ? (
-        // 並び替えモードON：DragListを使用
-        <DragList
-          data={members}
-          keyExtractor={(item) => item.id}
-          onReordered={onReordered}
-          renderItem={renderDragItem}
-          onDragBegin={onDragStart}
-          onDragEnd={onDragEnd}
-          scrollEnabled={false}
-        />
+        <DragList data={members} keyExtractor={(i) => i.id} onReordered={onReordered} renderItem={renderDragItem} onDragBegin={onDragStart} onDragEnd={onDragEnd} scrollEnabled={false} />
       ) : (
-        // 並び替えモードOFF：誤タップの無い純粋なViewリスト
         <View>
           {members.map((item) => (
             <View key={item.id} style={styles.row}>
-              <View style={[styles.infoWrapper, { paddingLeft: 16 }]}>
+              <View style={styles.infoWrapper}>
                 <View style={styles.infoHeader}>
                   <Text style={styles.name}>{item.name}</Text>
                   <Text style={[styles.roleBadge, item.role === '子供' && styles.roleBadgeChild]}>{item.role}</Text>
-                  {item.role === '子供' && item.age !== undefined && <Text style={styles.ageText}>{item.age}歳</Text>}
                 </View>
                 {item.role === '大人' && (
                   <View style={styles.pocketMoneyWrap}>
                     <Text style={styles.pocketMoneyLabel}>基本小遣い：</Text>
-                    <View style={styles.inputBox}>
-                      <Text style={styles.currency}>￥</Text>
-                      <TextInput style={styles.textInput} keyboardType="number-pad" value={item.pocketMoneyAmount === 0 ? '' : String(item.pocketMoneyAmount || '')} placeholder="0" onChangeText={(val) => onUpdate({ ...item, pocketMoneyAmount: parseInt(val, 10) || 0 })} />
-                    </View>
+                    <TextInput style={styles.textInput} keyboardType="number-pad" value={String(item.pocketMoneyAmount || '')} onChangeText={(v) => onUpdate({ ...item, pocketMoneyAmount: parseInt(v, 10) || 0 })} />
                   </View>
                 )}
               </View>
-              
               <View style={styles.actionWrap}>
-                <TouchableOpacity onPress={() => openEditModal(item)} style={styles.editBtn}>
-                  <Text style={styles.editBtnText}>編集</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.deleteBtn}>
-                  <Text style={styles.deleteBtnText}>削除</Text>
-                </TouchableOpacity>
+                <TouchableOpacity onPress={() => openEditModal(item)} style={styles.editBtn}><Text style={styles.editBtnText}>編集</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.deleteBtn}><Text style={styles.deleteBtnText}>削除</Text></TouchableOpacity>
               </View>
             </View>
           ))}
+          <TouchableOpacity style={styles.addBtn} onPress={onAdd}><Text style={styles.addBtnText}>＋ 家族を追加</Text></TouchableOpacity>
         </View>
       )}
 
-      <View style={{ height: 1, backgroundColor: '#E5E5EA' }} />
-      {!isReorderMode && (
-        <TouchableOpacity style={styles.addBtn} onPress={onAdd}>
-          <Text style={styles.addBtnText}>＋ 家族を追加</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* 名前編集用の極小モーダル */}
-      <Modal visible={!!editingMember} transparent animationType="fade">
+      <Modal visible={!!editingMember} transparent animationType="fade" onRequestClose={() => setEditingMember(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>名前の編集</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editName}
-              onChangeText={setEditName}
-              autoFocus
-              placeholder="名前を入力"
-              placeholderTextColor="#C7C7CC"
-            />
+            <TextInput style={styles.modalInput} value={editName} onChangeText={setEditName} autoFocus />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalCancel]} onPress={() => setEditingMember(null)}>
-                <Text style={styles.modalCancelText}>キャンセル</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalSave]} onPress={handleSaveName}>
-                <Text style={styles.modalSaveText}>保存</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setEditingMember(null)}><Text style={styles.modalCancelText}>キャンセル</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.modalSave} onPress={handleSaveName}><Text style={styles.modalSaveText}>保存</Text></TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -137,39 +98,33 @@ export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({ members, isR
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 80, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FFFFFF' },
-  activeRow: { backgroundColor: '#F0F8FF', shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 10, zIndex: 999 },
-  dragHandle: { paddingLeft: 16, paddingRight: 16, paddingVertical: 16, justifyContent: 'center' },
-  dragIcon: { fontSize: 28, color: '#C7C7CC', fontWeight: '300' },
-  infoWrapper: { flex: 1, justifyContent: 'center' },
-  infoHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  name: { fontSize: 16, fontWeight: '600', color: '#1C1C1E', marginRight: 8 },
-  roleBadge: { fontSize: 10, backgroundColor: '#8E8E93', color: '#FFFFFF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, fontWeight: 'bold', overflow: 'hidden', marginRight: 8 },
+  card: { backgroundColor: '#FFF', borderRadius: 12, margin: 16, overflow: 'hidden', elevation: 2 },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  activeRow: { backgroundColor: '#F0F8FF' },
+  dragHandle: { paddingRight: 16 },
+  dragIcon: { fontSize: 24, color: '#CCC' },
+  infoWrapper: { flex: 1 },
+  infoHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  name: { fontSize: 16, fontWeight: 'bold' },
+  roleBadge: { fontSize: 10, backgroundColor: '#8E8E93', color: '#FFF', padding: 4, borderRadius: 4, marginLeft: 8 },
   roleBadgeChild: { backgroundColor: '#34C759' },
-  ageText: { fontSize: 12, color: '#8E8E93', fontWeight: 'bold' },
   pocketMoneyWrap: { flexDirection: 'row', alignItems: 'center' },
-  pocketMoneyLabel: { fontSize: 12, color: '#8E8E93', width: 80 },
-  inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, width: 90 },
-  currency: { color: '#8E8E93', marginRight: 4, fontSize: 12 },
-  textInput: { flex: 1, fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', textAlign: 'right', padding: 0 },
-  actionWrap: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
-  editBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#E5F1FF', borderRadius: 6, marginRight: 8 },
-  editBtnText: { fontSize: 12, color: '#007AFF', fontWeight: 'bold' },
-  deleteBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#FFF0F0', borderRadius: 6 },
-  deleteBtnText: { fontSize: 12, color: '#FF3B30', fontWeight: 'bold' },
-  addBtn: { padding: 16, alignItems: 'center', backgroundColor: '#F9F9FB' },
-  addBtnText: { fontSize: 14, color: '#007AFF', fontWeight: 'bold' },
-  
-  // モーダル用のスタイル
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: { width: '80%', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 },
-  modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 16, color: '#1C1C1E', textAlign: 'center' },
-  modalInput: { backgroundColor: '#F2F2F7', padding: 12, borderRadius: 8, fontSize: 16, marginBottom: 20, color: '#1C1C1E' },
+  pocketMoneyLabel: { fontSize: 12, color: '#888' },
+  textInput: { fontSize: 14, fontWeight: 'bold', borderBottomWidth: 1, borderBottomColor: '#DDD', width: 60, textAlign: 'right' },
+  actionWrap: { flexDirection: 'row' },
+  editBtn: { backgroundColor: '#E5F1FF', padding: 8, borderRadius: 6, marginRight: 8 },
+  editBtnText: { color: '#007AFF', fontSize: 12 },
+  deleteBtn: { backgroundColor: '#FFF0F0', padding: 8, borderRadius: 6 },
+  deleteBtnText: { color: '#FF3B30', fontSize: 12 },
+  addBtn: { padding: 16, alignItems: 'center' },
+  addBtnText: { color: '#007AFF', fontWeight: 'bold' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalCard: { width: '80%', backgroundColor: '#FFF', borderRadius: 12, padding: 20 },
+  modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  modalInput: { backgroundColor: '#F2F2F7', padding: 12, borderRadius: 8, marginBottom: 20 },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between' },
-  modalBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 8 },
-  modalCancel: { backgroundColor: '#F2F2F7', marginRight: 8 },
-  modalCancelText: { color: '#8E8E93', fontWeight: 'bold' },
-  modalSave: { backgroundColor: '#007AFF', marginLeft: 8 },
-  modalSaveText: { color: '#FFFFFF', fontWeight: 'bold' },
+  modalCancel: { flex: 1, alignItems: 'center', padding: 12 },
+  modalCancelText: { color: '#888' },
+  modalSave: { flex: 1, alignItems: 'center', backgroundColor: '#007AFF', padding: 12, borderRadius: 8 },
+  modalSaveText: { color: '#FFF', fontWeight: 'bold' },
 });

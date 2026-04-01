@@ -23,7 +23,7 @@ export const useGardenPlacements = () => {
 
   const hasCollision = (currentPlacements: GardenPlacement[], targetIndex: number) => {
     const target = currentPlacements[targetIndex];
-    const tSize = target.itemId === 'PL-01' ? 2 : 1; // 知恵の木は常に2マス固定
+    const tSize = target.itemId === 'PL-01' ? 2 : 1; 
     return currentPlacements.some((p, i) => {
       if (i === targetIndex) return false;
       const pSize = p.itemId === 'PL-01' ? 2 : 1;
@@ -36,17 +36,22 @@ export const useGardenPlacements = () => {
   const persistPlacements = (newPlacements: GardenPlacement[]) => updateGardenPlacements(newPlacements);
 
   const handleInventoryPress = (itemId: string) => {
-    const existingIndex = placements.findIndex(p => p.itemId === itemId);
+    // 既に未確定アイテムがある場合は、マップを保存済み状態にリセットしてから処理する
+    let currentPlacements = placements;
+    if (selectedPlacedItemIndex !== null) {
+      currentPlacements = settings?.gardenPlacements || [{ itemId: 'PL-01', x: 2, y: 2 }];
+      setPlacements(currentPlacements);
+      setSelectedPlacedItemIndex(null);
+    }
+
+    const existingIndex = currentPlacements.findIndex(p => p.itemId === itemId);
     if (existingIndex !== -1) setSelectedPlacedItemIndex(existingIndex);
     else {
       const size = itemId === 'PL-01' ? 2 : 1;
       const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
       const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
-      setPlacements(prev => {
-        const newPlacements = [...prev, { itemId, x: spawnX, y: spawnY, isFlipped: false }];
-        setSelectedPlacedItemIndex(newPlacements.length - 1);
-        return newPlacements;
-      });
+      setPlacements([...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }]);
+      setSelectedPlacedItemIndex(currentPlacements.length); // 末尾に追加されるため
     }
   };
 

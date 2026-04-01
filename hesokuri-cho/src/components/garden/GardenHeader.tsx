@@ -1,6 +1,7 @@
 // src/components/garden/GardenHeader.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { GARDEN_CONSTANTS } from '../../constants';
 
 interface GardenHeaderProps {
   onOpenShop: () => void;
@@ -9,7 +10,7 @@ interface GardenHeaderProps {
 export const GardenHeader: React.FC<GardenHeaderProps> = ({ onOpenShop }) => {
   return (
     <View style={styles.header}>
-      <Text style={styles.headerText}>みんなのお庭</Text>
+      <Text style={styles.headerText}>{GARDEN_CONSTANTS.GARDEN_TITLE}</Text>
       <TouchableOpacity style={styles.shopBtn} onPress={onOpenShop}>
         <Text style={styles.shopBtnText}>ショップ</Text>
       </TouchableOpacity>
