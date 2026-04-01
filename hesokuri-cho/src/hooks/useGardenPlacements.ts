@@ -1,17 +1,33 @@
 // src/hooks/useGardenPlacements.ts
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Alert } from 'react-native';
-import { GardenPlacement } from '../types';
+import { GardenPlacement, MonthlyGarden } from '../types';
 import { useHesokuriStore } from '../store';
 import { SPRITE_CONFIG } from '../config/spriteConfig';
 import { GARDEN_CONFIG } from '../functions/gardenUtils';
 
-export const useGardenPlacements = () => {
-  const { settings } = useHesokuriStore();
-  const [placements, setPlacements] = useState<GardenPlacement[]>([
-    { itemId: 'PL-01', x: 2, y: 2 } 
-  ]);
+export const useGardenPlacements = (viewMonth: string) => {
+  const { settings, monthlyGarden, fetchMonthlyGarden, saveMonthlyGarden } = useHesokuriStore();
+  
+  // 初期ロード状態を管理
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [placements, setPlacements] = useState<GardenPlacement[]>([]);
   const [selectedPlacedItemIndex, setSelectedPlacedItemIndex] = useState<number | null>(null);
+
+  // マウント時、または表示月が変わった時にデータをフェッチ
+  useEffect(() => {
+    setIsLoaded(false);
+    fetchMonthlyGarden(viewMonth).then(() => {
+      setIsLoaded(true);
+    });
+  }, [viewMonth]);
+
+  // ストアからデータが取得できたらローカルステートに反映
+  useEffect(() => {
+    if (isLoaded && monthlyGarden) {
+      setPlacements(monthlyGarden.placements);
+    }
+  }, [isLoaded, monthlyGarden]);
 
   const ownedItems = useMemo(() => {
     const rawItems = ['PL-01', ...(settings?.ownedGardenItemIds || [])];
@@ -31,6 +47,17 @@ export const useGardenPlacements = () => {
       const overlapY = target.y < p.y + pSize && target.y + tSize > p.y;
       return overlapX && overlapY;
     });
+  };
+
+  // 配置状態をストアに保存するヘルパー
+  const persistPlacements = (newPlacements: GardenPlacement[]) => {
+    if (!monthlyGarden) return;
+    const updatedGarden: MonthlyGarden = {
+      ...monthlyGarden,
+      placements: newPlacements,
+      savedAt: new Date().toISOString()
+    };
+    saveMonthlyGarden(updatedGarden);
   };
 
   const handleInventoryPress = (itemId: string) => {
@@ -61,6 +88,8 @@ export const useGardenPlacements = () => {
       if (hasCollision(placements, selectedPlacedItemIndex)) {
         Alert.alert('配置エラー', '現在のアイテムが他のアイテムと重なっています。');
       } else {
+        // 配置を確定したタイミングで保存
+        persistPlacements(placements);
         setSelectedPlacedItemIndex(null);
       }
     }
@@ -88,12 +117,18 @@ export const useGardenPlacements = () => {
       Alert.alert('配置エラー', '他のアイテムと重なっているため、確定できません。');
       return;
     }
+    // 配置を確定したタイミングで保存
+    persistPlacements(placements);
     setSelectedPlacedItemIndex(null);
   };
 
   const handleRemovePlacedItem = () => {
     if (selectedPlacedItemIndex === null) return;
-    setPlacements(prev => prev.filter((_, i) => i !== selectedPlacedItemIndex));
+    setPlacements(prev => {
+      const updated = prev.filter((_, i) => i !== selectedPlacedItemIndex);
+      persistPlacements(updated); // 削除時にも保存
+      return updated;
+    });
     setSelectedPlacedItemIndex(null);
   };
 
@@ -104,6 +139,7 @@ export const useGardenPlacements = () => {
     selectedPlacedItemIndex,
     selectedTargetItem,
     ownedItems,
+    isLoaded,
     handleInventoryPress,
     handlePressTile,
     handleMovePlacedItem,

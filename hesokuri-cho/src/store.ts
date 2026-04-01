@@ -1,6 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget } from './types';
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, MonthlyGarden } from './types';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001';
@@ -12,16 +12,21 @@ interface ExpenseInputState {
 interface HesokuriState {
   settings: HouseholdSettings | null; pendingSettings: HouseholdSettings | null; expenses: ExpenseRecord[]; monthlyBudget: MonthlyBudget | null; isLoading: boolean; error: string | null;
   expenseInput: ExpenseInputState; returnToCategoryDetail: string | null; returnToCategoryDetailDate: string | null;
+  // --- ガーデン機能追加 ---
+  monthlyGarden: MonthlyGarden | null; // 今月の庭データ
 
   setExpenseInput: (input: Partial<ExpenseInputState>) => void; resetExpenseInput: () => void; saveExpenseInput: () => Promise<void>; setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; fetchSettings: () => Promise<void>; updateSettings: (newSettings: HouseholdSettings) => Promise<void>; fetchExpenses: (month: string) => Promise<void>; fetchMonthlyBudget: (month: string) => Promise<void>; updateMonthlyBudget: (budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule'], month: string) => Promise<void>; addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>; updateExpense: (expense: ExpenseRecord) => Promise<void>; deleteExpense: (date_id: string) => Promise<void>; fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
   
   // --- ガーデン機能追加 ---
   waterGarden: () => Promise<void>;
+  fetchMonthlyGarden: (month: string) => Promise<void>;
+  saveMonthlyGarden: (gardenData: MonthlyGarden) => Promise<void>;
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null, returnToCategoryDetail: null, returnToCategoryDetailDate: null,
+  monthlyGarden: null,
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
@@ -164,5 +169,51 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     };
 
     await state.updateSettings(newSettings);
+  },
+
+  fetchMonthlyGarden: async (month: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      // APIエンドポイントが未整備の可能性があるため、エラー時は初期状態フォールバック
+      const response = await fetch(`${API_BASE_URL}/garden/${HOUSEHOLD_ID}?month=${month}`);
+      if (!response.ok) {
+        throw new Error('Garden data not found');
+      }
+      const data = await response.json();
+      // データが存在しない場合は初期の知恵の木を配置
+      const gardenData: MonthlyGarden = data.garden || {
+        householdId: HOUSEHOLD_ID,
+        month_id: month,
+        placements: [{ itemId: 'PL-01', x: 2, y: 2 }],
+        plantLevel: 1,
+        savedAt: new Date().toISOString()
+      };
+      set({ monthlyGarden: gardenData, isLoading: false });
+    } catch (error: any) {
+      // エラー時（未実装など）はローカルの初期状態をセットして続行
+      const initialGarden: MonthlyGarden = {
+        householdId: HOUSEHOLD_ID,
+        month_id: month,
+        placements: [{ itemId: 'PL-01', x: 2, y: 2 }],
+        plantLevel: 1,
+        savedAt: new Date().toISOString()
+      };
+      set({ monthlyGarden: initialGarden, isLoading: false, error: null }); // エラーは握り潰す（API未実装対応）
+    }
+  },
+
+  saveMonthlyGarden: async (gardenData: MonthlyGarden) => {
+    // ローカルステートを即時更新（オプティミスティック）
+    set({ monthlyGarden: gardenData });
+    try {
+      // API呼び出し（未実装の場合は404等になるが画面操作は継続可能とする）
+      await fetch(`${API_BASE_URL}/garden/${HOUSEHOLD_ID}`, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(gardenData) 
+      });
+    } catch (error: any) {
+      console.warn('Failed to save garden data to remote:', error);
+    }
   }
 }));

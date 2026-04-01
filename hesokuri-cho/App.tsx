@@ -133,7 +133,7 @@ export default function App() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
             {activeTab === 'dashboard' ? 'ダッシュボード' : 
-             activeTab === 'history' ? 'ガーデン履歴' : 
+             activeTab === 'history' ? 'お庭' : 
              activeTab === 'hesokuriHistory' ? 'へそくり履歴' : '設定'}
           </Text>
         </View>
@@ -161,18 +161,37 @@ export default function App() {
 
       {activeTab !== 'hesokuriHistory' && (
         <View style={styles.bottomNav}>
-          {/* ボトムタブからの遷移時：デフォルト動作（カレンダー状態リセット、アラート有効） */}
-          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('dashboard')}>
-            <Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>🏠 ホーム</Text>
+          <TouchableOpacity 
+            style={[styles.navItem, activeTab === 'dashboard' && styles.navItemActive]} 
+            onPress={() => handleTabChange('dashboard')}
+          >
+            <Text style={[styles.navIcon, activeTab === 'dashboard' && styles.navIconActive]}>🏠</Text>
+            <Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>ホーム</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('history')}>
-            <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>🌱 庭</Text>
+          
+          <TouchableOpacity 
+            style={[styles.navItem, activeTab === 'history' && styles.navItemActive]} 
+            onPress={() => handleTabChange('history')}
+          >
+            <Text style={[styles.navIcon, activeTab === 'history' && styles.navIconActive]}>🌱</Text>
+            <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>庭</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItemMain} activeOpacity={0.8} onPress={() => handleTabChange('input')}>
-            <Text style={styles.navTextMain}>➕ 入力</Text>
+          
+          <TouchableOpacity 
+            style={[styles.navItem, activeTab === 'input' && styles.navItemActive]} 
+            activeOpacity={0.8} 
+            onPress={() => handleTabChange('input')}
+          >
+            <Text style={[styles.navIcon, activeTab === 'input' && styles.navIconActive]}>➕</Text>
+            <Text style={[styles.navText, activeTab === 'input' && styles.navTextActive]}>入力</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => handleTabChange('settings')}>
-            <Text style={[styles.navText, activeTab === 'settings' && styles.navTextActive]}>⚙️ 設定</Text>
+          
+          <TouchableOpacity 
+            style={[styles.navItem, activeTab === 'settings' && styles.navItemActive]} 
+            onPress={() => handleTabChange('settings')}
+          >
+            <Text style={[styles.navIcon, activeTab === 'settings' && styles.navIconActive]}>⚙️</Text>
+            <Text style={[styles.navText, activeTab === 'settings' && styles.navTextActive]}>設定</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -187,10 +206,41 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }, 
   headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' }, 
   welcomeTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 32, color: '#1C1C1E' }, 
-  bottomNav: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingBottom: 30, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E5E5EA', justifyContent: 'space-around', alignItems: 'center' }, 
-  navItem: { flex: 1, alignItems: 'center', paddingVertical: 8 }, 
-  navItemMain: { flex: 1, alignItems: 'center', backgroundColor: '#007AFF', paddingVertical: 12, borderRadius: 24, marginHorizontal: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }, 
-  navText: { fontSize: 10, color: '#8E8E93', marginTop: 4, fontWeight: 'bold' }, 
-  navTextActive: { color: '#007AFF' }, 
-  navTextMain: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' } 
+  // ボトムナビゲーションのデザインを統一・調整
+  bottomNav: { 
+    flexDirection: 'row', 
+    backgroundColor: '#FFFFFF', 
+    paddingBottom: 24, 
+    paddingTop: 8, 
+    borderTopWidth: 1, 
+    borderTopColor: '#E5E5EA', 
+    justifyContent: 'space-around', 
+    alignItems: 'center' 
+  }, 
+  navItem: { 
+    flex: 1, 
+    alignItems: 'center', 
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  }, 
+  navItemActive: {
+    backgroundColor: '#E5F1FF', // アクティブなタブの背景を薄い青色にして強調
+  },
+  navIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+    opacity: 0.5, // 非アクティブ時はアイコンを少し薄く
+  },
+  navIconActive: {
+    opacity: 1.0, // アクティブ時はくっきり
+  },
+  navText: { 
+    fontSize: 10, 
+    color: '#8E8E93', 
+    fontWeight: 'bold' 
+  }, 
+  navTextActive: { 
+    color: '#007AFF' 
+  }, 
 });
