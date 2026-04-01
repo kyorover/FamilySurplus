@@ -53,8 +53,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameHeight: 311,    
     frameCount: 5,       
     frameSpacingX: 0,
-    offsetX: 20,
-    offsetY: 104,
+    offsetX: -6,
+    offsetY: 124,
   },
 
   // --------------------------------------------------
