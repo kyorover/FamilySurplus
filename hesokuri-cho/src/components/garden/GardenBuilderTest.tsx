@@ -15,7 +15,7 @@ export const GardenBuilderTest: React.FC = () => {
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
 
   const { currentViewOffset, handlePanMove, handlePanRelease, handleResetMapPosition } = useGardenCamera();
-  const { settings, updateSettings, setDebugPlantLevel } = useHesokuriStore();
+  const { settings, updateSettings, setDebugPlantLevel, updateGardenPlacements } = useHesokuriStore();
   const plantLevel = settings?.plantLevel || 1;
 
   // ▼ ポイント設定用のローカルステート
@@ -65,6 +65,21 @@ export const GardenBuilderTest: React.FC = () => {
       await updateSettings({ ...settings, gardenPoints: p });
       Alert.alert('更新完了', `所持ポイントを ${p} に設定しました。`);
     }
+  };
+
+  // ▼ 壁紙用のカスタム配置ロジック（即時適用・排他制御）
+  const handleCustomInventoryPress = (itemId: string) => {
+    if (itemId.startsWith('WP-') || itemId === 'WP-NONE') {
+      if (settings) {
+        const newPlacements = (settings.gardenPlacements || []).filter(p => !p.itemId.startsWith('WP-'));
+        if (itemId !== 'WP-NONE') {
+          newPlacements.push({ itemId, x: 0, y: 0 }); // 壁紙の座標は無視されるため0を設定
+        }
+        updateGardenPlacements(newPlacements);
+      }
+      return;
+    }
+    handleInventoryPress(itemId);
   };
 
   return (
@@ -127,12 +142,12 @@ export const GardenBuilderTest: React.FC = () => {
         )}
       </View>
       
-      {/* ▼ 修正: plantLevel を Props として渡す */}
+      {/* ▼ 修正: plantLevel を Props として渡し、壁紙用ハンドラを設定 */}
       <GardenInventoryTray 
         ownedItems={ownedItems} 
         selectedItemId={selectedTargetItem?.itemId || null} 
         plantLevel={plantLevel}
-        onSelectItem={handleInventoryPress} 
+        onSelectItem={handleCustomInventoryPress} 
       />
       <GardenShopModal visible={isShopVisible} onClose={() => setShopVisible(false)} />
     </View>

@@ -1,12 +1,12 @@
 // src/components/garden/IsometricGardenCanvas.tsx
 import React, { useMemo, useRef, useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, Pressable, PanResponder, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, Dimensions, Pressable, PanResponder, ActivityIndicator, Text, Image } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 import { InteractiveGardenItem } from './InteractiveGardenItem';
 import { EffectSprite } from './EffectSprite';
 import { GardenPlacement } from '../../types';
 import { getIsometricCoords, getGridCoordsFromScreen, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
-import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
+import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS, IMAGE_SOURCES } from '../../config/spriteConfig';
 import { useHesokuriStore } from '../../store';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -54,13 +54,19 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   const bgPlacement = placements.find(p => p.itemId.startsWith('BG-'));
   const bgItemId = bgPlacement ? bgPlacement.itemId : 'BG-01';
 
+  // ▼ 壁紙の取得
+  const wpPlacement = placements.find(p => p.itemId.startsWith('WP-'));
+  const wpItemId = wpPlacement ? wpPlacement.itemId : null;
+  const wpSprite = wpItemId ? SPRITE_CONFIG[wpItemId] : null;
+  const wpImageSource = wpSprite ? IMAGE_SOURCES[wpSprite.sourceId] : null;
+
   const renderList = useMemo(() => {
     const nodes: RenderNode[] = [];
     for (let x = 0; x < GARDEN_CONFIG.GRID_SIZE; x++) {
       for (let y = 0; y < GARDEN_CONFIG.GRID_SIZE; y++) nodes.push({ id: `floor-${x}-${y}`, type: 'floor', x, y, zIndex: getZIndexScore(x, y, 'floor') });
     }
     placements.forEach((p, index) => {
-      if (p.itemId.startsWith('BG-')) return; // 背景は床レイヤーとして描画するため除外
+      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return; // 背景・壁紙は除外
       const isLargeItem = p.itemId.startsWith('PL-');
       nodes.push({ id: `item-${p.itemId}-${index}`, type: isLargeItem ? 'large_item' : 'item', x: p.x, y: p.y, zIndex: getZIndexScore(p.x, p.y, isLargeItem ? 'large_item' : 'item'), placementData: p, originalIndex: index });
     });
@@ -108,7 +114,12 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   };
 
   return (
-    <View style={styles.canvasContainer} {...panResponder.panHandlers}>
+    <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: '#E0F7FA' }]} {...panResponder.panHandlers}>
+      {/* ▼ 壁紙の敷き詰め描画 */}
+      {wpImageSource && (
+        <Image source={wpImageSource} style={StyleSheet.absoluteFillObject} resizeMode="repeat" />
+      )}
+
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
       
       {renderList.map((node) => {
@@ -177,7 +188,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  canvasContainer: { width: '100%', height: 400, backgroundColor: '#E0F7FA', position: 'relative', overflow: 'hidden' },
+  canvasContainer: { width: '100%', height: 400, position: 'relative', overflow: 'hidden' },
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
   itemContent: { borderRadius: 16 },
   selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },

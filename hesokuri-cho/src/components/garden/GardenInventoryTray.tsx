@@ -10,17 +10,20 @@ interface Props {
   onSelectItem: (itemId: string) => void;
 }
 
-type CategoryTab = 'ALL' | 'BG' | 'PL' | 'OTHER';
+type CategoryTab = 'ALL' | 'BG' | 'PL' | 'WP' | 'OTHER'; // ▼ 追加: WP(壁紙)タブ
 
 export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemId, plantLevel = 1, onSelectItem }) => {
   const [activeTab, setActiveTab] = useState<CategoryTab>('ALL');
 
   const filteredItems = useMemo(() => {
+    if (activeTab === 'WP') {
+      return ['WP-NONE', ...ownedItems.filter(id => id.startsWith('WP-'))];
+    }
     return ownedItems.filter(itemId => {
       if (activeTab === 'ALL') return true;
       if (activeTab === 'BG') return itemId.startsWith('BG-');
       if (activeTab === 'PL') return itemId.startsWith('PL-');
-      return !itemId.startsWith('BG-') && !itemId.startsWith('PL-');
+      return !itemId.startsWith('BG-') && !itemId.startsWith('PL-') && !itemId.startsWith('WP-');
     });
   }, [ownedItems, activeTab]);
 
@@ -29,10 +32,10 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
       <View style={styles.headerRow}>
         <Text style={styles.inventoryTitle}>配置アイテムを選択</Text>
         <View style={styles.tabContainer}>
-          {(['ALL', 'BG', 'PL', 'OTHER'] as CategoryTab[]).map(tab => (
+          {(['ALL', 'BG', 'PL', 'WP', 'OTHER'] as CategoryTab[]).map(tab => (
             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)} style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}>
               <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {tab === 'ALL' ? 'すべて' : tab === 'BG' ? 'タイル' : tab === 'PL' ? '木' : 'その他'}
+                {tab === 'ALL' ? 'すべて' : tab === 'BG' ? 'タイル' : tab === 'PL' ? '木' : tab === 'WP' ? '壁紙' : 'その他'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -41,6 +44,19 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {filteredItems.map((itemId) => {
+          // ▼ 壁紙なし状態のダミーアイテム
+          if (itemId === 'WP-NONE') {
+            return (
+              <TouchableOpacity
+                key={itemId}
+                style={[styles.inventoryItem, selectedItemId === itemId && styles.activeItem, { backgroundColor: '#E0F7FA' }]}
+                onPress={() => onSelectItem(itemId)}
+              >
+                <Text style={{ fontSize: 10, color: '#666', fontWeight: 'bold' }}>None</Text>
+              </TouchableOpacity>
+            );
+          }
+
           // ▼ NaNクラッシュ対策: plantLevelが不正な値でも必ず1以上の数値にする
           const safeLevel = Math.max(1, plantLevel || 1);
           // 現在の育成レベルを正規化してアイコンとして表示する (0始まりのため -1)
