@@ -19,17 +19,22 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'PL-03', name: 'グランピング', type: 'plant', cost: 0, isShoppable: false },
 
   // ショップ販売アイテム
+  { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: false },
   { id: 'IT-01', name: 'レトロな街灯', type: 'ornament', cost: 100, isShoppable: true },
   { id: 'IT-02', name: '木のベンチ', type: 'ornament', cost: 150, isShoppable: true },
-  { id: 'IT-03', name: '観葉植物①', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'IT-03', name: '多肉植物', type: 'ornament', cost: 150, isShoppable: true },
   { id: 'IT-04', name: '秘密の宝箱', type: 'ornament', cost: 300, isShoppable: true },
-  { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: false },
   { id: 'IT-05', name: '花(黄色)', type: 'ornament', cost: 30, isShoppable: true },
   { id: 'IT-06', name: '花(紫色)', type: 'ornament', cost: 30, isShoppable: true },
   { id: 'IT-07', name: '花(赤色)', type: 'ornament', cost: 30, isShoppable: true },
   { id: 'IT-08', name: '花(青色)', type: 'ornament', cost: 30, isShoppable: true },
   { id: 'IT-09', name: '花(緑色)', type: 'ornament', cost: 30, isShoppable: true },
   { id: 'IT-10', name: '観葉植物', type: 'ornament', cost: 50, isShoppable: true },
+  { id: 'CR-01', name: 'マンチカン', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'CR-02', name: 'ダックスフンド', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'CR-03', name: '子供', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'CR-04', name: '大人(女)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'CR-05', name: '大人(男)', type: 'ornament', cost: 100, isShoppable: true },
 ];
 
 /**

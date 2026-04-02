@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tree' | 'item1' | 'item2';
+export type SpriteSourceId = 'tree' | 'item1' | 'item2' | 'chara';
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -22,6 +22,7 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   tree: require('../../assets/images/garden/tree.png'),
   item1: require('../../assets/images/garden/item1.png'),
   item2: require('../../assets/images/garden/item2.png'),
+  chara: require('../../assets/images/garden/chara.png'),
 };
 
 export const GLOBAL_GARDEN_SETTINGS = {
@@ -127,5 +128,30 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 290,
     frameWidth: 68, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
     baseScale: 1.0,
+  },
+  'CR-01': { // 猫
+    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 0,
+    frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 56,
+    baseScale: 0.8,
+  },
+  'CR-02': { // 犬
+    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 88,
+    frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 60,
+    baseScale: 0.8,
+  },
+  'CR-03': { // 子供
+    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 157,
+    frameWidth: 114, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -3, offsetY: 46,
+    baseScale: 1.0,
+  },
+  'CR-04': { // 大人(女)
+    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 234,
+    frameWidth: 122, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -2, offsetY: 36,
+    baseScale: 1.2,
+  },
+  'CR-05': { // 大人(男)
+    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 314,
+    frameWidth: 127, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -2, offsetY: 36,
+    baseScale: 1.2,
   },
 };
