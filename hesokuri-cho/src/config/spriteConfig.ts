@@ -64,19 +64,19 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 78, frameHeight: 80, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0,
   },
-  'BG-01': {
+  'BG-03': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
     frameWidth: 78, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0,
   },
   'BG-02': {
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 6, startY: 0,
-    frameWidth: 68, frameHeight: 49, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    frameWidth: 60, frameHeight: 49, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0,
   },
-  'BG-03': {
+  'BG-01': {
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 6, startY: 50,
-    frameWidth: 68, frameHeight: 49, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    frameWidth: 60, frameHeight: 45, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0,
   },
   'IT-01': { // レトロな街灯
