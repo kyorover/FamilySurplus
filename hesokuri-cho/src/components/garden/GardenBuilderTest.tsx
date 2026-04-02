@@ -23,12 +23,7 @@ export const GardenBuilderTest: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>お庭のレイアウト (デバッグ)</Text>
-        <TouchableOpacity style={styles.shopBtn} onPress={() => setShopVisible(true)}>
-          <Text style={styles.shopBtnText}>ショップ</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 冗長なヘッダーとショップボタンは削除済 (親の設定画面側で制御するため) */}
 
       {/* デバッグ専用：知恵の木レベル変更 */}
       <View style={styles.debugPanel}>
@@ -63,10 +58,6 @@ export const GardenBuilderTest: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF' },
-  headerText: { fontSize: 16, fontWeight: 'bold' },
-  shopBtn: { backgroundColor: '#4CAF50', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16 },
-  shopBtnText: { color: '#FFF', fontWeight: 'bold' },
   debugPanel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 8, backgroundColor: '#FFCDD2' },
   debugLabel: { fontSize: 12, fontWeight: 'bold', marginRight: 8, color: '#D32F2F' },
   debugBtn: { marginHorizontal: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 12, elevation: 1 },

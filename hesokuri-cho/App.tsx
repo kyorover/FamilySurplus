@@ -24,41 +24,13 @@ export default function App() {
     fetchMonthlyBudget(currentMonth);
   }, []);
 
-  /**
-   * ============================================================================
-   * [AI・開発者向け TIPS: タブ遷移とカレンダー復帰状態の競合管理について]
-   * ！！警告：ここを適当に書き換えると、キャンセルボタンやタブ操作のデグレが再発します！！
-   *
-   * 【問題の背景】
-   * カレンダーから入力画面に遷移した場合、Zustand に `returnToCategoryDetail` (復帰先ID) が保存される。
-   * これが残っている状態でダッシュボードを描画すると、自動的にカレンダーが開く仕様となっている。
-   *
-   * 【3つのケースと厳密なフラグ制御】
-   * 1. ボトムタブの「ホーム」ボタンを押した時 (通常のタブ遷移)
-   * -> 意図せずカレンダーが開く「暴発バグ」を防ぐため、必ず `preserveCalendarState: false` (デフォルト) で
-   * `setReturnToCategoryDetail(null, null)` を実行し、状態を完全にリセットしてからホームを出す。
-   *
-   * 2. カレンダー経由の入力画面で「保存」または「キャンセル」を押し、完了した時
-   * -> 元のカレンダーに戻る必要があるため、`preserveCalendarState: true` を指定して遷移させる。
-   * これにより状態リセット処理がバイパスされ、ダッシュボード遷移後にカレンダーが再展開される。
-   *
-   * 3. 入力画面(入力途中)から、ボトムタブの他画面を押した時
-   * -> 入力破棄の警告ダイアログを出す必要があるため、`forceTransition: false` (デフォルト) で呼ぶ。
-   * ============================================================================
-   */
   type TabNavOptions = {
-    forceTransition?: boolean;       // true: 入力中アラートをスキップして強制遷移する
-    preserveCalendarState?: boolean; // true: カレンダーの復帰状態をリセットせずに維持する
+    forceTransition?: boolean;
+    preserveCalendarState?: boolean;
   };
 
   const executeTabChange = async (targetTab: typeof activeTab, options: TabNavOptions) => {
-    // 設定画面から離れる際の自動保存
-    if (activeTab === 'settings' && targetTab !== 'settings' && pendingSettings) {
-      await updateSettings(pendingSettings);
-      setPendingSettings(null);
-    }
-
-    // ダッシュボード遷移時、カレンダー維持フラグ(preserveCalendarState)が「無い」場合のみ状態をリセットする
+    // ダッシュボード遷移時、カレンダー維持フラグ(preserveCalendarState)がない場合のみ状態をリセット
     if (targetTab === 'dashboard' && !options.preserveCalendarState) {
       setReturnToCategoryDetail(null, null);
     }
@@ -72,7 +44,7 @@ export default function App() {
   };
 
   const handleTabChange = (targetTab: typeof activeTab, options: TabNavOptions = {}) => {
-    // 強制遷移フラグがなく、入力画面から他のタブへ移動しようとした場合は確認ダイアログを出す
+    // 1. 入力画面の未保存チェック
     if (!options.forceTransition && activeTab === 'input' && targetTab !== 'input') {
       const isInputting = expenseInput.amount !== '0' || !!expenseInput.storeName || !!expenseInput.memo;
       
@@ -89,11 +61,45 @@ export default function App() {
             }
           ]
         );
-        return; // ダイアログの返答待ち
+        return;
       }
     }
 
-    // 入力途中でない、または強制遷移の場合はそのまま遷移
+    // 2. 設定画面の未保存チェック
+    if (!options.forceTransition && activeTab === 'settings' && targetTab !== 'settings') {
+      const hasSettingsChanged = settings && pendingSettings && JSON.stringify(settings) !== JSON.stringify(pendingSettings);
+      
+      if (hasSettingsChanged) {
+        Alert.alert(
+          '未保存の変更があります',
+          '変更内容を保存しますか？',
+          [
+            { text: 'キャンセル', style: 'cancel' },
+            { 
+              text: '破棄する', 
+              style: 'destructive', 
+              onPress: () => {
+                if (settings) setPendingSettings(JSON.parse(JSON.stringify(settings)));
+                executeTabChange(targetTab, options);
+              }
+            },
+            { 
+              text: '保存する', 
+              onPress: async () => {
+                if (pendingSettings) {
+                  await updateSettings(pendingSettings);
+                  // settingsが更新されるとuseSettingsManagerのuseEffectで再同期される
+                }
+                executeTabChange(targetTab, options);
+              }
+            }
+          ]
+        );
+        return;
+      }
+    }
+
+    // 問題なければ遷移実行
     executeTabChange(targetTab, options);
   };
 
@@ -128,13 +134,11 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       
-      {/* 入力画面以外で共通ヘッダーを表示 */}
-      {activeTab !== 'input' && (
+      {/* 共通ヘッダーはダッシュボードとへそくり履歴のみ使用 (他は各Screenで専用ヘッダーを描画) */}
+      {(activeTab === 'dashboard' || activeTab === 'hesokuriHistory') && (
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {activeTab === 'dashboard' ? 'ダッシュボード' : 
-             activeTab === 'history' ? 'お庭' : 
-             activeTab === 'hesokuriHistory' ? 'へそくり履歴' : '設定'}
+            {activeTab === 'dashboard' ? 'ダッシュボード' : 'へそくり履歴'}
           </Text>
         </View>
       )}
@@ -147,7 +151,6 @@ export default function App() {
           />
         )}
         
-        {/* 入力画面の完了時：強制遷移（アラート無視）かつカレンダー状態を維持（元のカレンダーへ戻る） */}
         {activeTab === 'input' && (
           <InputScreen 
             onComplete={() => handleTabChange('dashboard', { forceTransition: true, preserveCalendarState: true })} 
@@ -206,7 +209,6 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }, 
   headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' }, 
   welcomeTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 32, color: '#1C1C1E' }, 
-  // ボトムナビゲーションのデザインを統一・調整
   bottomNav: { 
     flexDirection: 'row', 
     backgroundColor: '#FFFFFF', 
@@ -217,30 +219,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around', 
     alignItems: 'center' 
   }, 
-  navItem: { 
-    flex: 1, 
-    alignItems: 'center', 
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginHorizontal: 4,
-  }, 
-  navItemActive: {
-    backgroundColor: '#E5F1FF', // アクティブなタブの背景を薄い青色にして強調
-  },
-  navIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-    opacity: 0.5, // 非アクティブ時はアイコンを少し薄く
-  },
-  navIconActive: {
-    opacity: 1.0, // アクティブ時はくっきり
-  },
-  navText: { 
-    fontSize: 10, 
-    color: '#8E8E93', 
-    fontWeight: 'bold' 
-  }, 
-  navTextActive: { 
-    color: '#007AFF' 
-  }, 
+  navItem: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, marginHorizontal: 4 }, 
+  navItemActive: { backgroundColor: '#E5F1FF' },
+  navIcon: { fontSize: 20, marginBottom: 4, opacity: 0.5 },
+  navIconActive: { opacity: 1.0 },
+  navText: { fontSize: 10, color: '#8E8E93', fontWeight: 'bold' }, 
+  navTextActive: { color: '#007AFF' }, 
 });

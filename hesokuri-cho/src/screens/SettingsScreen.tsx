@@ -11,7 +11,7 @@ import { InputHistoryManagerModal } from '../components/settings/InputHistoryMan
 import { GardenBuilderTest } from '../components/garden/GardenBuilderTest';
 
 export const SettingsScreen: React.FC = () => {
-  const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions } = useSettingsManager();
+  const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions, hasUnsavedChanges } = useSettingsManager();
 
   // テスト用画面のオーバーライド
   if (modals.garden) {
@@ -33,6 +33,19 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* 設定画面専用ヘッダー */}
+      <View style={styles.screenHeader}>
+        <View style={styles.headerSpacer} />
+        <Text style={styles.screenTitle}>設定</Text>
+        <TouchableOpacity 
+          onPress={actions.saveAll} 
+          disabled={!hasUnsavedChanges}
+          style={[styles.headerSaveBtn, !hasUnsavedChanges && styles.headerSaveBtnDisabled]}
+        >
+          <Text style={[styles.headerSaveBtnText, !hasUnsavedChanges && styles.headerSaveBtnTextDisabled]}>保存</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={modes.scroll}>
         
         {/* 家族構成セクション */}
@@ -99,10 +112,6 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        {/* 保存ボタン */}
-        <TouchableOpacity style={styles.primaryButton} onPress={actions.saveAll}>
-          <Text style={styles.primaryButtonText}>設定を保存する</Text>
-        </TouchableOpacity>
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -117,6 +126,15 @@ export const SettingsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  // 新設したヘッダースタイル
+  screenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  headerSpacer: { width: 60 }, // タイトルを中央に配置するためのダミー
+  screenTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', textAlign: 'center', flex: 1 },
+  headerSaveBtn: { paddingHorizontal: 16, paddingVertical: 6, backgroundColor: '#007AFF', borderRadius: 16, minWidth: 60, alignItems: 'center' },
+  headerSaveBtnDisabled: { backgroundColor: '#F2F2F7' },
+  headerSaveBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 },
+  headerSaveBtnTextDisabled: { color: '#C7C7CC' },
+
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 8 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
@@ -130,8 +148,6 @@ const styles = StyleSheet.create({
   historyManageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 2 },
   historyManageDesc: { fontSize: 10, color: '#8E8E93' },
   chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
-  primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
-  primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
