@@ -13,13 +13,18 @@ export type GardenItemMaster = GardenItem & {
  * 今後、自動配置アイテムやイベント配布アイテムなどもここに集約します。
  */
 export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
-  // 木 (ショップ購入可能にし、エフェクトIDを付与)
-  { id: 'PL-01', name: '知恵の木', type: 'plant', cost: 0, isShoppable: true, growthEffectId: 'EF-01' },
+  // 非売品アイテム
+  { id: 'PL-01', name: '知恵の木', type: 'plant', cost: 0, isShoppable: false, growthEffectId: 'EF-01' },
   { id: 'PL-02', name: 'ツリーハウス', type: 'plant', cost: 500, isShoppable: true, growthEffectId: 'EF-01' },
   { id: 'PL-03', name: 'グランピング', type: 'plant', cost: 1000, isShoppable: true, growthEffectId: 'EF-01' },
 
   // エフェクト（非売品）
   { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: false },
+
+  // タイル (BG-01 はデフォルトのためショップ非表示)
+  { id: 'BG-01', name: 'タイル(標準)', type: 'ornament', cost: 0, isShoppable: false },
+  { id: 'BG-02', name: 'タイル(レンガ)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'BG-03', name: 'タイル(石畳)', type: 'ornament', cost: 100, isShoppable: true },
 
   // ショップ販売アイテム
   { id: 'IT-01', name: 'レトロな街灯', type: 'ornament', cost: 100, isShoppable: true },
@@ -38,8 +43,8 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'CR-04', name: '大人(女)', type: 'ornament', cost: 100, isShoppable: true },
   { id: 'CR-05', name: '大人(男)', type: 'ornament', cost: 100, isShoppable: true },
   
-  // ▼ 追加: 壁紙アイテム (ショップ購入可能)
-  { id: 'WP-01', name: '壁紙(星空)', type: 'bg', cost: 100, isShoppable: true },
+  // ▼ 追加: 壁紙アイテム
+  { id: 'WP-01', name: '壁紙(星空)', type: 'bg', cost: 100, isShoppable: false },
   { id: 'WP-02', name: '壁紙(草むら)', type: 'bg', cost: 100, isShoppable: true },
   { id: 'WP-03', name: '壁紙(木の柄)', type: 'bg', cost: 100, isShoppable: true },
   { id: 'WP-04', name: '壁紙(お空)', type: 'bg', cost: 100, isShoppable: true },

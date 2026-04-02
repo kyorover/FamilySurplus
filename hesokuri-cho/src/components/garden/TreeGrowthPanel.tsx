@@ -20,6 +20,7 @@ export const TreeGrowthPanel: React.FC = () => {
   const remainingCost = isMaxLevel ? 0 : cost - exp;
   
   const unit = GLOBAL_GARDEN_SETTINGS.LEVEL_UP_UNIT_COST;
+  // 今回のボタン押下で実際に消費されるポイント
   const consumeAmount = Math.min(unit, points, remainingCost);
   const canLevelUp = !isMaxLevel && consumeAmount > 0;
   
@@ -49,27 +50,29 @@ export const TreeGrowthPanel: React.FC = () => {
             <View style={[styles.progressBar, { width: `${progressPercent}%` }]} />
             <Text style={styles.progressText}>{exp} / {cost} pt</Text>
           </View>
-          <TouchableOpacity 
-            style={[styles.levelUpBtn, !canLevelUp && styles.levelUpBtnDisabled]} 
-            disabled={!canLevelUp || isWatering}
-            onPress={handleGrowthPress}
-          >
-            <Text style={styles.levelUpBtnText}>
-              成長させる{canLevelUp ? `\n(${consumeAmount}pt)` : ''}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          <View style={styles.btnWrapper}>
+            <TouchableOpacity 
+              style={[styles.levelUpBtn, !canLevelUp && styles.levelUpBtnDisabled]} 
+              disabled={!canLevelUp || isWatering}
+              onPress={handleGrowthPress}
+            >
+              <Text style={styles.levelUpBtnText}>
+                成長させる{canLevelUp ? `\n(${consumeAmount}pt)` : ''}
+              </Text>
+            </TouchableOpacity>
 
-      {/* 水やりエフェクトの表示 */}
-      {isWatering && (
-        <View style={styles.effectOverlay}>
-          <EffectSprite 
-            effectId={effectId} 
-            displaySize={100} 
-            loop={false} 
-            onAnimationEnd={() => setIsWatering(false)} 
-          />
+            {/* ボタンの直上に水やりエフェクトを表示 */}
+            {isWatering && (
+              <View style={styles.effectOverlay}>
+                <EffectSprite 
+                  effectId={effectId} 
+                  displaySize={80} 
+                  loop={false} 
+                  onAnimationEnd={() => setIsWatering(false)} 
+                />
+              </View>
+            )}
+          </View>
         </View>
       )}
     </View>
@@ -85,8 +88,10 @@ const styles = StyleSheet.create({
   progressContainer: { flex: 1, height: 30, backgroundColor: '#E0E0E0', borderRadius: 15, overflow: 'hidden', marginRight: 12, justifyContent: 'center' },
   progressBar: { height: '100%', backgroundColor: '#4CAF50' },
   progressText: { position: 'absolute', width: '100%', textAlign: 'center', fontSize: 12, color: '#000', fontWeight: 'bold' },
+  btnWrapper: { position: 'relative', alignItems: 'center' },
   levelUpBtn: { backgroundColor: '#FF9800', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, minWidth: 90, alignItems: 'center' },
   levelUpBtnDisabled: { backgroundColor: '#BDBDBD' },
   levelUpBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
-  effectOverlay: { position: 'absolute', top: -50, right: 10, zIndex: 10, elevation: 10 },
+  // ボタンの真上に配置されるよう調整
+  effectOverlay: { position: 'absolute', bottom: '100%', left: '50%', transform: [{ translateX: -40 }], zIndex: 10, elevation: 10, marginBottom: 5 },
 });
