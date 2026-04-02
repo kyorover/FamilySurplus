@@ -89,15 +89,27 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
           );
         } else {
           const isLarge = node.type === 'large_item';
-          const displaySize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * GLOBAL_GARDEN_SETTINGS.TREE_SCALE : GARDEN_CONFIG.TILE_WIDTH;
           const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
+          
+          // ▼ 修正: baseScaleの取得（未定義の場合は1.0）
+          const baseScale = spriteDef?.baseScale ?? 1.0;
+          
+          // ▼ 修正: 基準サイズに baseScale を乗算して実際の表示サイズを計算
+          const baseSize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * GLOBAL_GARDEN_SETTINGS.TREE_SCALE : GARDEN_CONFIG.TILE_WIDTH;
+          const displaySize = baseSize * baseScale;
+          
           const aspectRatio = spriteDef ? (spriteDef.frameHeight / spriteDef.frameWidth) : 1;
           const displayHeight = displaySize * aspectRatio;
 
           const tileCenterX = finalLeft + GARDEN_CONFIG.TILE_WIDTH / 2;
           const tileCenterY = finalTop + GARDEN_CONFIG.TILE_HEIGHT / 2;
-          const leftPosition = tileCenterX - displaySize / 2 + (spriteDef?.offsetX || 0);
-          const topPosition = tileCenterY - displayHeight + (spriteDef?.offsetY || 0);
+
+          // ▼ 修正: サイズ変更に伴うズレを防ぐため、オフセットもスケールに合わせて補正する
+          const scaledOffsetX = (spriteDef?.offsetX || 0) * baseScale;
+          const scaledOffsetY = (spriteDef?.offsetY || 0) * baseScale;
+
+          const leftPosition = tileCenterX - displaySize / 2 + scaledOffsetX;
+          const topPosition = tileCenterY - displayHeight + scaledOffsetY;
 
           const isSelected = selectedItemIndex === node.originalIndex;
           const isFlipped = node.placementData?.isFlipped;
