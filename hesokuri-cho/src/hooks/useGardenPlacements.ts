@@ -16,17 +16,27 @@ export const useGardenPlacements = () => {
   }, [settings?.updatedAt]);
 
   const ownedItems = useMemo(() => {
-    const rawItems = ['PL-01', ...(settings?.ownedGardenItemIds || [])];
+    // ▼ BGやPL全種をマスターから動的に抽出して結合
+    const allMasterKeys = Object.keys(SPRITE_CONFIG);
+    const bgItems = allMasterKeys.filter(k => k.startsWith('BG-'));
+    const plItems = allMasterKeys.filter(k => k.startsWith('PL-'));
+    
+    const rawItems = [...plItems, ...bgItems, ...(settings?.ownedGardenItemIds || [])];
     const uniqueItems = Array.from(new Set(rawItems));
-    return uniqueItems.filter(itemId => SPRITE_CONFIG[itemId]).sort((a, b) => (a === 'PL-01' ? -1 : b === 'PL-01' ? 1 : 0));
+    
+    return uniqueItems.filter(itemId => SPRITE_CONFIG[itemId]).sort((a, b) => {
+      if (a.startsWith('PL-') && !b.startsWith('PL-')) return -1;
+      if (!a.startsWith('PL-') && b.startsWith('PL-')) return 1;
+      return 0;
+    });
   }, [settings?.ownedGardenItemIds]);
 
   const hasCollision = (currentPlacements: GardenPlacement[], targetIndex: number) => {
     const target = currentPlacements[targetIndex];
-    const tSize = target.itemId === 'PL-01' ? 2 : 1; 
+    const tSize = target.itemId.startsWith('PL-') ? 2 : 1; 
     return currentPlacements.some((p, i) => {
       if (i === targetIndex) return false;
-      const pSize = p.itemId === 'PL-01' ? 2 : 1;
+      const pSize = p.itemId.startsWith('PL-') ? 2 : 1;
       const overlapX = target.x < p.x + pSize && target.x + tSize > p.x;
       const overlapY = target.y < p.y + pSize && target.y + tSize > p.y;
       return overlapX && overlapY;
@@ -44,10 +54,31 @@ export const useGardenPlacements = () => {
       setSelectedPlacedItemIndex(null);
     }
 
+    // ▼ 背景(BG)や木(PL)の場合は即時置換・保存する
+    if (itemId.startsWith('BG-') || itemId.startsWith('PL-')) {
+      const prefix = itemId.substring(0, 3);
+      const existingIndex = currentPlacements.findIndex(p => p.itemId.startsWith(prefix));
+      
+      if (existingIndex !== -1) {
+        const updated = [...currentPlacements];
+        updated[existingIndex] = { ...updated[existingIndex], itemId };
+        setPlacements(updated);
+        persistPlacements(updated);
+      } else {
+        const size = itemId.startsWith('PL-') ? 2 : 1;
+        const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
+        const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
+        const updated = [...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }];
+        setPlacements(updated);
+        persistPlacements(updated);
+      }
+      return;
+    }
+
     const existingIndex = currentPlacements.findIndex(p => p.itemId === itemId);
     if (existingIndex !== -1) setSelectedPlacedItemIndex(existingIndex);
     else {
-      const size = itemId === 'PL-01' ? 2 : 1;
+      const size = itemId.startsWith('PL-') ? 2 : 1;
       const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
       const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
       setPlacements([...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }]);
@@ -62,7 +93,7 @@ export const useGardenPlacements = () => {
       return;
     }
     const clickedItemIndex = placements.findIndex(p => {
-      const pSize = p.itemId === 'PL-01' ? 2 : 1;
+      const pSize = p.itemId.startsWith('PL-') ? 2 : 1;
       return x >= p.x && x < p.x + pSize && y >= p.y && y < p.y + pSize;
     });
     if (clickedItemIndex !== -1) setSelectedPlacedItemIndex(clickedItemIndex);
@@ -71,7 +102,7 @@ export const useGardenPlacements = () => {
   const handleMovePlacedItem = (dx: number, dy: number) => {
     if (selectedPlacedItemIndex === null) return;
     const target = placements[selectedPlacedItemIndex];
-    const size = target.itemId === 'PL-01' ? 2 : 1;
+    const size = target.itemId.startsWith('PL-') ? 2 : 1;
     const newX = target.x + dx;
     const newY = target.y + dy;
     if (newX < 0 || newX + size > GARDEN_CONFIG.GRID_SIZE || newY < 0 || newY + size > GARDEN_CONFIG.GRID_SIZE) return;

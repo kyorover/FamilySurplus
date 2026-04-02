@@ -1,11 +1,13 @@
 // src/components/garden/IsometricGardenCanvas.tsx
-import React, { useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useMemo, useRef, useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions, Pressable, PanResponder } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 import { InteractiveGardenItem } from './InteractiveGardenItem';
+import { EffectSprite } from './EffectSprite';
 import { GardenPlacement } from '../../types';
 import { getIsometricCoords, getGridCoordsFromScreen, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
 import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
+import { useHesokuriStore } from '../../store';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -25,6 +27,19 @@ type RenderNode = { id: string; type: 'floor' | 'item' | 'large_item'; x: number
 export const IsometricGardenCanvas: React.FC<Props> = ({ 
   placements = [], onPressTile, selectedItemIndex, viewOffset = { x: 0, y: 0 }, onPanMove, onPanRelease, plantLevel = 1, onLoadComplete
 }) => {
+  const { settings } = useHesokuriStore();
+  const [showWateringEffect, setShowWateringEffect] = useState(false);
+  const prevExpRef = useRef(settings?.plantExp || 0);
+
+  // ▼ 水やりエフェクトの検知（前回からの既存機能は破壊せずに追加）
+  useEffect(() => {
+    const currentExp = settings?.plantExp || 0;
+    if (currentExp > prevExpRef.current) {
+      setShowWateringEffect(true);
+    }
+    prevExpRef.current = currentExp;
+  }, [settings?.plantExp]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -34,19 +49,24 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     })
   ).current;
 
+  // ▼ 動的背景の取得
+  const bgPlacement = placements.find(p => p.itemId.startsWith('BG-'));
+  const bgItemId = bgPlacement ? bgPlacement.itemId : 'BG-01';
+
   const renderList = useMemo(() => {
     const nodes: RenderNode[] = [];
     for (let x = 0; x < GARDEN_CONFIG.GRID_SIZE; x++) {
       for (let y = 0; y < GARDEN_CONFIG.GRID_SIZE; y++) nodes.push({ id: `floor-${x}-${y}`, type: 'floor', x, y, zIndex: getZIndexScore(x, y, 'floor') });
     }
     placements.forEach((p, index) => {
-      const isLargeItem = p.itemId === 'PL-01';
+      if (p.itemId.startsWith('BG-')) return; // 背景は床レイヤーとして描画するため除外
+      const isLargeItem = p.itemId.startsWith('PL-');
       nodes.push({ id: `item-${p.itemId}-${index}`, type: isLargeItem ? 'large_item' : 'item', x: p.x, y: p.y, zIndex: getZIndexScore(p.x, p.y, isLargeItem ? 'large_item' : 'item'), placementData: p, originalIndex: index });
     });
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
   }, [placements]);
 
-  // ▼ 画像のロード完了検知ロジック
+  // ▼ 画像のロード完了検知ロジック (既存機能維持)
   const totalImages = renderList.length;
   const loadedCountRef = useRef(0);
 
@@ -57,7 +77,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     }
   }, [totalImages, onLoadComplete]);
 
-  // ▼ フェールセーフ: 画像がキャッシュされていて onLoad が発火しない場合に備え、一定時間で強制完了扱いにする
+  // ▼ フェールセーフ: (既存機能維持)
   useEffect(() => {
     loadedCountRef.current = 0; // リセット
     const fallbackTimer = setTimeout(() => {
@@ -81,20 +101,17 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
         const finalLeft = coords.left + viewOffset.x; const finalTop = coords.top + viewOffset.y;
         
         if (node.type === 'floor') {
-          const floorConfig = SPRITE_CONFIG['BG-01'];
+          const floorConfig = SPRITE_CONFIG[bgItemId];
           return (
             <View key={node.id} style={[styles.tileWrapper, { left: finalLeft + (floorConfig?.offsetX || 0), top: finalTop + (floorConfig?.offsetY || 0), width: GARDEN_CONFIG.TILE_WIDTH, height: GARDEN_CONFIG.TILE_WIDTH, zIndex: node.zIndex }]} pointerEvents="none">
-              <UniversalSprite itemId="BG-01" frameIndex={0} displaySize={GARDEN_CONFIG.TILE_WIDTH} onLoad={handleImageLoad} />
+              <UniversalSprite itemId={bgItemId} frameIndex={0} displaySize={GARDEN_CONFIG.TILE_WIDTH} onLoad={handleImageLoad} />
             </View>
           );
         } else {
           const isLarge = node.type === 'large_item';
           const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
           
-          // ▼ 修正: baseScaleの取得（未定義の場合は1.0）
           const baseScale = spriteDef?.baseScale ?? 1.0;
-          
-          // ▼ 修正: 基準サイズに baseScale を乗算して実際の表示サイズを計算
           const baseSize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * GLOBAL_GARDEN_SETTINGS.TREE_SCALE : GARDEN_CONFIG.TILE_WIDTH;
           const displaySize = baseSize * baseScale;
           
@@ -104,7 +121,6 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
           const tileCenterX = finalLeft + GARDEN_CONFIG.TILE_WIDTH / 2;
           const tileCenterY = finalTop + GARDEN_CONFIG.TILE_HEIGHT / 2;
 
-          // ▼ 修正: サイズ変更に伴うズレを防ぐため、オフセットもスケールに合わせて補正する
           const scaledOffsetX = (spriteDef?.offsetX || 0) * baseScale;
           const scaledOffsetY = (spriteDef?.offsetY || 0) * baseScale;
 
@@ -120,9 +136,15 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
                 {isLarge ? (
                   <UniversalSprite itemId={node.placementData!.itemId} frameIndex={plantLevel - 1} displaySize={displaySize} onLoad={handleImageLoad} />
                 ) : (
-                  <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={true} onLoad={handleImageLoad} />
+                  <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={spriteDef?.isAnimated} onLoad={handleImageLoad} />
                 )}
               </View>
+              {/* ▼ 水やりエフェクトの表示（知恵の木の上） */}
+              {isLarge && showWateringEffect && (
+                <View style={styles.effectOverlay}>
+                  <EffectSprite effectId="EF-01" displaySize={displaySize * 0.8} loop={false} durationPerFrame={150} onAnimationEnd={() => setShowWateringEffect(false)} />
+                </View>
+              )}
             </View>
           );
         }
@@ -135,5 +157,6 @@ const styles = StyleSheet.create({
   canvasContainer: { width: '100%', height: 400, backgroundColor: '#E0F7FA', position: 'relative', overflow: 'hidden' },
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
   itemContent: { borderRadius: 16 },
-  selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' }
+  selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
+  effectOverlay: { position: 'absolute', top: -40, left: 0, right: 0, alignItems: 'center', zIndex: 999 },
 });
