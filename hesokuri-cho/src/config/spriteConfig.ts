@@ -39,14 +39,24 @@ export const GLOBAL_GARDEN_SETTINGS = {
 
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'PL-01': {
-    sourceId: 'tree', originalWidth: 772, originalHeight: 323, startX: -1, startY: 12,
-    frameWidth: 153, frameHeight: 311, frameCount: 5, frameSpacingX: 0, offsetX: -6, offsetY: 103,
-    baseScale: 1.0, 
+    sourceId: 'tree', originalWidth: 752, originalHeight: 415, startX: 0, startY: 0,
+    frameWidth: 146, frameHeight: 142, frameCount: 5, frameSpacingX: 0, offsetX: 8, offsetY: 50,
+    baseScale: 1.5, 
   },
-  'EF-01': {
-    sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 6,
-    frameWidth: 78, frameHeight: 70, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 1.0,
+  'PL-02': {
+    sourceId: 'tree', originalWidth: 752, originalHeight: 415, startX:0, startY: 143,
+    frameWidth: 149, frameHeight: 142, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 52,
+    baseScale: 1.5, 
+  },
+  'PL-03': {
+    sourceId: 'tree', originalWidth: 752, originalHeight: 415, startX: -1, startY: 286,
+    frameWidth: 149, frameHeight: 142, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 76,
+    baseScale: 1.3, 
+  },
+  'EF-01': { // じょうろ
+    sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 6,
+    frameWidth: 86, frameHeight: 70, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 1.2,
   },
   'EF-02': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 256,
@@ -78,7 +88,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 76, frameHeight: 83, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 70,
     baseScale: 0.7, // 例: 少し小さめに表示する
   },
-  'IT-03': {
+  'IT-03': { // 多肉植物
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 486,
     frameWidth: 78, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: -4, offsetY: 80,
     baseScale: 0.6,

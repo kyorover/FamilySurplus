@@ -14,14 +14,16 @@ export type GardenItemMaster = GardenItem & {
  */
 export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   // 非売品アイテム
-  { id: 'PL-01', name: '賢者の樹', type: 'plant', cost: 0, isShoppable: false },
+  { id: 'PL-01', name: '知恵の木', type: 'plant', cost: 0, isShoppable: false },
+  { id: 'PL-02', name: 'ツリーハウス', type: 'plant', cost: 0, isShoppable: false },
+  { id: 'PL-03', name: 'グランピング', type: 'plant', cost: 0, isShoppable: false },
 
   // ショップ販売アイテム
   { id: 'IT-01', name: 'レトロな街灯', type: 'ornament', cost: 100, isShoppable: true },
   { id: 'IT-02', name: '木のベンチ', type: 'ornament', cost: 150, isShoppable: true },
   { id: 'IT-03', name: '観葉植物①', type: 'ornament', cost: 150, isShoppable: true },
   { id: 'IT-04', name: '秘密の宝箱', type: 'ornament', cost: 300, isShoppable: true },
-  { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: true },
+  { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: false },
   { id: 'IT-05', name: '花(黄色)', type: 'ornament', cost: 30, isShoppable: true },
   { id: 'IT-06', name: '花(紫色)', type: 'ornament', cost: 30, isShoppable: true },
   { id: 'IT-07', name: '花(赤色)', type: 'ornament', cost: 30, isShoppable: true },
