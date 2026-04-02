@@ -54,33 +54,48 @@ export const useGardenPlacements = () => {
       setSelectedPlacedItemIndex(null);
     }
 
-    // ▼ 背景(BG)や木(PL)の場合は即時置換・保存する
-    if (itemId.startsWith('BG-') || itemId.startsWith('PL-')) {
-      const prefix = itemId.substring(0, 3);
-      const existingIndex = currentPlacements.findIndex(p => p.itemId.startsWith(prefix));
-      
+    // ▼ 背景(BG)の場合は即時置換・保存して終了（移動させない）
+    if (itemId.startsWith('BG-')) {
+      const existingIndex = currentPlacements.findIndex(p => p.itemId.startsWith('BG-'));
       if (existingIndex !== -1) {
         const updated = [...currentPlacements];
         updated[existingIndex] = { ...updated[existingIndex], itemId };
         setPlacements(updated);
         persistPlacements(updated);
       } else {
-        const size = itemId.startsWith('PL-') ? 2 : 1;
-        const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
-        const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
-        const updated = [...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }];
+        const updated = [...currentPlacements, { itemId, x: 0, y: 0, isFlipped: false }];
         setPlacements(updated);
         persistPlacements(updated);
       }
       return;
     }
 
+    // ▼ 木(PL)の場合は置換して移動パネル（選択状態）を出す
+    if (itemId.startsWith('PL-')) {
+      const existingIndex = currentPlacements.findIndex(p => p.itemId.startsWith('PL-'));
+      if (existingIndex !== -1) {
+        const updated = [...currentPlacements];
+        // 種類だけ置き換えて座標は維持
+        updated[existingIndex] = { ...updated[existingIndex], itemId };
+        setPlacements(updated);
+        setSelectedPlacedItemIndex(existingIndex); // 選択状態にする
+      } else {
+        const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 2);
+        const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 2);
+        const updated = [...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }];
+        setPlacements(updated);
+        setSelectedPlacedItemIndex(updated.length - 1);
+      }
+      return;
+    }
+
+    // ▼ その他アイテムの場合
     const existingIndex = currentPlacements.findIndex(p => p.itemId === itemId);
-    if (existingIndex !== -1) setSelectedPlacedItemIndex(existingIndex);
-    else {
-      const size = itemId.startsWith('PL-') ? 2 : 1;
-      const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
-      const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - size);
+    if (existingIndex !== -1) {
+      setSelectedPlacedItemIndex(existingIndex);
+    } else {
+      const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
+      const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
       setPlacements([...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }]);
       setSelectedPlacedItemIndex(currentPlacements.length); // 末尾に追加されるため
     }
