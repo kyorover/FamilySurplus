@@ -14,7 +14,7 @@ import { useHesokuriStore } from '../store';
 
 export const HistoryScreen: React.FC = () => {
   const [isShopVisible, setShopVisible] = useState(false);
-  // ▼ 画像描画の完了を待機するためのステート
+  // ▼ 元の正しいローディングステートを復活
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
 
   const { settings } = useHesokuriStore();
@@ -26,7 +26,7 @@ export const HistoryScreen: React.FC = () => {
     handleInventoryPress, handlePressTile, handleMovePlacedItem, handleToggleMirror, handleConfirmPlacement, handleRemovePlacedItem 
   } = useGardenPlacements();
 
-  // ▼ キャンバスから全画像のロード完了通知を受け取る
+  // ▼ 元の正しいロード完了検知フックを復活
   const handleCanvasLoadComplete = useCallback(() => {
     setIsCanvasLoading(false);
   }, []);
@@ -37,7 +37,6 @@ export const HistoryScreen: React.FC = () => {
       <TreeGrowthPanel />
 
       <View style={styles.canvasWrapper}>
-        {/* データ自体の読み込み待ち */}
         {!isLoaded ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -54,10 +53,10 @@ export const HistoryScreen: React.FC = () => {
               onPanMove={handlePanMove}
               onPanRelease={handlePanRelease}
               plantLevel={plantLevel}
-              onLoadComplete={handleCanvasLoadComplete} // ▼ 画像ロード検知をフック
+              onLoadComplete={handleCanvasLoadComplete} // ▼ 復活：画像ロード検知をフック
             />
             
-            {/* ▼ 画像の描画完了を待つオーバーレイ（データはロード済みだが画像が未展開の場合） */}
+            {/* ▼ 復活：画像の描画完了を待つオーバーレイ */}
             {isCanvasLoading && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color="#4CAF50" />
@@ -65,7 +64,7 @@ export const HistoryScreen: React.FC = () => {
               </View>
             )}
 
-            {/* ▼ コントローラーは画像のロードが終わってから表示する */}
+            {/* ▼ 復活：コントローラーは画像のロードが終わってから表示する */}
             {selectedTargetItem && !isCanvasLoading && (
               <GardenControllerOverlay 
                 onMove={handleMovePlacedItem}
@@ -82,6 +81,7 @@ export const HistoryScreen: React.FC = () => {
       <GardenInventoryTray 
         ownedItems={ownedItems}
         selectedItemId={selectedTargetItem?.itemId || null}
+        plantLevel={plantLevel} // ▼ 唯一の修正点：現在の成長レベルをTrayに渡す
         onSelectItem={handleInventoryPress}
       />
       <GardenShopModal visible={isShopVisible} onClose={() => setShopVisible(false)} />
@@ -94,12 +94,11 @@ const styles = StyleSheet.create({
   canvasWrapper: { flex: 1, position: 'relative', backgroundColor: '#E8F5E9' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 12, color: '#666', fontWeight: 'bold' },
-  // ▼ 画像ロード中のオーバーレイスタイル
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#E8F5E9', // canvasWrapper の背景色に合わせる
+    backgroundColor: '#E8F5E9', 
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999, // キャンバスの上に確実に表示する
+    zIndex: 999, 
   }
 });
