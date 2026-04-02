@@ -31,6 +31,8 @@ export interface HouseholdSettings {
   gardenPlacements?: GardenPlacement[]; // 永続化されるお庭の配置情報
   plantLevel?: number; // 知恵の木のレベル(1〜5)
   plantExp?: number;   // 知恵の木に蓄積された経験値ポイント
+  selectedTreeId?: string; // 追加: 選択中の木のID
+  selectedTileId?: string; // 追加: 選択中のタイルのID
 }
 
 export interface ExpenseRecord {
@@ -58,9 +60,10 @@ export interface MonthlyBudget {
 export interface GardenItem {
   id: string;
   name: string;
-  type: 'flower' | 'pot' | 'ornament';
+  type: 'flower' | 'pot' | 'ornament' | 'plant' | 'bg'; // plant, bg を追加
   cost: number;
-  imageUrl?: string; 
+  imageUrl?: string;
+  growthEffectId?: string; // 追加: 成長(水やり)時のエフェクトID
 }
 
 export interface GardenPlacement {

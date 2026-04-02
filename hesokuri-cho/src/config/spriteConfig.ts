@@ -43,6 +43,9 @@ export const GLOBAL_GARDEN_SETTINGS = {
   TREE_SCALE: 1.5, 
   // 1回の「成長させる」ボタン押下で消費するポイント単位（上限）
   LEVEL_UP_UNIT_COST: 10,
+  // ▼ 追加: デフォルトの木とタイル
+  DEFAULT_TREE_ID: 'PL-01',
+  DEFAULT_TILE_ID: 'WP-01',
 };
 
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
@@ -64,7 +67,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'EF-01': { // じょうろ
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 6,
     frameWidth: 86, frameHeight: 70, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 1.2, isAnimated: true, animationSpeed: 150,
+    baseScale: 1.2, isAnimated: true, animationSpeed: 400,
   },
   'EF-02': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 256,
