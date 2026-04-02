@@ -15,8 +15,8 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
 
   if (!settings) return null;
 
-  const currentPoints = settings.gardenPoints || 0;
-  const ownedItems = settings.ownedGardenItemIds || [];
+  const currentPoints = settings.gardenPoints ?? 0;
+  const ownedItems = settings.ownedGardenItemIds ?? [];
 
   const handlePurchase = (itemId: string, cost: number, name: string) => {
     if (ownedItems.includes(itemId)) {
@@ -60,26 +60,29 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
           </View>
 
           <ScrollView contentContainerStyle={styles.listContent}>
-            {GARDEN_ITEMS.map((item) => (
-              <View key={item.id} style={styles.itemRow}>
-                <View style={styles.itemIconWrap}>
-                  <UniversalSprite itemId={item.id} frameIndex={0} displaySize={40} />
+            {GARDEN_ITEMS.map((item) => {
+              const isOwned = ownedItems.includes(item.id);
+              return (
+                <View key={item.id} style={styles.itemRow}>
+                  <View style={styles.itemIconWrap}>
+                    <UniversalSprite itemId={item.id} frameIndex={0} displaySize={40} />
+                  </View>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemCost}>{item.cost} pt</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={[styles.buyBtn, isOwned && styles.buyBtnDisabled]} 
+                    onPress={() => handlePurchase(item.id, item.cost, item.name)}
+                    disabled={isOwned}
+                  >
+                    <Text style={styles.buyBtnText}>
+                      {isOwned ? '所持済' : '交換'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemCost}>{item.cost} pt</Text>
-                </View>
-                <TouchableOpacity 
-                  style={[styles.buyBtn, ownedItems.includes(item.id) && styles.buyBtnDisabled]} 
-                  onPress={() => handlePurchase(item.id, item.cost, item.name)}
-                  disabled={ownedItems.includes(item.id)}
-                >
-                  <Text style={styles.buyBtnText}>
-                    {ownedItems.includes(item.id) ? '所持済' : '交換'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
 
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -96,22 +99,84 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: 'rgba(0,0,0,0.5)', 
     justifyContent: 'center',
-    paddingTop: Platform.OS === 'ios' ? 40 : 20 // SafeAreaViewの代替として上部余白を確保
+    paddingTop: Platform.OS === 'ios' ? 40 : 20 
   },
-  modalContainer: { backgroundColor: '#FFF', margin: 20, borderRadius: 16, flex: 1, maxHeight: '80%', overflow: 'hidden' },
-  title: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginVertical: 16 },
-  pointContainer: { alignItems: 'center', marginBottom: 16 },
-  pointLabel: { fontSize: 12, color: '#666' },
-  pointValue: { fontSize: 24, fontWeight: 'bold', color: '#4CAF50' },
-  listContent: { paddingHorizontal: 16 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#EEE' },
-  itemIconWrap: { width: 50, alignItems: 'center' },
-  itemInfo: { flex: 1, paddingHorizontal: 12 },
-  itemName: { fontSize: 16, fontWeight: 'bold' },
-  itemCost: { fontSize: 14, color: '#666' },
-  buyBtn: { backgroundColor: '#FF9800', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  buyBtnDisabled: { backgroundColor: '#CCC' },
-  buyBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
-  closeBtn: { margin: 16, backgroundColor: '#9E9E9E', padding: 12, borderRadius: 8, alignItems: 'center' },
-  closeBtnText: { color: '#FFF', fontWeight: 'bold' }
+  modalContainer: { 
+    backgroundColor: '#FFF', 
+    margin: 20, 
+    borderRadius: 16, 
+    flex: 1, 
+    maxHeight: '80%', 
+    overflow: 'hidden' 
+  },
+  title: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    textAlign: 'center', 
+    marginVertical: 16 
+  },
+  pointContainer: { 
+    alignItems: 'center', 
+    marginBottom: 16 
+  },
+  pointLabel: { 
+    fontSize: 12, 
+    color: '#666' 
+  },
+  pointValue: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#4CAF50' 
+  },
+  listContent: { 
+    paddingHorizontal: 16 
+  },
+  itemRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingVertical: 12, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#EEE' 
+  },
+  itemIconWrap: { 
+    width: 50, 
+    alignItems: 'center' 
+  },
+  itemInfo: { 
+    flex: 1, 
+    paddingHorizontal: 12 
+  },
+  itemName: { 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
+  itemCost: { 
+    fontSize: 14, 
+    color: '#666' 
+  },
+  buyBtn: { 
+    backgroundColor: '#FF9800', 
+    paddingHorizontal: 16, 
+    paddingVertical: 8, 
+    borderRadius: 20 
+  },
+  buyBtnDisabled: { 
+    backgroundColor: '#CCC' 
+  },
+  buyBtnText: { 
+    color: '#FFF', 
+    fontWeight: 'bold', 
+    fontSize: 12 
+  },
+  closeBtn: { 
+    margin: 16, 
+    backgroundColor: '#9E9E9E', 
+    padding: 12, 
+    borderRadius: 8, 
+    alignItems: 'center' 
+  },
+  closeBtnText: { 
+    color: '#FFF', 
+    fontWeight: 'bold' 
+  }
 });
