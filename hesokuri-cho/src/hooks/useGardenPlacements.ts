@@ -36,6 +36,7 @@ export const useGardenPlacements = () => {
     const tSize = target.itemId.startsWith('PL-') ? 2 : 1; 
     return currentPlacements.some((p, i) => {
       if (i === targetIndex) return false;
+      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return false; // ▼ 衝突判定から背景と壁紙を除外
       const pSize = p.itemId.startsWith('PL-') ? 2 : 1;
       const overlapX = target.x < p.x + pSize && target.x + tSize > p.x;
       const overlapY = target.y < p.y + pSize && target.y + tSize > p.y;
@@ -52,6 +53,17 @@ export const useGardenPlacements = () => {
       currentPlacements = settings?.gardenPlacements || [{ itemId: 'PL-01', x: 2, y: 2 }];
       setPlacements(currentPlacements);
       setSelectedPlacedItemIndex(null);
+    }
+
+    // ▼ 壁紙(WP)の場合は即時置換・保存して終了（移動・配置モードに入れない）
+    if (itemId.startsWith('WP-') || itemId === 'WP-NONE') {
+      const updated = currentPlacements.filter(p => !p.itemId.startsWith('WP-'));
+      if (itemId !== 'WP-NONE') {
+        updated.push({ itemId, x: 0, y: 0, isFlipped: false });
+      }
+      setPlacements(updated);
+      persistPlacements(updated);
+      return;
     }
 
     // ▼ 背景(BG)の場合は即時置換・保存して終了（移動させない）
@@ -108,6 +120,7 @@ export const useGardenPlacements = () => {
       return;
     }
     const clickedItemIndex = placements.findIndex(p => {
+      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return false; // ▼ 背景・壁紙はタップ判定対象外
       const pSize = p.itemId.startsWith('PL-') ? 2 : 1;
       return x >= p.x && x < p.x + pSize && y >= p.y && y < p.y + pSize;
     });

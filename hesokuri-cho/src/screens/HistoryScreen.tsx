@@ -14,7 +14,6 @@ import { useHesokuriStore } from '../store';
 
 export const HistoryScreen: React.FC = () => {
   const [isShopVisible, setShopVisible] = useState(false);
-  // ▼ 元の正しいローディングステートを復活
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
 
   const { settings } = useHesokuriStore();
@@ -26,7 +25,6 @@ export const HistoryScreen: React.FC = () => {
     handleInventoryPress, handlePressTile, handleMovePlacedItem, handleToggleMirror, handleConfirmPlacement, handleRemovePlacedItem 
   } = useGardenPlacements();
 
-  // ▼ 元の正しいロード完了検知フックを復活
   const handleCanvasLoadComplete = useCallback(() => {
     setIsCanvasLoading(false);
   }, []);
@@ -53,10 +51,9 @@ export const HistoryScreen: React.FC = () => {
               onPanMove={handlePanMove}
               onPanRelease={handlePanRelease}
               plantLevel={plantLevel}
-              onLoadComplete={handleCanvasLoadComplete} // ▼ 復活：画像ロード検知をフック
+              onLoadComplete={handleCanvasLoadComplete}
             />
             
-            {/* ▼ 復活：画像の描画完了を待つオーバーレイ */}
             {isCanvasLoading && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color="#4CAF50" />
@@ -64,8 +61,8 @@ export const HistoryScreen: React.FC = () => {
               </View>
             )}
 
-            {/* ▼ 復活：コントローラーは画像のロードが終わってから表示する */}
-            {selectedTargetItem && !isCanvasLoading && (
+            {/* ▼ 壁紙が誤って選ばれた場合でもパネルを出さないガードを追加 */}
+            {selectedTargetItem && !selectedTargetItem.itemId.startsWith('WP-') && !isCanvasLoading && (
               <GardenControllerOverlay 
                 onMove={handleMovePlacedItem}
                 onRemove={handleRemovePlacedItem}
@@ -81,7 +78,7 @@ export const HistoryScreen: React.FC = () => {
       <GardenInventoryTray 
         ownedItems={ownedItems}
         selectedItemId={selectedTargetItem?.itemId || null}
-        plantLevel={plantLevel} // ▼ 唯一の修正点：現在の成長レベルをTrayに渡す
+        plantLevel={plantLevel} 
         onSelectItem={handleInventoryPress}
       />
       <GardenShopModal visible={isShopVisible} onClose={() => setShopVisible(false)} />
