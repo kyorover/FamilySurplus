@@ -21,6 +21,7 @@ export const InteractiveGardenItem: React.FC<Props> = ({
 }) => {
   const config = SPRITE_CONFIG[itemId];
   const maxFrames = config ? config.frameCount : 1; 
+  const animationSpeed = config?.animationSpeed || 200; // 未指定時のデフォルト速度
 
   const [currentFrame, setCurrentFrame] = useState(0);
 
@@ -28,6 +29,20 @@ export const InteractiveGardenItem: React.FC<Props> = ({
     if (!isInteractive || maxFrames <= 1) return;
     setCurrentFrame((prev) => (prev + 1) % maxFrames);
   };
+
+  // ▼ 追加: スプライトの自動コマ送りアニメーション
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    // アニメーションON、かつ複数コマ存在する場合のみ実行
+    if (isAnimated && maxFrames > 1) {
+      timer = setInterval(() => {
+        setCurrentFrame((prev) => (prev + 1) % maxFrames);
+      }, animationSpeed);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isAnimated, maxFrames, animationSpeed]);
 
   const rotation = useRef(new Animated.Value(0)).current;
 

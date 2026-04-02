@@ -134,26 +134,26 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'CR-01': { // 猫
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 0,
     frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 56,
-    baseScale: 0.8, isAnimated: true, animationSpeed: 200,
+    baseScale: 0.8, isAnimated: true, animationSpeed: 300,
   },
   'CR-02': { // 犬
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 88,
     frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 60,
-    baseScale: 0.8, isAnimated: true, animationSpeed: 100,
+    baseScale: 0.8, isAnimated: true, animationSpeed: 300,
   },
   'CR-03': { // 子供
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 157,
     frameWidth: 114, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -3, offsetY: 46,
-    baseScale: 1.0, isAnimated: true, animationSpeed: 400,
+    baseScale: 1.0, isAnimated: true, animationSpeed: 2000,
   },
   'CR-04': { // 大人(女)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 234,
     frameWidth: 122, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -2, offsetY: 36,
-    baseScale: 1.2, isAnimated: true, animationSpeed: 400,
+    baseScale: 1.2, isAnimated: true, animationSpeed: 2000,
   },
   'CR-05': { // 大人(男)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 314,
     frameWidth: 127, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -2, offsetY: 36,
-    baseScale: 1.2, isAnimated: true, animationSpeed: 100,
+    baseScale: 1.2, isAnimated: true, animationSpeed: 2000,
   },
 };
