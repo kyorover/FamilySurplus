@@ -88,7 +88,6 @@ export default function App() {
               onPress: async () => {
                 if (pendingSettings) {
                   await updateSettings(pendingSettings);
-                  // settingsが更新されるとuseSettingsManagerのuseEffectで再同期される
                 }
                 executeTabChange(targetTab, options);
               }
@@ -99,7 +98,6 @@ export default function App() {
       }
     }
 
-    // 問題なければ遷移実行
     executeTabChange(targetTab, options);
   };
 
@@ -134,12 +132,10 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       
-      {/* 共通ヘッダーはダッシュボードとへそくり履歴のみ使用 (他は各Screenで専用ヘッダーを描画) */}
-      {(activeTab === 'dashboard' || activeTab === 'hesokuriHistory') && (
+      {/* 共通ヘッダーはへそくり履歴のみ使用 (他は各Screenで専用ヘッダーを描画) */}
+      {activeTab === 'hesokuriHistory' && (
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>
-            {activeTab === 'dashboard' ? 'ダッシュボード' : 'へそくり履歴'}
-          </Text>
+          <Text style={styles.headerTitle}>へそくり履歴</Text>
         </View>
       )}
 

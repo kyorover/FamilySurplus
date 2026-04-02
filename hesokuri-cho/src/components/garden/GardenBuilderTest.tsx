@@ -1,6 +1,6 @@
 // src/components/garden/GardenBuilderTest.tsx
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { IsometricGardenCanvas } from './IsometricGardenCanvas';
 import { GardenShopModal } from './GardenShopModal';
 import { GardenControllerOverlay } from './GardenControllerOverlay';
@@ -12,34 +12,77 @@ import { useHesokuriStore } from '../../store';
 
 export const GardenBuilderTest: React.FC = () => {
   const [isShopVisible, setShopVisible] = useState(false);
-  // ▼ ローディング状態の管理
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
 
   const { currentViewOffset, handlePanMove, handlePanRelease, handleResetMapPosition } = useGardenCamera();
-  const { settings, setDebugPlantLevel } = useHesokuriStore();
+  const { settings, updateSettings, setDebugPlantLevel } = useHesokuriStore();
   const plantLevel = settings?.plantLevel || 1;
+
+  // ▼ ポイント設定用のローカルステート
+  const [debugPoints, setDebugPoints] = useState<string>(String(settings?.gardenPoints || 0));
+
+  useEffect(() => {
+    setDebugPoints(String(settings?.gardenPoints || 0));
+  }, [settings?.gardenPoints]);
 
   const { 
     placements, selectedPlacedItemIndex, selectedTargetItem, ownedItems, 
     handleInventoryPress, handlePressTile, handleMovePlacedItem, handleToggleMirror, handleConfirmPlacement, handleRemovePlacedItem 
   } = useGardenPlacements();
 
-  // ▼ キャンバスから全画像のロード完了通知を受け取る
   const handleCanvasLoadComplete = useCallback(() => {
     setIsCanvasLoading(false);
   }, []);
+
+  // ▼ ショップ購入状況＆配置状況のリセット
+  const handleResetShopAndPlacements = () => {
+    Alert.alert(
+      'ショップ・配置リセット',
+      '所持アイテムと配置状況をすべて初期化しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { 
+          text: 'リセットする', 
+          style: 'destructive', 
+          onPress: async () => {
+            if (settings) {
+              await updateSettings({
+                ...settings,
+                ownedGardenItemIds: [],
+                gardenPlacements: [],
+              });
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // ▼ 所持ポイントの手動更新
+  const handleUpdatePoints = async () => {
+    const p = parseInt(debugPoints, 10);
+    if (!isNaN(p) && settings) {
+      await updateSettings({ ...settings, gardenPoints: p });
+      Alert.alert('更新完了', `所持ポイントを ${p} に設定しました。`);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerText}>お庭のレイアウト (デバッグ)</Text>
-        <TouchableOpacity style={styles.shopBtn} onPress={() => setShopVisible(true)}>
-          <Text style={styles.shopBtnText}>ショップ</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.dangerBtn} onPress={handleResetShopAndPlacements}>
+            <Text style={styles.btnText}>全リセット</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.shopBtn} onPress={() => setShopVisible(true)}>
+            <Text style={styles.btnText}>ショップ</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.debugPanel}>
-        <Text style={styles.debugLabel}>木のレベル変更:</Text>
+        <Text style={styles.debugLabel}>木のLV:</Text>
         {[1, 2, 3, 4, 5].map(lvl => (
           <TouchableOpacity key={lvl} onPress={() => setDebugPlantLevel(lvl)} style={styles.debugBtn}>
             <Text style={{ fontWeight: plantLevel === lvl ? 'bold' : 'normal', color: plantLevel === lvl ? '#FFF' : '#333' }}>
@@ -47,6 +90,17 @@ export const GardenBuilderTest: React.FC = () => {
             </Text>
           </TouchableOpacity>
         ))}
+
+        <Text style={[styles.debugLabel, { marginLeft: 16 }]}>所持pt:</Text>
+        <TextInput 
+          style={styles.pointInput}
+          keyboardType="numeric"
+          value={debugPoints}
+          onChangeText={setDebugPoints}
+        />
+        <TouchableOpacity style={styles.updateBtn} onPress={handleUpdatePoints}>
+          <Text style={styles.updateBtnText}>反映</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.canvasWrapper}>
@@ -55,10 +109,9 @@ export const GardenBuilderTest: React.FC = () => {
         <IsometricGardenCanvas 
           placements={placements} onPressTile={handlePressTile} selectedItemIndex={selectedPlacedItemIndex}
           viewOffset={currentViewOffset} onPanMove={handlePanMove} onPanRelease={handlePanRelease} plantLevel={plantLevel}
-          onLoadComplete={handleCanvasLoadComplete} // ▼追加
+          onLoadComplete={handleCanvasLoadComplete}
         />
 
-        {/* ▼ ローディングオーバーレイ */}
         {isCanvasLoading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -74,7 +127,13 @@ export const GardenBuilderTest: React.FC = () => {
         )}
       </View>
       
-      <GardenInventoryTray ownedItems={ownedItems} selectedItemId={selectedTargetItem?.itemId || null} onSelectItem={handleInventoryPress} />
+      {/* ▼ 修正: plantLevel を Props として渡す */}
+      <GardenInventoryTray 
+        ownedItems={ownedItems} 
+        selectedItemId={selectedTargetItem?.itemId || null} 
+        plantLevel={plantLevel}
+        onSelectItem={handleInventoryPress} 
+      />
       <GardenShopModal visible={isShopVisible} onClose={() => setShopVisible(false)} />
     </View>
   );
@@ -82,20 +141,25 @@ export const GardenBuilderTest: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF' },
-  headerText: { fontSize: 16, fontWeight: 'bold' },
-  shopBtn: { backgroundColor: '#4CAF50', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16 },
-  shopBtnText: { color: '#FFF', fontWeight: 'bold' },
-  debugPanel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 8, backgroundColor: '#FFCDD2' },
-  debugLabel: { fontSize: 12, fontWeight: 'bold', marginRight: 8, color: '#D32F2F' },
-  debugBtn: { marginHorizontal: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 12, elevation: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#FFF' },
+  headerText: { fontSize: 14, fontWeight: 'bold' },
+  headerRight: { flexDirection: 'row', gap: 8 },
+  shopBtn: { backgroundColor: '#4CAF50', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  dangerBtn: { backgroundColor: '#E53935', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+  debugPanel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 8, backgroundColor: '#FFCDD2', flexWrap: 'wrap', gap: 4 },
+  debugLabel: { fontSize: 12, fontWeight: 'bold', color: '#D32F2F' },
+  debugBtn: { marginHorizontal: 2, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 12, elevation: 1 },
+  pointInput: { backgroundColor: '#FFF', width: 60, height: 28, borderRadius: 4, paddingHorizontal: 8, fontSize: 12, textAlign: 'right' },
+  updateBtn: { backgroundColor: '#1976D2', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 4 },
+  updateBtnText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
   canvasWrapper: { flex: 1, position: 'relative' }, 
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#E0F7FA',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999, // キャンバスの上に確実に表示する
+    zIndex: 999,
   },
   loadingText: {
     marginTop: 12,
