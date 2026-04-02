@@ -62,7 +62,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'IT-03': {
     sourceId: 'other', originalWidth: 342, originalHeight: 729, startX: 6, startY: 486,
-    frameWidth: 80, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    frameWidth: 76, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
   },
   'IT-04': {
     sourceId: 'other', originalWidth: 342, originalHeight: 729, startX: 0, startY: 577,
