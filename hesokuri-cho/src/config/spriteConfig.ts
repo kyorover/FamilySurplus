@@ -89,7 +89,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'IT-01': { // レトロな街灯
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 265,
     frameWidth: 84, frameHeight: 100, frameCount: 2, frameSpacingX: 0, offsetX: -5, offsetY: 40,
-    baseScale: 1.0, isAnimated: true, animationSpeed: 500,
+    baseScale: 1.0, isAnimated: true, animationSpeed: 3000,
   },
   'IT-02': { // 木のベンチ
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 380,
