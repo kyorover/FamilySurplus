@@ -41,12 +41,12 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 153, frameHeight: 311, frameCount: 5, frameSpacingX: 0, offsetX: -6, offsetY: 103,
   },
   'EF-01': {
-    sourceId: 'other', originalWidth: 342, originalHeight: 729, startX: 6, startY: 0,
-    frameWidth: 256, frameHeight: 256, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    sourceId: 'other', originalWidth: 342, originalHeight: 729, startX: 6, startY: 6,
+    frameWidth: 78, frameHeight: 70, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 20,
   },
   'EF-02': {
     sourceId: 'other', originalWidth: 342, originalHeight: 729, startX: 0, startY: 256,
-    frameWidth: 256, frameHeight: 256, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    frameWidth: 78, frameHeight: 80, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 20,
   },
   'BG-01': {
     sourceId: 'other', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
