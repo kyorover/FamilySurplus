@@ -3,17 +3,24 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useHesokuriStore } from '../../store';
 import { GARDEN_CONSTANTS } from '../../constants';
+import { GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
 
 export const TreeGrowthPanel: React.FC = () => {
   const { settings, levelUpTree } = useHesokuriStore();
   const level = settings?.plantLevel || 1;
   const points = settings?.gardenPoints || 0;
+  const exp = settings?.plantExp || 0;
   
-  const isMaxLevel = level >= GARDEN_CONSTANTS.MAX_PLANT_LEVEL;
+  const isMaxLevel = level >= GLOBAL_GARDEN_SETTINGS.MAX_PLANT_LEVEL;
   const cost = isMaxLevel ? 0 : GARDEN_CONSTANTS.LEVEL_UP_COSTS[level];
-  const canLevelUp = !isMaxLevel && points >= cost;
+  const remainingCost = isMaxLevel ? 0 : cost - exp;
   
-  const progressPercent = isMaxLevel ? 100 : Math.min(100, (points / cost) * 100);
+  const unit = GLOBAL_GARDEN_SETTINGS.LEVEL_UP_UNIT_COST;
+  // 今回のボタン押下で実際に消費されるポイント
+  const consumeAmount = Math.min(unit, points, remainingCost);
+  const canLevelUp = !isMaxLevel && consumeAmount > 0;
+  
+  const progressPercent = isMaxLevel ? 100 : Math.min(100, (exp / cost) * 100);
 
   return (
     <View style={styles.panel}>
@@ -26,14 +33,16 @@ export const TreeGrowthPanel: React.FC = () => {
         <View style={styles.actionRow}>
           <View style={styles.progressContainer}>
             <View style={[styles.progressBar, { width: `${progressPercent}%` }]} />
-            <Text style={styles.progressText}>{points} / {cost} pt</Text>
+            <Text style={styles.progressText}>{exp} / {cost} pt</Text>
           </View>
           <TouchableOpacity 
             style={[styles.levelUpBtn, !canLevelUp && styles.levelUpBtnDisabled]} 
             disabled={!canLevelUp}
             onPress={levelUpTree}
           >
-            <Text style={styles.levelUpBtnText}>成長させる</Text>
+            <Text style={styles.levelUpBtnText}>
+              成長させる{canLevelUp ? `\n(${consumeAmount}pt)` : ''}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -47,10 +56,10 @@ const styles = StyleSheet.create({
   levelText: { fontSize: 14, fontWeight: 'bold', color: '#2E7D32' },
   pointsText: { fontSize: 14, color: '#555' },
   actionRow: { flexDirection: 'row', alignItems: 'center' },
-  progressContainer: { flex: 1, height: 20, backgroundColor: '#E0E0E0', borderRadius: 10, overflow: 'hidden', marginRight: 12, justifyContent: 'center' },
+  progressContainer: { flex: 1, height: 30, backgroundColor: '#E0E0E0', borderRadius: 15, overflow: 'hidden', marginRight: 12, justifyContent: 'center' },
   progressBar: { height: '100%', backgroundColor: '#4CAF50' },
   progressText: { position: 'absolute', width: '100%', textAlign: 'center', fontSize: 12, color: '#000', fontWeight: 'bold' },
-  levelUpBtn: { backgroundColor: '#FF9800', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
+  levelUpBtn: { backgroundColor: '#FF9800', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, minWidth: 90, alignItems: 'center' },
   levelUpBtnDisabled: { backgroundColor: '#BDBDBD' },
-  levelUpBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+  levelUpBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
 });

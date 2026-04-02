@@ -31,6 +31,8 @@ export const GLOBAL_GARDEN_SETTINGS = {
   // 知恵の木の画像の表示スケール（縮尺）。
   // 以前の元のサイズは 2.0 (TILE_WIDTH * 2) 相当です。ここを変更すると画像サイズが変わります。
   TREE_SCALE: 1.5, 
+  // 1回の「成長させる」ボタン押下で消費するポイント単位（上限）
+  LEVEL_UP_UNIT_COST: 10,
 };
 
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {

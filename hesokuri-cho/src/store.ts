@@ -103,14 +103,42 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     const state = get(); if (!state.settings) return;
     const currentLevel = state.settings.plantLevel || 1;
     if (currentLevel >= GLOBAL_GARDEN_SETTINGS.MAX_PLANT_LEVEL) return;
+    
     const cost = GARDEN_CONSTANTS.LEVEL_UP_COSTS[currentLevel];
-    if ((state.settings.gardenPoints || 0) < cost) return;
-    const newSettings = { ...state.settings, plantLevel: currentLevel + 1, gardenPoints: (state.settings.gardenPoints || 0) - cost };
-    set({ settings: newSettings }); await state.updateSettings(newSettings);
+    const points = state.settings.gardenPoints || 0;
+    const currentExp = state.settings.plantExp || 0;
+    const unit = GLOBAL_GARDEN_SETTINGS.LEVEL_UP_UNIT_COST;
+
+    // 次のレベルアップまでに必要な残りポイント
+    const remainingCost = cost - currentExp;
+    
+    // 実際に消費するポイント (単位上限、所持ポイント、残りコストのうち最小値)
+    const consumePoints = Math.min(unit, points, remainingCost);
+    
+    if (consumePoints <= 0) return;
+
+    let newLevel = currentLevel;
+    let newExp = currentExp + consumePoints;
+
+    // 経験値が必要コストに達した場合はレベルアップし経験値をリセット
+    if (newExp >= cost) {
+      newLevel = currentLevel + 1;
+      newExp = 0; 
+    }
+
+    const newSettings = { 
+      ...state.settings, 
+      plantLevel: newLevel, 
+      plantExp: newExp,
+      gardenPoints: points - consumePoints 
+    };
+    
+    set({ settings: newSettings }); 
+    await state.updateSettings(newSettings);
   },
   setDebugPlantLevel: async (level) => {
     const state = get(); if (!state.settings) return;
-    const newSettings = { ...state.settings, plantLevel: level };
+    const newSettings = { ...state.settings, plantLevel: level, plantExp: 0 };
     set({ settings: newSettings }); await state.updateSettings(newSettings);
   }
 }));

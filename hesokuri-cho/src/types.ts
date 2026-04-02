@@ -30,6 +30,7 @@ export interface HouseholdSettings {
   ownedGardenItemIds: string[];
   gardenPlacements?: GardenPlacement[]; // 永続化されるお庭の配置情報
   plantLevel?: number; // 知恵の木のレベル(1〜5)
+  plantExp?: number;   // 知恵の木に蓄積された経験値ポイント
 }
 
 export interface ExpenseRecord {
