@@ -33,6 +33,19 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* 共通ヘッダー（入力画面と同様のスタイル） */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerSideColumn} />
+        <View style={styles.headerCenterColumn}>
+          <Text style={styles.headerTitleText}>設定</Text>
+        </View>
+        <View style={styles.headerSideColumn}>
+          <TouchableOpacity onPress={actions.saveAll} style={styles.headerActionBtn}>
+            <Text style={styles.headerSubmitText}>保存</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={modes.scroll}>
         
         {/* 家族構成セクション */}
@@ -59,6 +72,7 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
         </View>
+        {/* 並び替え用ボタン・説明文を削除し、Propsも整理 */}
         <CategoryList 
           categories={activeCategories} 
           onDeleteCategory={actions.deleteCategory} 
@@ -92,10 +106,6 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        {/* 保存ボタン */}
-        <TouchableOpacity style={styles.primaryButton} onPress={actions.saveAll}>
-          <Text style={styles.primaryButtonText}>設定を保存する</Text>
-        </TouchableOpacity>
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -109,7 +119,16 @@ export const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#F2F2F7' }, // 背景色を入力画面と合わせる
+  
+  // ヘッダー用スタイル
+  headerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 100 },
+  headerSideColumn: { flex: 1, justifyContent: 'center' },
+  headerCenterColumn: { flex: 2, alignItems: 'center', justifyContent: 'center' },
+  headerActionBtn: { paddingVertical: 4 },
+  headerTitleText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  headerSubmitText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF', textAlign: 'right' },
+
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 8 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
@@ -123,8 +142,6 @@ const styles = StyleSheet.create({
   historyManageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 2 },
   historyManageDesc: { fontSize: 10, color: '#8E8E93' },
   chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
-  primaryButton: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8, shadowColor: '#007AFF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
-  primaryButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },

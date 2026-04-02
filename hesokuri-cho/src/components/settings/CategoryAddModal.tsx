@@ -16,6 +16,7 @@ export const CategoryAddModal: React.FC<CategoryAddModalProps> = ({ visible, onS
     if (!trimmed) return;
     onSave(trimmed);
     setInputValue('');
+    onClose(); // 保存後に確実にダイアログを閉じる
   };
 
   const handleClose = () => {
