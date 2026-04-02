@@ -1,6 +1,6 @@
 // src/components/garden/IsometricGardenCanvas.tsx
 import React, { useMemo, useRef, useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, Pressable, PanResponder } from 'react-native';
+import { View, StyleSheet, Dimensions, Pressable, PanResponder, ActivityIndicator, Text } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 import { InteractiveGardenItem } from './InteractiveGardenItem';
 import { EffectSprite } from './EffectSprite';
@@ -19,7 +19,7 @@ interface Props {
   onPanMove?: (dx: number, dy: number) => void;
   onPanRelease?: (dx: number, dy: number) => void;
   plantLevel?: number; // 知恵の木レベル(1-5)
-  onLoadComplete?: () => void; // ▼追加: ロード完了通知
+  onLoadComplete?: () => void; // ロード完了通知
 }
 
 type RenderNode = { id: string; type: 'floor' | 'item' | 'large_item'; x: number; y: number; zIndex: number; placementData?: GardenPlacement; originalIndex?: number; };
@@ -29,9 +29,10 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 }) => {
   const { settings } = useHesokuriStore();
   const [showWateringEffect, setShowWateringEffect] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // ▼追加: ローディング状態
   const prevExpRef = useRef(settings?.plantExp || 0);
 
-  // ▼ 水やりエフェクトの検知（前回からの既存機能は破壊せずに追加）
+  // ▼ 水やりエフェクトの検知
   useEffect(() => {
     const currentExp = settings?.plantExp || 0;
     if (currentExp > prevExpRef.current) {
@@ -66,25 +67,38 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
   }, [placements]);
 
-  // ▼ 画像のロード完了検知ロジック (既存機能維持)
+  // ▼ アイテム構成（種類と数、反転状態）の変更を検知する文字列（座標移動では変化しない）
+  const itemConfigString = useMemo(() => {
+    return placements.map(p => `${p.itemId}-${p.isFlipped}`).sort().join(',') + `-PL${plantLevel}`;
+  }, [placements, plantLevel]);
+
+  // ▼ 画像のロード完了検知ロジック
   const totalImages = renderList.length;
   const loadedCountRef = useRef(0);
+
+  // アイテム構成が変わったらローディングをONにする
+  useEffect(() => {
+    setIsLoading(true);
+    loadedCountRef.current = 0;
+  }, [itemConfigString]);
 
   const handleImageLoad = useCallback(() => {
     loadedCountRef.current += 1;
     if (loadedCountRef.current >= totalImages) {
+      setIsLoading(false); // 全てロード完了したら非表示
       if (onLoadComplete) onLoadComplete();
     }
   }, [totalImages, onLoadComplete]);
 
-  // ▼ フェールセーフ: (既存機能維持)
+  // ▼ フェールセーフ: タイムアウトで強制的にローディングを解除
   useEffect(() => {
     loadedCountRef.current = 0; // リセット
     const fallbackTimer = setTimeout(() => {
+      setIsLoading(false);
       if (onLoadComplete) onLoadComplete();
-    }, 2500); // 2.5秒でタイムアウト
+    }, 1500); // 1.5秒で強制解除（長すぎないように調整）
     return () => clearTimeout(fallbackTimer);
-  }, [renderList, onLoadComplete]);
+  }, [itemConfigString, onLoadComplete]);
 
   const handleBackgroundPress = (e: any) => {
     if (!onPressTile) return;
@@ -96,6 +110,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   return (
     <View style={styles.canvasContainer} {...panResponder.panHandlers}>
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
+      
       {renderList.map((node) => {
         const coords = getIsometricCoords(node.x, node.y, SCREEN_WIDTH);
         const finalLeft = coords.left + viewOffset.x; const finalTop = coords.top + viewOffset.y;
@@ -149,6 +164,14 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
           );
         }
       })}
+
+      {/* ▼ ローディング時の目隠しオーバーレイ */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>ガーデンを準備中...</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -159,4 +182,17 @@ const styles = StyleSheet.create({
   itemContent: { borderRadius: 16 },
   selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
   effectOverlay: { position: 'absolute', top: -40, left: 0, right: 0, alignItems: 'center', zIndex: 999 },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(224, 247, 250, 0.9)', // 背景色に合わせて少し透過させる
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#00695C',
+    fontWeight: 'bold',
+  }
 });
