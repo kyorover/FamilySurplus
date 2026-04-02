@@ -22,6 +22,12 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'IT-03', name: '観葉植物①', type: 'ornament', cost: 150, isShoppable: true },
   { id: 'IT-04', name: '秘密の宝箱', type: 'ornament', cost: 300, isShoppable: true },
   { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: true },
+  { id: 'IT-05', name: '花(黄色)', type: 'ornament', cost: 30, isShoppable: true },
+  { id: 'IT-06', name: '花(紫色)', type: 'ornament', cost: 30, isShoppable: true },
+  { id: 'IT-07', name: '花(赤色)', type: 'ornament', cost: 30, isShoppable: true },
+  { id: 'IT-08', name: '花(青色)', type: 'ornament', cost: 30, isShoppable: true },
+  { id: 'IT-09', name: '花(緑色)', type: 'ornament', cost: 30, isShoppable: true },
+  { id: 'IT-10', name: '観葉植物', type: 'ornament', cost: 50, isShoppable: true },
 ];
 
 /**

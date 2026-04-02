@@ -58,6 +58,16 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 78, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0,
   },
+  'BG-02': {
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 6, startY: 0,
+    frameWidth: 68, frameHeight: 49, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 1.0,
+  },
+  'BG-03': {
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 6, startY: 50,
+    frameWidth: 68, frameHeight: 49, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 1.0,
+  },
   'IT-01': { // レトロな街灯
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 265,
     frameWidth: 84, frameHeight: 100, frameCount: 2, frameSpacingX: 0, offsetX: -5, offsetY: 40,
@@ -77,5 +87,35 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 577,
     frameWidth: 86, frameHeight: 80, frameCount: 4, frameSpacingX: 0, offsetX: -6, offsetY: 53,
     baseScale: 1.0, // 例: 宝箱は小さく表示
+  },
+  'IT-05': { // 花(黄)
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 94,
+    frameWidth: 68, frameHeight: 43, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    baseScale: 1.0,
+  },
+  'IT-06': { // 花(紫)
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 136,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    baseScale: 1.0,
+  },
+  'IT-07': { // 花(赤)
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 174,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    baseScale: 1.0,
+  },
+  'IT-08': { // 花(青)
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 214,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    baseScale: 1.0,
+  },
+  'IT-09': { // 花(緑)
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 252,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    baseScale: 1.0,
+  },
+  'IT-10': { // 観葉植物
+    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 290,
+    frameWidth: 68, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    baseScale: 1.0,
   },
 };
