@@ -1,5 +1,5 @@
 // src/components/garden/GardenBuilderTest.tsx
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { IsometricGardenCanvas } from './IsometricGardenCanvas';
 import { GardenShopModal } from './GardenShopModal';
@@ -77,10 +77,19 @@ export const GardenBuilderTest: React.FC = () => {
         }
         updateGardenPlacements(newPlacements);
       }
-      return;
+      // ▼ 壁紙の場合はここで処理を終了し、配置モード（操作パネル）に入れない
+      return; 
     }
     handleInventoryPress(itemId);
   };
+
+  // ▼ ローカルの配置状況とStoreの壁紙情報をマージしてキャンバスの即時反映を実現
+  const canvasPlacements = useMemo(() => {
+    const base = placements.filter(p => !p.itemId.startsWith('WP-'));
+    const wp = settings?.gardenPlacements?.find(p => p.itemId.startsWith('WP-'));
+    if (wp) base.push(wp);
+    return base;
+  }, [placements, settings?.gardenPlacements]);
 
   return (
     <View style={styles.container}>
@@ -121,8 +130,9 @@ export const GardenBuilderTest: React.FC = () => {
       <View style={styles.canvasWrapper}>
         <GardenMapResetButton onReset={handleResetMapPosition} />
         
+        {/* ▼ placements の代わりにマージ済みの canvasPlacements を渡す */}
         <IsometricGardenCanvas 
-          placements={placements} onPressTile={handlePressTile} selectedItemIndex={selectedPlacedItemIndex}
+          placements={canvasPlacements} onPressTile={handlePressTile} selectedItemIndex={selectedPlacedItemIndex}
           viewOffset={currentViewOffset} onPanMove={handlePanMove} onPanRelease={handlePanRelease} plantLevel={plantLevel}
           onLoadComplete={handleCanvasLoadComplete}
         />
@@ -134,7 +144,8 @@ export const GardenBuilderTest: React.FC = () => {
           </View>
         )}
 
-        {selectedTargetItem && !isCanvasLoading && (
+        {/* ▼ 壁紙が selectedTargetItem に入ってしまった場合でもパネルを出さないようにガード */}
+        {selectedTargetItem && !selectedTargetItem.itemId.startsWith('WP-') && !isCanvasLoading && (
           <GardenControllerOverlay 
             onMove={handleMovePlacedItem} onRemove={handleRemovePlacedItem} onConfirm={handleConfirmPlacement}
             onToggleMirror={handleToggleMirror} showRemoveButton={selectedTargetItem.itemId !== 'PL-01'} 
@@ -142,7 +153,7 @@ export const GardenBuilderTest: React.FC = () => {
         )}
       </View>
       
-      {/* ▼ 修正: plantLevel を Props として渡し、壁紙用ハンドラを設定 */}
+      {/* ▼ onSelectItem に handleCustomInventoryPress を割り当てる */}
       <GardenInventoryTray 
         ownedItems={ownedItems} 
         selectedItemId={selectedTargetItem?.itemId || null} 

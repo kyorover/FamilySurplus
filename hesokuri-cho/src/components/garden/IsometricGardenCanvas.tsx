@@ -10,6 +10,7 @@ import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS, IMAGE_SOURCES } from '../../conf
 import { useHesokuriStore } from '../../store';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CANVAS_HEIGHT = 400; // ▼ 追加: キャンバスの高さを定数化し、壁紙の敷き詰めに利用
 
 interface Props {
   placements?: GardenPlacement[];
@@ -66,7 +67,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
       for (let y = 0; y < GARDEN_CONFIG.GRID_SIZE; y++) nodes.push({ id: `floor-${x}-${y}`, type: 'floor', x, y, zIndex: getZIndexScore(x, y, 'floor') });
     }
     placements.forEach((p, index) => {
-      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return; // 背景・壁紙は除外
+      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return; // 背景・壁紙は床レイヤー等として描画するため除外
       const isLargeItem = p.itemId.startsWith('PL-');
       nodes.push({ id: `item-${p.itemId}-${index}`, type: isLargeItem ? 'large_item' : 'item', x: p.x, y: p.y, zIndex: getZIndexScore(p.x, p.y, isLargeItem ? 'large_item' : 'item'), placementData: p, originalIndex: index });
     });
@@ -115,9 +116,15 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 
   return (
     <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: '#E0F7FA' }]} {...panResponder.panHandlers}>
-      {/* ▼ 壁紙の敷き詰め描画 */}
+      {/* ▼ 壁紙の敷き詰め描画（不具合回避のため幅と高さを明示して確実にリピートさせる） */}
       {wpImageSource && (
-        <Image source={wpImageSource} style={StyleSheet.absoluteFillObject} resizeMode="repeat" />
+        <View style={{ position: 'absolute', top: 0, left: 0, width: SCREEN_WIDTH, height: CANVAS_HEIGHT, overflow: 'hidden' }}>
+          <Image 
+            source={wpImageSource} 
+            style={{ width: SCREEN_WIDTH, height: CANVAS_HEIGHT }} 
+            resizeMode="repeat" 
+          />
+        </View>
       )}
 
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
@@ -188,7 +195,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  canvasContainer: { width: '100%', height: 400, position: 'relative', overflow: 'hidden' },
+  canvasContainer: { width: '100%', height: CANVAS_HEIGHT, position: 'relative', overflow: 'hidden' },
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
   itemContent: { borderRadius: 16 },
   selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },

@@ -37,10 +37,10 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'CR-05', name: '大人(男)', type: 'ornament', cost: 100, isShoppable: true },
   
   // ▼ 追加: 壁紙アイテム
-  { id: 'WP-01', name: '壁紙(森)', type: 'ornament', cost: 100, isShoppable: true },
-  { id: 'WP-02', name: '壁紙(空)', type: 'ornament', cost: 100, isShoppable: true },
-  { id: 'WP-03', name: '壁紙(夕暮れ)', type: 'ornament', cost: 100, isShoppable: true },
-  { id: 'WP-04', name: '壁紙(夜)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'WP-01', name: '壁紙(星空)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'WP-02', name: '壁紙(草むら)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'WP-03', name: '壁紙(木の柄)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'WP-04', name: '壁紙(お空)', type: 'ornament', cost: 100, isShoppable: true },
 ];
 
 /**
