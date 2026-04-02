@@ -8,6 +8,7 @@ interface Props {
   frameIndex?: number;
   displaySize: number; // 画面上に表示する基準サイズ（幅）
   style?: ViewStyle;
+  onLoad?: () => void; // 追加：画像読み込み完了イベント
 }
 
 /**
@@ -18,7 +19,8 @@ export const UniversalSprite: React.FC<Props> = ({
   itemId, 
   frameIndex = 0, 
   displaySize,
-  style 
+  style,
+  onLoad
 }) => {
   const config = SPRITE_CONFIG[itemId];
 
@@ -66,6 +68,7 @@ export const UniversalSprite: React.FC<Props> = ({
         }}
         // stretchで強制的に指定サイズに引き伸ばし、コンテナ外をoverflowで隠す
         resizeMode="stretch" 
+        onLoad={onLoad} // 追加
       />
     </View>
   );

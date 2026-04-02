@@ -9,16 +9,18 @@ interface Props {
   displaySize: number;
   isInteractive?: boolean;
   isAnimated?: boolean;
+  onLoad?: () => void; // 追加
 }
 
 export const InteractiveGardenItem: React.FC<Props> = ({ 
   itemId, 
   displaySize, 
   isInteractive = true,
-  isAnimated = false
+  isAnimated = false,
+  onLoad
 }) => {
   const config = SPRITE_CONFIG[itemId];
-  const maxFrames = config ? config.frameCount : 1; // framesからframeCountに修正
+  const maxFrames = config ? config.frameCount : 1; 
 
   const [currentFrame, setCurrentFrame] = useState(0);
 
@@ -53,7 +55,7 @@ export const InteractiveGardenItem: React.FC<Props> = ({
   return (
     <Pressable onPress={handlePress} disabled={!isInteractive || maxFrames <= 1}>
       <Animated.View style={[styles.container, { transform: [{ rotateZ: rotateInterpolate }] }]}>
-        <UniversalSprite itemId={itemId} frameIndex={currentFrame} displaySize={displaySize} />
+        <UniversalSprite itemId={itemId} frameIndex={currentFrame} displaySize={displaySize} onLoad={onLoad} />
       </Animated.View>
     </Pressable>
   );

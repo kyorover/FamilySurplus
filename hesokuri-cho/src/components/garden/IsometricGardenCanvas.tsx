@@ -1,6 +1,6 @@
 // src/components/garden/IsometricGardenCanvas.tsx
-import React, { useMemo, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Pressable, PanResponder } from 'react-native';
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, Dimensions, Pressable, PanResponder, ActivityIndicator, Text } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 import { InteractiveGardenItem } from './InteractiveGardenItem';
 import { GardenPlacement } from '../../types';
@@ -45,6 +45,34 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
   }, [placements]);
 
+  // --- ローディング制御用ステートと処理 ---
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const loadedCountRef = useRef(0);
+  const totalItems = renderList.length;
+
+  useEffect(() => {
+    // 描画要素がない場合は即時完了
+    if (totalItems === 0) {
+      setIsInitialLoading(false);
+      return;
+    }
+    
+    // 画像がキャッシュ済みで onLoad が発火しない場合のデッドロックを防止（1.5秒で強制表示）
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [totalItems]);
+
+  const handleItemLoad = useCallback(() => {
+    if (!isInitialLoading) return; // 既にロード完了していれば何もしない
+    loadedCountRef.current += 1;
+    if (loadedCountRef.current >= totalItems) {
+      setIsInitialLoading(false);
+    }
+  }, [totalItems, isInitialLoading]);
+  // ----------------------------------------
+
   const handleBackgroundPress = (e: any) => {
     if (!onPressTile) return;
     const { locationX, locationY } = e.nativeEvent;
@@ -54,47 +82,59 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 
   return (
     <View style={styles.canvasContainer} {...panResponder.panHandlers}>
-      <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
-      {renderList.map((node) => {
-        const coords = getIsometricCoords(node.x, node.y, SCREEN_WIDTH);
-        const finalLeft = coords.left + viewOffset.x; const finalTop = coords.top + viewOffset.y;
-        
-        if (node.type === 'floor') {
-          const floorConfig = SPRITE_CONFIG['BG-01'];
-          return (
-            <View key={node.id} style={[styles.tileWrapper, { left: finalLeft + (floorConfig?.offsetX || 0), top: finalTop + (floorConfig?.offsetY || 0), width: GARDEN_CONFIG.TILE_WIDTH, height: GARDEN_CONFIG.TILE_WIDTH, zIndex: node.zIndex }]} pointerEvents="none">
-              <UniversalSprite itemId="BG-01" frameIndex={0} displaySize={GARDEN_CONFIG.TILE_WIDTH} />
-            </View>
-          );
-        } else {
-          const isLarge = node.type === 'large_item';
-          // 元のコードの表示サイズ計算式に、環境変数のスケールを乗算
-          const displaySize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * GLOBAL_GARDEN_SETTINGS.TREE_SCALE : GARDEN_CONFIG.TILE_WIDTH;
-          const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
-          const aspectRatio = spriteDef ? (spriteDef.frameHeight / spriteDef.frameWidth) : 1;
-          const displayHeight = displaySize * aspectRatio;
-
-          const tileCenterX = finalLeft + GARDEN_CONFIG.TILE_WIDTH / 2;
-          const tileCenterY = finalTop + GARDEN_CONFIG.TILE_HEIGHT / 2;
-          const leftPosition = tileCenterX - displaySize / 2 + (spriteDef?.offsetX || 0);
-          const topPosition = tileCenterY - displayHeight + (spriteDef?.offsetY || 0);
-
-          const isSelected = selectedItemIndex === node.originalIndex;
-          const isFlipped = node.placementData?.isFlipped;
-
-          return (
-            <View key={node.id} style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
-              <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
-                {isLarge ? (
-                  <UniversalSprite itemId={node.placementData!.itemId} frameIndex={plantLevel - 1} displaySize={displaySize} />
-                ) : (
-                  <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={true} />
-                )}
+      {/* ローディング中は opacity: 0 で見えないようにしつつ、
+        裏で Image コンポーネントの onLoad を走らせておく 
+      */}
+      <View style={[StyleSheet.absoluteFill, { opacity: isInitialLoading ? 0 : 1 }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
+        {renderList.map((node) => {
+          const coords = getIsometricCoords(node.x, node.y, SCREEN_WIDTH);
+          const finalLeft = coords.left + viewOffset.x; const finalTop = coords.top + viewOffset.y;
+          
+          if (node.type === 'floor') {
+            const floorConfig = SPRITE_CONFIG['BG-01'];
+            return (
+              <View key={node.id} style={[styles.tileWrapper, { left: finalLeft + (floorConfig?.offsetX || 0), top: finalTop + (floorConfig?.offsetY || 0), width: GARDEN_CONFIG.TILE_WIDTH, height: GARDEN_CONFIG.TILE_WIDTH, zIndex: node.zIndex }]} pointerEvents="none">
+                <UniversalSprite itemId="BG-01" frameIndex={0} displaySize={GARDEN_CONFIG.TILE_WIDTH} onLoad={handleItemLoad} />
               </View>
-            </View>
-          );
-        }
-      })}
+            );
+          } else {
+            const isLarge = node.type === 'large_item';
+            const displaySize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * GLOBAL_GARDEN_SETTINGS.TREE_SCALE : GARDEN_CONFIG.TILE_WIDTH;
+            const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
+            const aspectRatio = spriteDef ? (spriteDef.frameHeight / spriteDef.frameWidth) : 1;
+            const displayHeight = displaySize * aspectRatio;
+
+            const tileCenterX = finalLeft + GARDEN_CONFIG.TILE_WIDTH / 2;
+            const tileCenterY = finalTop + GARDEN_CONFIG.TILE_HEIGHT / 2;
+            const leftPosition = tileCenterX - displaySize / 2 + (spriteDef?.offsetX || 0);
+            const topPosition = tileCenterY - displayHeight + (spriteDef?.offsetY || 0);
+
+            const isSelected = selectedItemIndex === node.originalIndex;
+            const isFlipped = node.placementData?.isFlipped;
+
+            return (
+              <View key={node.id} style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
+                <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
+                  {isLarge ? (
+                    <UniversalSprite itemId={node.placementData!.itemId} frameIndex={plantLevel - 1} displaySize={displaySize} onLoad={handleItemLoad} />
+                  ) : (
+                    <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={true} onLoad={handleItemLoad} />
+                  )}
+                </View>
+              </View>
+            );
+          }
+        })}
+      </View>
+
+      {/* ローディングオーバーレイ */}
+      {isInitialLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>お庭を準備中...</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -103,5 +143,18 @@ const styles = StyleSheet.create({
   canvasContainer: { width: '100%', height: 400, backgroundColor: '#E0F7FA', position: 'relative', overflow: 'hidden' },
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
   itemContent: { borderRadius: 16 },
-  selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' }
+  selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#E0F7FA', // キャンバスの背景色に合わせて違和感をなくす
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: 'bold',
+  }
 });
