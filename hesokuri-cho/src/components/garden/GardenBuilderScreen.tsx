@@ -36,6 +36,30 @@ export const GardenBuilderScreen: React.FC = () => {
     if (!isNaN(p) && settings) await updateSettings({ ...settings, gardenPoints: p });
   };
 
+  const handleResetPurchases = () => {
+    Alert.alert(
+      '購入状態リセット',
+      'すべての購入済みアイテムと配置をリセットしますか？（知恵の木は残ります）',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: 'リセット',
+          style: 'destructive',
+          onPress: async () => {
+            if (!settings) return;
+            // 知恵の木 (WP- で始まるアイテム) のみを残す
+            const defaultPlacements = settings.gardenPlacements?.filter(p => p.itemId.startsWith('WP-')) || [];
+            await updateSettings({
+              ...settings,
+              ownedGardenItemIds: [],
+              gardenPlacements: defaultPlacements
+            });
+          }
+        }
+      ]
+    );
+  };
+
   const canvasPlacements = useMemo(() => {
     const base = placements.filter(p => !p.itemId.startsWith('WP-'));
     const wp = settings?.gardenPlacements?.find(p => p.itemId.startsWith('WP-'));
@@ -50,7 +74,9 @@ export const GardenBuilderScreen: React.FC = () => {
       <View style={[styles.header, isPlacementMode && { opacity: 0.3 }]} pointerEvents={isPlacementMode ? 'none' : 'auto'}>
         <Text style={styles.headerText}>お庭のレイアウト (デバッグ)</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.shopBtn} onPress={() => setShopVisible(true)}><Text style={styles.btnText}>ショップ</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.shopBtn} onPress={() => setShopVisible(true)}>
+            <Text style={styles.btnText}>ショップ</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -62,7 +88,12 @@ export const GardenBuilderScreen: React.FC = () => {
           </TouchableOpacity>
         ))}
         <TextInput style={styles.pointInput} keyboardType="numeric" value={debugPoints} onChangeText={setDebugPoints} />
-        <TouchableOpacity style={styles.updateBtn} onPress={handleUpdatePoints}><Text style={styles.updateBtnText}>反映</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.updateBtn} onPress={handleUpdatePoints}>
+          <Text style={styles.updateBtnText}>反映</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.resetBtn} onPress={handleResetPurchases}>
+          <Text style={styles.resetBtnText}>購入リセット</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={[styles.canvasWrapper, isPlacementMode && { zIndex: 10 }]}>
@@ -101,6 +132,8 @@ const styles = StyleSheet.create({
   pointInput: { backgroundColor: '#FFF', width: 60, height: 28, borderRadius: 4, paddingHorizontal: 8, fontSize: 12, textAlign: 'right' },
   updateBtn: { backgroundColor: '#1976D2', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 4 },
   updateBtnText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+  resetBtn: { backgroundColor: '#D32F2F', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 4, marginLeft: 4 },
+  resetBtnText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
   canvasWrapper: { flex: 1, position: 'relative' }, 
   inventoryWrapper: { zIndex: 1 },
 });
