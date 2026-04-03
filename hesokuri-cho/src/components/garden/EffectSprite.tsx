@@ -21,7 +21,7 @@ export const EffectSprite: React.FC<Props> = ({
 }) => {
   const [currentFrame, setCurrentFrame] = useState(0);
   const config = SPRITE_CONFIG[effectId];
-  const maxFrames = config ? config.frameCount : 1; // framesからframeCountに修正
+  const maxFrames = config ? config.frameCount : 1; 
 
   useEffect(() => {
     if (maxFrames <= 1) return;
@@ -49,9 +49,16 @@ export const EffectSprite: React.FC<Props> = ({
 
   if (!config) return null;
 
+  // ▼ 追加: spriteConfig.ts に定義されたエフェクト固有の baseScale を適用して最終サイズを算出
+  const scaledDisplaySize = displaySize * (config.baseScale ?? 1.0);
+
   return (
     <View style={styles.container}>
-      <UniversalSprite itemId={effectId} frameIndex={currentFrame} displaySize={displaySize} />
+      <UniversalSprite 
+        itemId={effectId} 
+        frameIndex={currentFrame} 
+        displaySize={scaledDisplaySize} 
+      />
     </View>
   );
 };

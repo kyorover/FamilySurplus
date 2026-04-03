@@ -25,8 +25,9 @@ export const TreeGrowthPanel: React.FC = () => {
   
   const progressPercent = isMaxLevel ? 100 : Math.min(100, (exp / cost) * 100);
 
-  // 選択中の木のデータを取得し、エフェクトIDを決定
-  const currentTreeId = settings?.selectedTreeId || GLOBAL_GARDEN_SETTINGS.DEFAULT_TREE_ID;
+  // ▼ 修正: Single Source of Truth に基づき、配置情報(gardenPlacements)から現在の木を特定する
+  const currentTreePlacement = settings?.gardenPlacements?.find(p => p.itemId.startsWith('PL-'));
+  const currentTreeId = currentTreePlacement?.itemId || GLOBAL_GARDEN_SETTINGS.DEFAULT_TREE_ID;
   const currentTreeData = ALL_GARDEN_ITEMS.find(item => item.id === currentTreeId);
   const effectId = currentTreeData?.growthEffectId || 'EF-01';
 

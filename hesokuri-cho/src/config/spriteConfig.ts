@@ -69,7 +69,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'EF-01': { // じょうろ
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 6,
     frameWidth: 86, frameHeight: 70, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 1.2, isAnimated: true, animationSpeed: 400,
+    baseScale: 0.8, isAnimated: true, animationSpeed: 400,
   },
   'EF-02': { // ハンマー
     sourceId: 'item3', originalWidth: 250, originalHeight: 62, startX: 0, startY: 0,

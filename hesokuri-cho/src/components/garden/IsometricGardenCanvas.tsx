@@ -8,9 +8,10 @@ import { GardenPlacement } from '../../types';
 import { getIsometricCoords, getGridCoordsFromScreen, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
 import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS, IMAGE_SOURCES } from '../../config/spriteConfig';
 import { useHesokuriStore } from '../../store';
+import { ALL_GARDEN_ITEMS } from '../../constants/gardenItems'; // ▼ 追加: マスターデータをインポート
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CANVAS_HEIGHT = 400; // ▼ 追加: キャンバスの高さを定数化し、壁紙の敷き詰めに利用
+const CANVAS_HEIGHT = 400; // キャンバスの高さ
 
 interface Props {
   placements?: GardenPlacement[];
@@ -30,10 +31,10 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 }) => {
   const { settings } = useHesokuriStore();
   const [showWateringEffect, setShowWateringEffect] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // ▼追加: ローディング状態
+  const [isLoading, setIsLoading] = useState(true); 
   const prevExpRef = useRef(settings?.plantExp || 0);
 
-  // ▼ 水やりエフェクトの検知
+  // ▼ エフェクトの検知
   useEffect(() => {
     const currentExp = settings?.plantExp || 0;
     if (currentExp > prevExpRef.current) {
@@ -67,22 +68,17 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
       for (let y = 0; y < GARDEN_CONFIG.GRID_SIZE; y++) nodes.push({ id: `floor-${x}-${y}`, type: 'floor', x, y, zIndex: getZIndexScore(x, y, 'floor') });
     }
     placements.forEach((p, index) => {
-      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return; // 背景・壁紙は床レイヤー等として描画するため除外
+      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return; 
       const isLargeItem = p.itemId.startsWith('PL-');
       nodes.push({ id: `item-${p.itemId}-${index}`, type: isLargeItem ? 'large_item' : 'item', x: p.x, y: p.y, zIndex: getZIndexScore(p.x, p.y, isLargeItem ? 'large_item' : 'item'), placementData: p, originalIndex: index });
     });
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
   }, [placements]);
 
-  // ▼ 背景(タイル)と壁紙の変更時のみローディングを発火させるための検知用文字列
-  // （アイテムの片づけ、配置、移動、反転、レベルアップでは発火させない）
   const itemConfigString = `${bgItemId}-${wpItemId || 'NONE'}`;
-
-  // ▼ 画像のロード完了検知ロジック
   const totalImages = renderList.length;
   const loadedCountRef = useRef(0);
 
-  // タイル構成が変わったらローディングをONにする
   useEffect(() => {
     setIsLoading(true);
     loadedCountRef.current = 0;
@@ -91,18 +87,17 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   const handleImageLoad = useCallback(() => {
     loadedCountRef.current += 1;
     if (loadedCountRef.current >= totalImages) {
-      setIsLoading(false); // 全てロード完了したら非表示
+      setIsLoading(false); 
       if (onLoadComplete) onLoadComplete();
     }
   }, [totalImages, onLoadComplete]);
 
-  // ▼ フェールセーフ: タイムアウトで強制的にローディングを解除
   useEffect(() => {
-    loadedCountRef.current = 0; // リセット
+    loadedCountRef.current = 0; 
     const fallbackTimer = setTimeout(() => {
       setIsLoading(false);
       if (onLoadComplete) onLoadComplete();
-    }, 1500); // 1.5秒で強制解除（長すぎないように調整）
+    }, 1500); 
     return () => clearTimeout(fallbackTimer);
   }, [itemConfigString, onLoadComplete]);
 
@@ -113,7 +108,6 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     if (grid.x >= 0 && grid.x < GARDEN_CONFIG.GRID_SIZE && grid.y >= 0 && grid.y < GARDEN_CONFIG.GRID_SIZE) onPressTile(grid.x, grid.y);
   };
 
-  // ▼ 追加: アイテム自身がタップされた時に、その配置座標を親へ通知する
   const handleItemPress = (node: RenderNode) => {
     if (onPressTile) {
       onPressTile(node.x, node.y);
@@ -122,7 +116,6 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 
   return (
     <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: '#E0F7FA' }]} {...panResponder.panHandlers}>
-      {/* ▼ 壁紙の敷き詰め描画（不具合回避のため幅と高さを明示して確実にリピートさせる） */}
       {wpImageSource && (
         <View style={{ position: 'absolute', top: 0, left: 0, width: SCREEN_WIDTH, height: CANVAS_HEIGHT, overflow: 'hidden' }}>
           <Image 
@@ -133,7 +126,6 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
         </View>
       )}
 
-      {/* ▼ 床（背景）に対するタップ判定 */}
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
       
       {renderList.map((node) => {
@@ -170,10 +162,13 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
           const isSelected = selectedItemIndex === node.originalIndex;
           const isFlipped = node.placementData?.isFlipped;
 
+          // ▼ 追加: 描画する木の種類から、正しいエフェクトIDを取得
+          const treeMaster = isLarge ? ALL_GARDEN_ITEMS.find(item => item.id === node.placementData!.itemId) : null;
+          const effectId = treeMaster?.growthEffectId || 'EF-01';
+
           return (
             <View key={node.id} style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
               <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
-                {/* ▼ 修正: 直接アイテムのタップを検知し、座標を渡す */}
                 {isLarge ? (
                   <Pressable onPress={() => handleItemPress(node)}>
                     <UniversalSprite itemId={node.placementData!.itemId} frameIndex={plantLevel - 1} displaySize={displaySize} onLoad={handleImageLoad} />
@@ -182,10 +177,10 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
                   <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={spriteDef?.isAnimated} onLoad={handleImageLoad} onPress={() => handleItemPress(node)} />
                 )}
               </View>
-              {/* ▼ 水やりエフェクトの表示（知恵の木の上） */}
+              {/* ▼ 修正: ハードコードされていた 'EF-01' を動的な effectId に変更 */}
               {isLarge && showWateringEffect && (
                 <View style={styles.effectOverlay}>
-                  <EffectSprite effectId="EF-01" displaySize={displaySize * 0.8} loop={false} durationPerFrame={150} onAnimationEnd={() => setShowWateringEffect(false)} />
+                  <EffectSprite effectId={effectId} displaySize={displaySize * 0.8} loop={false} durationPerFrame={150} onAnimationEnd={() => setShowWateringEffect(false)} />
                 </View>
               )}
             </View>
@@ -193,7 +188,6 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
         }
       })}
 
-      {/* ▼ ローディング時の目隠しオーバーレイ */}
       {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
@@ -209,10 +203,10 @@ const styles = StyleSheet.create({
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
   itemContent: { borderRadius: 16 },
   selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
-  effectOverlay: { position: 'absolute', top: -40, left: 0, right: 0, alignItems: 'center', zIndex: 999, pointerEvents: 'none' }, // ▼ 修正: タップ判定を阻害しないよう追加
+  effectOverlay: { position: 'absolute', top: -40, left: 0, right: 0, alignItems: 'center', zIndex: 999, pointerEvents: 'none' }, 
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(224, 247, 250, 0.9)', // 背景色に合わせて少し透過させる
+    backgroundColor: 'rgba(224, 247, 250, 0.9)', 
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
