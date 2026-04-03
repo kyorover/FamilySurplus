@@ -100,13 +100,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const todayStr = new Date().toISOString().slice(0, 10);
   const isWateredToday = settings.lastWateringDate === todayStr;
 
-  // 進行度の計算（0~1）
   const progressRatio = totalMonthlyBudget > 0 ? Math.min(1, totalSpent / totalMonthlyBudget) : 0;
-  const progressColor = currentHesokuri >= 0 ? '#34C759' : '#FF3B30'; // プラスなら緑、マイナスなら赤
+  const progressColor = currentHesokuri >= 0 ? '#34C759' : '#FF3B30';
 
   return (
     <View style={styles.container}>
-      {/* 修正：ヘッダーの縦幅をコンパクトに */}
+      {/* 修正：App.tsxのSafeAreaViewと重複していたpaddingTopを削除し、他画面（設定・入力等）と同一のパディングに統一 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{displayMonth}の予算</Text>
         <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}>
@@ -154,7 +153,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           <Text style={styles.cardFooterText}>👉 タップでカレンダー・履歴を確認</Text>
         </TouchableOpacity>
 
-        {/* 修正：下段のリストセクションも上段と同じカードスタイルに統一 */}
+        {/* リストセクション */}
         <View style={styles.listSectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>カテゴリ別内訳</Text>
@@ -225,10 +224,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
-  // 修正：paddingTopを減らして高さをタイトに
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 44 : 16, paddingBottom: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E' },
-  // 修正：テキストベースのボタンへ変更
+  // 修正：他の画面（設定画面等）と高さを完全に合わせるため paddingVertical: 12 に統一
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' }, // フォントサイズも他の画面(16px)と統一
   menuBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
   menuBtnText: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E' },
   
@@ -252,7 +250,7 @@ const styles = StyleSheet.create({
   progressLabelText: { fontSize: 11, color: '#8E8E93' },
   cardFooterText: { fontSize: 12, color: '#007AFF', textAlign: 'center', fontWeight: '600', marginTop: 8 },
 
-  // 修正：リストセクションを上段と同じカードスタイルに
+  // リストセクション
   listSectionCard: { backgroundColor: '#FFFFFF', marginHorizontal: 16, borderRadius: 24, paddingVertical: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 20 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
