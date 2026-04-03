@@ -152,18 +152,18 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'CR-03': { // 子供
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 157,
-    frameWidth: 114, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -3, offsetY: 46,
-    baseScale: 1.0, isAnimated: true, animationSpeed: 2000,
+    frameWidth: 58, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -6, offsetY: 78,
+    baseScale: 0.5, isAnimated: true, animationSpeed: 2000,
   },
   'CR-04': { // 大人(女)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 234,
-    frameWidth: 122, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -2, offsetY: 36,
-    baseScale: 1.2, isAnimated: true, animationSpeed: 2000,
+    frameWidth: 58, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -4, offsetY: 68,
+    baseScale: 0.6, isAnimated: true, animationSpeed: 2000,
   },
   'CR-05': { // 大人(男)
-    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 314,
-    frameWidth: 127, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -2, offsetY: 36,
-    baseScale: 1.2, isAnimated: true, animationSpeed: 2000,
+    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 310,
+    frameWidth: 60, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -4, offsetY: 68,
+    baseScale: 0.6, isAnimated: true, animationSpeed: 2000,
   },
   // ▼ 追加: 壁紙アイテム
   'WP-01': {

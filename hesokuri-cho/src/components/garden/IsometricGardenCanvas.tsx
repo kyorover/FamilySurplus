@@ -74,10 +74,10 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
   }, [placements]);
 
-  // ▼ アイテム構成（種類と数、反転状態）の変更を検知する文字列（座標移動では変化しない）
+  // ▼ アイテム構成（種類と数）の変更を検知する文字列（座標移動、反転、レベルアップ等では変化させない）
   const itemConfigString = useMemo(() => {
-    return placements.map(p => `${p.itemId}-${p.isFlipped}`).sort().join(',') + `-PL${plantLevel}`;
-  }, [placements, plantLevel]);
+    return placements.map(p => p.itemId).sort().join(',');
+  }, [placements]);
 
   // ▼ 画像のロード完了検知ロジック
   const totalImages = renderList.length;
