@@ -8,7 +8,7 @@ import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
 import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditModal';
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
-import { GardenBuilderTest } from '../components/garden/GardenBuilderTest';
+import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen'; // ▼ リネーム反映
 
 export const SettingsScreen: React.FC = () => {
   const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions } = useSettingsManager();
@@ -23,7 +23,7 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.modalCloseText}>閉じる</Text>
           </TouchableOpacity>
         </View>
-        <GardenBuilderTest />
+        <GardenBuilderScreen />
       </SafeAreaView>
     );
   }

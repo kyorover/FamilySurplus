@@ -1,4 +1,4 @@
-// src/screens/HistoryScreen.tsx
+// src/screens/GardenScreen.tsx
 import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, ActivityIndicator, Text } from 'react-native';
 import { IsometricGardenCanvas } from '../components/garden/IsometricGardenCanvas';
@@ -13,7 +13,7 @@ import { useGardenPlacements } from '../hooks/useGardenPlacements';
 import { useHesokuriStore } from '../store';
 import { GardenPlacementBlocker } from '../components/garden/GardenPlacementBlocker';
 
-export const HistoryScreen: React.FC = () => {
+export const GardenScreen: React.FC = () => {
   const [isShopVisible, setShopVisible] = useState(false);
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
 

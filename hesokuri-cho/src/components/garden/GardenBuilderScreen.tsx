@@ -1,4 +1,4 @@
-// src/components/garden/GardenBuilderTest.tsx
+// src/components/garden/GardenBuilderScreen.tsx
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { IsometricGardenCanvas } from './IsometricGardenCanvas';
@@ -11,7 +11,7 @@ import { useGardenPlacements } from '../../hooks/useGardenPlacements';
 import { useHesokuriStore } from '../../store';
 import { GardenPlacementBlocker } from './GardenPlacementBlocker';
 
-export const GardenBuilderTest: React.FC = () => {
+export const GardenBuilderScreen: React.FC = () => {
   const [isShopVisible, setShopVisible] = useState(false);
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
 

@@ -5,7 +5,7 @@ import { useHesokuriStore } from './src/store';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { InputScreen } from './src/screens/InputScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
-import { HistoryScreen } from './src/screens/HistoryScreen';
+import { GardenScreen } from './src/screens/GardenScreen'; // ▼ リネーム反映
 import { HesokuriHistoryScreen } from './src/screens/HesokuriHistoryScreen';
 
 export default function App() {
@@ -154,7 +154,7 @@ export default function App() {
         )}
         
         {activeTab === 'settings' && <SettingsScreen />}
-        {activeTab === 'history' && <HistoryScreen />}
+        {activeTab === 'history' && <GardenScreen />}
         {activeTab === 'hesokuriHistory' && <HesokuriHistoryScreen onBack={() => handleTabChange('dashboard')} />}
       </View>
 
