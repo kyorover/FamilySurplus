@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'item3' |  'chara' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'item3' | 'item4' | 'chara' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -26,8 +26,8 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   item1: require('../../assets/images/garden/item1.png'),
   item2: require('../../assets/images/garden/item2.png'),
   item3: require('../../assets/images/garden/item3.png'),
+  item4: require('../../assets/images/garden/item4.png'),
   chara: require('../../assets/images/garden/chara.png'),
-  // ▼ 追加: 壁紙の画像ソース
   wp1: require('../../assets/images/garden/bg_1.png'),
   wp2: require('../../assets/images/garden/bg_2.png'),
   wp3: require('../../assets/images/garden/bg_3.png'),
@@ -48,12 +48,18 @@ export const GLOBAL_GARDEN_SETTINGS = {
   // ▼ 追加: デフォルトの木とタイル
   DEFAULT_TREE_ID: 'PL-01',
   DEFAULT_TILE_ID: 'WP-01',
+  // ▼ 追加: ズーム用の環境変数
+  MIN_ZOOM_SCALE: 0.5,
+  MAX_ZOOM_SCALE: 2.0,
+  DEFAULT_ZOOM_SCALE: 1.0,
+  ZOOM_STEP: 0.2, // ▼ 1回のタップでのズーム量
 };
 
+// ...（以下、既存の SPRITE_CONFIG の定義そのまま）
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'PL-01': {
-    sourceId: 'tree2', originalWidth: 704, originalHeight: 252, startX: 0, startY: 124,
-    frameWidth: 140, frameHeight: 122, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 44,
+    sourceId: 'tree2', originalWidth: 704, originalHeight: 252, startX: 0, startY: 130,
+    frameWidth: 140, frameHeight: 122, frameCount: 5, frameSpacingX: 0, offsetX:-4, offsetY: 46,
     baseScale: 1.5, isAnimated: false,
   },
   'PL-02': {
@@ -76,7 +82,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 62, frameHeight: 62, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 0,
     baseScale: 0.6, isAnimated: true, animationSpeed: 400,
   },
-  'BG-03': {
+  'BG-01': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
     frameWidth: 78, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0, isAnimated: false,
@@ -86,9 +92,14 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 60, frameHeight: 49, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0, isAnimated: false,
   },
-  'BG-01': {
+  'BG-03': {
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 6, startY: 50,
     frameWidth: 60, frameHeight: 45, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 1.0, isAnimated: false,
+  },
+  'BG-04': {
+    sourceId: 'item4', originalWidth: 63, originalHeight: 63, startX: 3, startY: 0,
+    frameWidth: 57, frameHeight: 63, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.0, isAnimated: false,
   },
   'IT-01': { // レトロな街灯
@@ -166,7 +177,6 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 60, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -4, offsetY: 68,
     baseScale: 0.6, isAnimated: true, animationSpeed: 2000,
   },
-  // ▼ 追加: 壁紙アイテム
   'WP-01': {
     sourceId: 'wp1', originalWidth: 100, originalHeight: 100, startX: 0, startY: 0,
     frameWidth: 100, frameHeight: 100, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,

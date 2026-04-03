@@ -26,6 +26,7 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'BG-01', name: 'タイル(標準)', type: 'ornament', cost: 0, isShoppable: false },
   { id: 'BG-02', name: 'タイル(レンガ)', type: 'ornament', cost: 100, isShoppable: true },
   { id: 'BG-03', name: 'タイル(石畳)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'BG-04', name: '草むら', type: 'ornament', cost: 100, isShoppable: true },
 
   // ショップ販売アイテム
   { id: 'IT-01', name: 'レトロな街灯', type: 'ornament', cost: 100, isShoppable: true },
