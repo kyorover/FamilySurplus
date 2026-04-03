@@ -38,8 +38,8 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   const { settings } = useHesokuriStore();
   const [isLoading, setIsLoading] = useState(true); 
   
-  // ▼ 修正: 個別の木ごとにエフェクト表示状態を管理する
-  const [wateringEffects, setWateringEffects] = useState<Record<string, boolean>>({});
+  // ▼ 修正: boolean ではなく、表示すべきエフェクトのIDを string で管理し、複数種類のエフェクト出し分けに対応
+  const [activeEffects, setActiveEffects] = useState<Record<string, string>>({});
   const prevExpsRef = useRef<Record<string, number>>({});
   const prevLevelsRef = useRef<Record<string, number>>({});
 
@@ -54,20 +54,28 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     if (settings.plantLevel !== undefined) currentLevels['PL-01'] = settings.plantLevel;
 
     let hasChanges = false;
-    const newEffects = { ...wateringEffects };
+    const newEffects = { ...activeEffects };
 
     placements.forEach(p => {
       if (!p.itemId.startsWith('PL-')) return;
       const itemId = p.itemId;
+      
       const cExp = currentExps[itemId] || 0;
       // 初回マウント時はエフェクトを出さないよう、prevが無ければ現在の値を入れる
       const pExp = prevExpsRef.current[itemId] ?? cExp; 
+      
       const cLevel = currentLevels[itemId] || 1;
       const pLevel = prevLevelsRef.current[itemId] ?? cLevel;
 
-      // 経験値が増加した、またはレベルが上がった（経験値が0にリセットされた場合含む）場合にエフェクトを点火
-      if (cExp > pExp || cLevel > pLevel) {
-        newEffects[itemId] = true;
+      // ▼ 修正: レベルアップ時と水やり（経験値増加）時でエフェクトIDを出し分ける
+      if (cLevel > pLevel) {
+        // レベルアップ時は専用エフェクト（EF-04）を指定
+        newEffects[itemId] = 'EF-04';
+        hasChanges = true;
+      } else if (cExp > pExp) {
+        // 通常の経験値増加時はマスターデータに設定されたエフェクト（EF-01やEF-02）を指定
+        const treeMaster = ALL_GARDEN_ITEMS.find(item => item.id === itemId);
+        newEffects[itemId] = treeMaster?.growthEffectId || 'EF-01';
         hasChanges = true;
       }
 
@@ -76,12 +84,16 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     });
 
     if (hasChanges) {
-      setWateringEffects(newEffects);
+      setActiveEffects(newEffects);
     }
   }, [settings?.itemExps, settings?.itemLevels, settings?.plantExp, settings?.plantLevel, placements]);
 
-  const clearWateringEffect = useCallback((itemId: string) => {
-    setWateringEffects(prev => ({ ...prev, [itemId]: false }));
+  const clearActiveEffect = useCallback((itemId: string) => {
+    setActiveEffects(prev => {
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
   }, []);
 
   const panResponder = useRef(
@@ -198,34 +210,34 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
             const topPosition = tileCenterY - displayHeight + (spriteDef?.offsetY || 0) * baseScale;
             const isSelected = selectedItemIndex === node.originalIndex;
             const isFlipped = node.placementData?.isFlipped;
-            const treeMaster = isLarge ? ALL_GARDEN_ITEMS.find(item => item.id === node.placementData!.itemId) : null;
-            const effectId = treeMaster?.growthEffectId || 'EF-01';
-
-            // ▼ 修正: マップ描画時も個別の木のレベルを取得してコマ番号を決定する
+            
+            // マップ描画時も個別の木のレベルを取得してコマ番号を決定する
             const itemLevel = settings?.itemLevels?.[node.placementData!.itemId] || (node.placementData!.itemId === 'PL-01' ? settings?.plantLevel : 1) || 1;
             const safeFrameIndex = Math.max(0, Math.min(Math.floor(itemLevel) - 1, 4));
+
+            // ▼ 修正: string型のエフェクトIDを取得
+            const activeEffectId = activeEffects[node.placementData!.itemId];
 
             return (
               <View key={node.id} style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
                 <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
                   {isLarge ? (
                     <Pressable onPress={() => handleItemPress(node)}>
-                      {/* ▼ 修正: safeFrameIndex を渡す */}
                       <UniversalSprite itemId={node.placementData!.itemId} frameIndex={safeFrameIndex} displaySize={displaySize} onLoad={handleImageLoad} />
                     </Pressable>
                   ) : (
                     <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={spriteDef?.isAnimated} onLoad={handleImageLoad} onPress={() => handleItemPress(node)} />
                   )}
                 </View>
-                {/* ▼ 修正: 対象のitemIdのエフェクト状態がtrueの場合のみ表示 */}
-                {isLarge && wateringEffects[node.placementData!.itemId] && (
+                {/* ▼ 修正: エフェクトIDが存在する場合のみ指定されたエフェクトを再生 */}
+                {isLarge && activeEffectId && (
                   <View style={styles.effectOverlay}>
                     <EffectSprite 
-                      effectId={effectId} 
+                      effectId={activeEffectId} 
                       displaySize={displaySize * 0.8} 
                       loop={false} 
                       durationPerFrame={150} 
-                      onAnimationEnd={() => clearWateringEffect(node.placementData!.itemId)} 
+                      onAnimationEnd={() => clearActiveEffect(node.placementData!.itemId)} 
                     />
                   </View>
                 )}
