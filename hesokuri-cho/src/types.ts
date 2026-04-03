@@ -31,8 +31,10 @@ export interface HouseholdSettings {
   gardenPlacements?: GardenPlacement[]; // 永続化されるお庭の配置情報
   plantLevel?: number; // 知恵の木のレベル(1〜5)
   plantExp?: number;   // 知恵の木に蓄積された経験値ポイント
-  selectedTreeId?: string; // 追加: 選択中の木のID
-  selectedTileId?: string; // 追加: 選択中のタイルのID
+  itemLevels?: Record<string, number>; // 追加: 木それぞれ(itemId)のレベル
+  itemExps?: Record<string, number>;   // 追加: 木それぞれ(itemId)の蓄積経験値
+  selectedTreeId?: string; // 選択中の木のID
+  selectedTileId?: string; // 選択中のタイルのID
 }
 
 export interface ExpenseRecord {

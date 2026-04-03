@@ -7,7 +7,7 @@ import { SPRITE_CONFIG } from '../config/spriteConfig';
 import { GARDEN_CONFIG } from '../functions/gardenUtils';
 
 export const useGardenPlacements = () => {
-  const { settings, updateGardenPlacements } = useHesokuriStore();
+  const { settings, updateGardenPlacements, setSelectedTreeId } = useHesokuriStore();
   const [placements, setPlacements] = useState<GardenPlacement[]>([]);
   const [selectedPlacedItemIndex, setSelectedPlacedItemIndex] = useState<number | null>(null);
 
@@ -16,7 +16,6 @@ export const useGardenPlacements = () => {
   }, [settings?.updatedAt]);
 
   const ownedItems = useMemo(() => {
-    // ▼ BGやPL全種をマスターから動的に抽出して結合
     const allMasterKeys = Object.keys(SPRITE_CONFIG);
     const bgItems = allMasterKeys.filter(k => k.startsWith('BG-'));
     const plItems = allMasterKeys.filter(k => k.startsWith('PL-'));
@@ -36,7 +35,7 @@ export const useGardenPlacements = () => {
     const tSize = target.itemId.startsWith('PL-') ? 2 : 1; 
     return currentPlacements.some((p, i) => {
       if (i === targetIndex) return false;
-      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return false; // ▼ 衝突判定から背景と壁紙を除外
+      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return false; 
       const pSize = p.itemId.startsWith('PL-') ? 2 : 1;
       const overlapX = target.x < p.x + pSize && target.x + tSize > p.x;
       const overlapY = target.y < p.y + pSize && target.y + tSize > p.y;
@@ -47,7 +46,11 @@ export const useGardenPlacements = () => {
   const persistPlacements = (newPlacements: GardenPlacement[]) => updateGardenPlacements(newPlacements);
 
   const handleInventoryPress = (itemId: string) => {
-    // 既に未確定アイテムがある場合は、マップを保存済み状態にリセットしてから処理する
+    // インベントリで木を選択した場合は対象の木としてセットする
+    if (itemId.startsWith('PL-')) {
+      setSelectedTreeId(itemId);
+    }
+
     let currentPlacements = placements;
     if (selectedPlacedItemIndex !== null) {
       currentPlacements = settings?.gardenPlacements || [{ itemId: 'PL-01', x: 2, y: 2 }];
@@ -55,7 +58,6 @@ export const useGardenPlacements = () => {
       setSelectedPlacedItemIndex(null);
     }
 
-    // ▼ 壁紙(WP)の場合は即時置換・保存して終了（移動・配置モードに入れない）
     if (itemId.startsWith('WP-') || itemId === 'WP-NONE') {
       const updated = currentPlacements.filter(p => !p.itemId.startsWith('WP-'));
       if (itemId !== 'WP-NONE') {
@@ -66,7 +68,6 @@ export const useGardenPlacements = () => {
       return;
     }
 
-    // ▼ 背景(BG)の場合は即時置換・保存して終了（移動させない）
     if (itemId.startsWith('BG-')) {
       const existingIndex = currentPlacements.findIndex(p => p.itemId.startsWith('BG-'));
       if (existingIndex !== -1) {
@@ -82,15 +83,13 @@ export const useGardenPlacements = () => {
       return;
     }
 
-    // ▼ 木(PL)の場合は置換して移動パネル（選択状態）を出す
     if (itemId.startsWith('PL-')) {
       const existingIndex = currentPlacements.findIndex(p => p.itemId.startsWith('PL-'));
       if (existingIndex !== -1) {
         const updated = [...currentPlacements];
-        // 種類だけ置き換えて座標は維持
         updated[existingIndex] = { ...updated[existingIndex], itemId };
         setPlacements(updated);
-        setSelectedPlacedItemIndex(existingIndex); // 選択状態にする
+        setSelectedPlacedItemIndex(existingIndex); 
       } else {
         const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 2);
         const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 2);
@@ -101,7 +100,6 @@ export const useGardenPlacements = () => {
       return;
     }
 
-    // ▼ その他アイテムの場合
     const existingIndex = currentPlacements.findIndex(p => p.itemId === itemId);
     if (existingIndex !== -1) {
       setSelectedPlacedItemIndex(existingIndex);
@@ -109,7 +107,7 @@ export const useGardenPlacements = () => {
       const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
       const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
       setPlacements([...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }]);
-      setSelectedPlacedItemIndex(currentPlacements.length); // 末尾に追加されるため
+      setSelectedPlacedItemIndex(currentPlacements.length); 
     }
   };
 
@@ -120,11 +118,19 @@ export const useGardenPlacements = () => {
       return;
     }
     const clickedItemIndex = placements.findIndex(p => {
-      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return false; // ▼ 背景・壁紙はタップ判定対象外
+      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return false; 
       const pSize = p.itemId.startsWith('PL-') ? 2 : 1;
       return x >= p.x && x < p.x + pSize && y >= p.y && y < p.y + pSize;
     });
-    if (clickedItemIndex !== -1) setSelectedPlacedItemIndex(clickedItemIndex);
+    
+    if (clickedItemIndex !== -1) {
+      setSelectedPlacedItemIndex(clickedItemIndex);
+      // マップ上で木をタップした場合も対象の木としてセットする
+      const clickedItem = placements[clickedItemIndex];
+      if (clickedItem.itemId.startsWith('PL-')) {
+        setSelectedTreeId(clickedItem.itemId);
+      }
+    }
   };
 
   const handleMovePlacedItem = (dx: number, dy: number) => {

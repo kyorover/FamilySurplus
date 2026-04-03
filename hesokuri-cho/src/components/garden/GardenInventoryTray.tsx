@@ -2,17 +2,19 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
+import { ALL_GARDEN_ITEMS } from '../../constants/gardenItems';
+import { useHesokuriStore } from '../../store';
 
 interface Props {
   ownedItems: string[];
   selectedItemId: string | null;
-  plantLevel?: number; // HistoryScreenから受け取る（念のためオプショナル）
   onSelectItem: (itemId: string) => void;
 }
 
-type CategoryTab = 'ALL' | 'BG' | 'PL' | 'WP' | 'OTHER'; // ▼ 追加: WP(壁紙)タブ
+type CategoryTab = 'ALL' | 'BG' | 'PL' | 'WP' | 'OTHER';
 
-export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemId, plantLevel = 1, onSelectItem }) => {
+export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemId, onSelectItem }) => {
+  const { settings } = useHesokuriStore();
   const [activeTab, setActiveTab] = useState<CategoryTab>('ALL');
 
   const filteredItems = useMemo(() => {
@@ -26,6 +28,21 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
       return !itemId.startsWith('BG-') && !itemId.startsWith('PL-') && !itemId.startsWith('WP-');
     });
   }, [ownedItems, activeTab]);
+
+  // マスターデータからカテゴリ(type)に応じた背景色を取得
+  const getItemBackgroundColor = (itemId: string) => {
+    if (itemId === 'WP-NONE') return '#E0F7FA'; // 壁紙なし
+    const master = ALL_GARDEN_ITEMS.find(i => i.id === itemId);
+    if (!master) return '#E0E0E0';
+    switch (master.type) {
+      case 'bg': return '#E3F2FD'; // 淡い青
+      case 'plant': return '#E8F5E9'; // 淡い緑
+      case 'ornament': return '#FFF3E0'; // 淡いオレンジ
+      case 'flower': return '#FCE4EC'; // 淡いピンク
+      case 'pot': return '#EFEBE9'; // 淡い茶
+      default: return '#E0E0E0';
+    }
+  };
 
   return (
     <View style={styles.inventory}>
@@ -44,12 +61,11 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {filteredItems.map((itemId) => {
-          // ▼ 壁紙なし状態のダミーアイテム
           if (itemId === 'WP-NONE') {
             return (
               <TouchableOpacity
                 key={itemId}
-                style={[styles.inventoryItem, selectedItemId === itemId && styles.activeItem, { backgroundColor: '#E0F7FA' }]}
+                style={[styles.inventoryItem, selectedItemId === itemId && styles.activeItem, { backgroundColor: getItemBackgroundColor(itemId) }]}
                 onPress={() => onSelectItem(itemId)}
               >
                 <Text style={{ fontSize: 10, color: '#666', fontWeight: 'bold' }}>None</Text>
@@ -57,20 +73,28 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
             );
           }
 
-          // ▼ NaNクラッシュ対策: plantLevelが不正な値でも必ず1以上の数値にする
-          const safeLevel = Math.max(1, plantLevel || 1);
-          // 現在の育成レベルを正規化してアイコンとして表示する (0始まりのため -1)
-          const displayFrameIndex = itemId.startsWith('PL-') 
-            ? Math.max(0, Math.min(Math.floor(safeLevel) - 1, 4)) 
-            : 0;
+          const isPlant = itemId.startsWith('PL-');
+          const itemLevel = settings?.itemLevels?.[itemId] || (itemId === 'PL-01' ? settings?.plantLevel : 1) || 1;
+          const safeLevel = Math.max(1, itemLevel);
+          const displayFrameIndex = isPlant ? Math.max(0, Math.min(Math.floor(safeLevel) - 1, 4)) : 0;
 
           return (
             <TouchableOpacity
               key={itemId}
-              style={[styles.inventoryItem, selectedItemId === itemId && styles.activeItem]}
+              style={[
+                styles.inventoryItem, 
+                selectedItemId === itemId && styles.activeItem,
+                { backgroundColor: getItemBackgroundColor(itemId) }
+              ]}
               onPress={() => onSelectItem(itemId)}
             >
               <UniversalSprite itemId={itemId} frameIndex={displayFrameIndex} displaySize={32} />
+              
+              {isPlant && (
+                <View style={styles.levelBadge}>
+                  <Text style={styles.levelBadgeText}>Lv.{safeLevel}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -93,12 +117,10 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#FFF', fontWeight: 'bold' },
   inventoryItem: { 
     padding: 8, 
-    backgroundColor: '#E0E0E0', 
     borderRadius: 8, 
     marginRight: 8, 
     borderWidth: 2, 
     borderColor: 'transparent',
-    // 画像を上下左右中央に配置し、表示の違和感を解消
     justifyContent: 'center', 
     alignItems: 'center',
     minWidth: 56,
@@ -106,4 +128,20 @@ const styles = StyleSheet.create({
   },
   activeItem: { borderColor: '#4CAF50' },
   emptyText: { color: '#999', paddingVertical: 8 },
+  levelBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFF',
+  },
+  levelBadgeText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
 });

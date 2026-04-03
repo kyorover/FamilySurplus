@@ -25,7 +25,7 @@ interface Props {
   onZoomOut?: () => void;
   onPanMove?: (dx: number, dy: number) => void;
   onPanRelease?: (dx: number, dy: number) => void;
-  plantLevel?: number;
+  plantLevel?: number; // 後方互換のため残すが、描画時はStoreから個別レベルを優先参照する
   onLoadComplete?: () => void;
 }
 
@@ -36,15 +36,53 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   zoomScale = 1.0, onZoomIn, onZoomOut, onPanMove, onPanRelease, plantLevel = 1, onLoadComplete
 }) => {
   const { settings } = useHesokuriStore();
-  const [showWateringEffect, setShowWateringEffect] = useState(false);
   const [isLoading, setIsLoading] = useState(true); 
-  const prevExpRef = useRef(settings?.plantExp || 0);
+  
+  // ▼ 修正: 個別の木ごとにエフェクト表示状態を管理する
+  const [wateringEffects, setWateringEffects] = useState<Record<string, boolean>>({});
+  const prevExpsRef = useRef<Record<string, number>>({});
+  const prevLevelsRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
-    const currentExp = settings?.plantExp || 0;
-    if (currentExp > prevExpRef.current) setShowWateringEffect(true);
-    prevExpRef.current = currentExp;
-  }, [settings?.plantExp]);
+    if (!settings) return;
+
+    const currentExps: Record<string, number> = { ...(settings.itemExps || {}) };
+    const currentLevels: Record<string, number> = { ...(settings.itemLevels || {}) };
+    
+    // 後方互換の取り込み
+    if (settings.plantExp !== undefined) currentExps['PL-01'] = settings.plantExp;
+    if (settings.plantLevel !== undefined) currentLevels['PL-01'] = settings.plantLevel;
+
+    let hasChanges = false;
+    const newEffects = { ...wateringEffects };
+
+    placements.forEach(p => {
+      if (!p.itemId.startsWith('PL-')) return;
+      const itemId = p.itemId;
+      const cExp = currentExps[itemId] || 0;
+      // 初回マウント時はエフェクトを出さないよう、prevが無ければ現在の値を入れる
+      const pExp = prevExpsRef.current[itemId] ?? cExp; 
+      const cLevel = currentLevels[itemId] || 1;
+      const pLevel = prevLevelsRef.current[itemId] ?? cLevel;
+
+      // 経験値が増加した、またはレベルが上がった（経験値が0にリセットされた場合含む）場合にエフェクトを点火
+      if (cExp > pExp || cLevel > pLevel) {
+        newEffects[itemId] = true;
+        hasChanges = true;
+      }
+
+      prevExpsRef.current[itemId] = cExp;
+      prevLevelsRef.current[itemId] = cLevel;
+    });
+
+    if (hasChanges) {
+      setWateringEffects(newEffects);
+    }
+  }, [settings?.itemExps, settings?.itemLevels, settings?.plantExp, settings?.plantLevel, placements]);
+
+  const clearWateringEffect = useCallback((itemId: string) => {
+    setWateringEffects(prev => ({ ...prev, [itemId]: false }));
+  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -118,7 +156,6 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: '#E0F7FA' }]} {...panResponder.panHandlers}>
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
       
-      {/* ▼ 修正: pointerEventsを "none" から "box-none" に変更し、アイテム自身のタップ判定を復活 */}
       <View style={{ flex: 1, transform: [{ scale: zoomScale }] }} pointerEvents="box-none">
         
         {wpImageSource && (
@@ -132,7 +169,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
               top: -WALLPAPER_OVERSIZE + viewOffset.y,
             }}
             resizeMode="repeat"
-            pointerEvents="none" // 壁紙はタップを拾わないように明示
+            pointerEvents="none" 
           />
         )}
         
@@ -164,20 +201,32 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
             const treeMaster = isLarge ? ALL_GARDEN_ITEMS.find(item => item.id === node.placementData!.itemId) : null;
             const effectId = treeMaster?.growthEffectId || 'EF-01';
 
+            // ▼ 修正: マップ描画時も個別の木のレベルを取得してコマ番号を決定する
+            const itemLevel = settings?.itemLevels?.[node.placementData!.itemId] || (node.placementData!.itemId === 'PL-01' ? settings?.plantLevel : 1) || 1;
+            const safeFrameIndex = Math.max(0, Math.min(Math.floor(itemLevel) - 1, 4));
+
             return (
               <View key={node.id} style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
                 <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
                   {isLarge ? (
                     <Pressable onPress={() => handleItemPress(node)}>
-                      <UniversalSprite itemId={node.placementData!.itemId} frameIndex={plantLevel - 1} displaySize={displaySize} onLoad={handleImageLoad} />
+                      {/* ▼ 修正: safeFrameIndex を渡す */}
+                      <UniversalSprite itemId={node.placementData!.itemId} frameIndex={safeFrameIndex} displaySize={displaySize} onLoad={handleImageLoad} />
                     </Pressable>
                   ) : (
                     <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={spriteDef?.isAnimated} onLoad={handleImageLoad} onPress={() => handleItemPress(node)} />
                   )}
                 </View>
-                {isLarge && showWateringEffect && (
+                {/* ▼ 修正: 対象のitemIdのエフェクト状態がtrueの場合のみ表示 */}
+                {isLarge && wateringEffects[node.placementData!.itemId] && (
                   <View style={styles.effectOverlay}>
-                    <EffectSprite effectId={effectId} displaySize={displaySize * 0.8} loop={false} durationPerFrame={150} onAnimationEnd={() => setShowWateringEffect(false)} />
+                    <EffectSprite 
+                      effectId={effectId} 
+                      displaySize={displaySize * 0.8} 
+                      loop={false} 
+                      durationPerFrame={150} 
+                      onAnimationEnd={() => clearWateringEffect(node.placementData!.itemId)} 
+                    />
                   </View>
                 )}
               </View>

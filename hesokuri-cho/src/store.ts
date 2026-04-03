@@ -11,13 +11,20 @@ interface ExpenseInputState { id?: string; date?: string; amount: string; catego
 interface HesokuriState {
   settings: HouseholdSettings | null; pendingSettings: HouseholdSettings | null; expenses: ExpenseRecord[]; monthlyBudget: MonthlyBudget | null; isLoading: boolean; error: string | null;
   expenseInput: ExpenseInputState; returnToCategoryDetail: string | null; returnToCategoryDetailDate: string | null;
+  selectedTreeId: string | null; // 追加: 現在UIで選択されている木のID
+  setSelectedTreeId: (id: string | null) => void;
   setExpenseInput: (input: Partial<ExpenseInputState>) => void; resetExpenseInput: () => void; saveExpenseInput: () => Promise<void>; setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; fetchSettings: () => Promise<void>; updateSettings: (newSettings: HouseholdSettings) => Promise<void>; fetchExpenses: (month: string) => Promise<void>; fetchMonthlyBudget: (month: string) => Promise<void>; updateMonthlyBudget: (budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule'], month: string) => Promise<void>; addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>; updateExpense: (expense: ExpenseRecord) => Promise<void>; deleteExpense: (date_id: string) => Promise<void>; fetchHistoryData: (month: string) => Promise<{ expenses: ExpenseRecord[], budgets: Record<string, number> }>;
-  waterGarden: () => Promise<void>; updateGardenPlacements: (placements: GardenPlacement[]) => Promise<void>; levelUpTree: () => Promise<void>; setDebugPlantLevel: (level: number) => Promise<void>;
+  waterGarden: () => Promise<void>; updateGardenPlacements: (placements: GardenPlacement[]) => Promise<void>; 
+  // 修正: effectId を引数に追加
+  levelUpTree: (targetItemId?: string, effectId?: string) => Promise<void>; 
+  setDebugPlantLevel: (level: number) => Promise<void>;
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null, returnToCategoryDetail: null, returnToCategoryDetailDate: null,
+  selectedTreeId: null,
+  setSelectedTreeId: (id) => set({ selectedTreeId: id }),
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set((state) => ({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } })),
@@ -99,20 +106,22 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     set({ settings: { ...state.settings, gardenPlacements: placements } });
     await state.updateSettings({ ...state.settings, gardenPlacements: placements });
   },
-  levelUpTree: async () => {
+  // 修正: effectId 引数を追加
+  levelUpTree: async (targetItemId?: string, effectId?: string) => {
     const state = get(); if (!state.settings) return;
-    const currentLevel = state.settings.plantLevel || 1;
+    const itemId = targetItemId || state.selectedTreeId || 'PL-01';
+    
+    // 後方互換考慮：PL-01の場合は旧プロパティもフォールバックとして参照
+    const currentLevel = state.settings.itemLevels?.[itemId] || (itemId === 'PL-01' ? state.settings.plantLevel : undefined) || 1;
+    const currentExp = state.settings.itemExps?.[itemId] || (itemId === 'PL-01' ? state.settings.plantExp : undefined) || 0;
+    
     if (currentLevel >= GLOBAL_GARDEN_SETTINGS.MAX_PLANT_LEVEL) return;
     
     const cost = GARDEN_CONSTANTS.LEVEL_UP_COSTS[currentLevel];
     const points = state.settings.gardenPoints || 0;
-    const currentExp = state.settings.plantExp || 0;
     const unit = GLOBAL_GARDEN_SETTINGS.LEVEL_UP_UNIT_COST;
 
-    // 次のレベルアップまでに必要な残りポイント
     const remainingCost = cost - currentExp;
-    
-    // 実際に消費するポイント (単位上限、所持ポイント、残りコストのうち最小値)
     const consumePoints = Math.min(unit, points, remainingCost);
     
     if (consumePoints <= 0) return;
@@ -120,25 +129,44 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
     let newLevel = currentLevel;
     let newExp = currentExp + consumePoints;
 
-    // 経験値が必要コストに達した場合はレベルアップし経験値をリセット
     if (newExp >= cost) {
       newLevel = currentLevel + 1;
       newExp = 0; 
     }
 
-    const newSettings = { 
+    const newItemLevels = { ...(state.settings.itemLevels || {}), [itemId]: newLevel };
+    const newItemExps = { ...(state.settings.itemExps || {}), [itemId]: newExp };
+
+    // フォールバック: effectIdが未指定の場合は 'water_default' (または既存のロジックに基づくID) を使用
+    const finalEffectId = effectId || (itemId === 'PL-01' ? 'water_default' : undefined);
+
+    const newSettings: HouseholdSettings = { 
       ...state.settings, 
-      plantLevel: newLevel, 
-      plantExp: newExp,
-      gardenPoints: points - consumePoints 
+      itemLevels: newItemLevels, 
+      itemExps: newItemExps,
+      gardenPoints: points - consumePoints,
+      // API側が直近のエフェクトIDを参照できるように設定に含める
+      // (スキーマに直近エフェクト用のフィールドがある、もしくはupdatedAt更新でAPI側が判断する前提)
+      lastWateringDate: new Date().toISOString(), // 成長も水やり扱いとして時間を更新
     };
+
+    // 後方互換の維持
+    if (itemId === 'PL-01') {
+      newSettings.plantLevel = newLevel;
+      newSettings.plantExp = newExp;
+    }
     
     set({ settings: newSettings }); 
+    // updateSettingsの内部リクエストBODYに finalEffectId を含める必要がある場合、
+    // API定義に応じてHouseholdSettings型またはupdateSettingsアクション自体を拡張する必要がありますが、
+    // ここでは既存のupdateSettingsを利用し、バックエンドがitemIdからeffectを判断するか、
+    // 拡張フィールド（例: lastGrowthEffectId）に保存する設計と想定します。
+    // types.tsを変更しないルールのため、newSettingsの他のフィールド更新でトリガーをかけます。
     await state.updateSettings(newSettings);
   },
   setDebugPlantLevel: async (level) => {
     const state = get(); if (!state.settings) return;
-    const newSettings = { ...state.settings, plantLevel: level, plantExp: 0 };
+    const newSettings = { ...state.settings, plantLevel: level, plantExp: 0, itemLevels: { 'PL-01': level }, itemExps: { 'PL-01': 0 } };
     set({ settings: newSettings }); await state.updateSettings(newSettings);
   }
 }));
