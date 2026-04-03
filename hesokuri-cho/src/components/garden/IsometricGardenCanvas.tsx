@@ -113,6 +113,13 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     if (grid.x >= 0 && grid.x < GARDEN_CONFIG.GRID_SIZE && grid.y >= 0 && grid.y < GARDEN_CONFIG.GRID_SIZE) onPressTile(grid.x, grid.y);
   };
 
+  // ▼ 追加: アイテム自身がタップされた時に、その配置座標を親へ通知する
+  const handleItemPress = (node: RenderNode) => {
+    if (onPressTile) {
+      onPressTile(node.x, node.y);
+    }
+  };
+
   return (
     <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: '#E0F7FA' }]} {...panResponder.panHandlers}>
       {/* ▼ 壁紙の敷き詰め描画（不具合回避のため幅と高さを明示して確実にリピートさせる） */}
@@ -126,6 +133,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
         </View>
       )}
 
+      {/* ▼ 床（背景）に対するタップ判定 */}
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
       
       {renderList.map((node) => {
@@ -165,10 +173,13 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
           return (
             <View key={node.id} style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
               <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
+                {/* ▼ 修正: 直接アイテムのタップを検知し、座標を渡す */}
                 {isLarge ? (
-                  <UniversalSprite itemId={node.placementData!.itemId} frameIndex={plantLevel - 1} displaySize={displaySize} onLoad={handleImageLoad} />
+                  <Pressable onPress={() => handleItemPress(node)}>
+                    <UniversalSprite itemId={node.placementData!.itemId} frameIndex={plantLevel - 1} displaySize={displaySize} onLoad={handleImageLoad} />
+                  </Pressable>
                 ) : (
-                  <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={spriteDef?.isAnimated} onLoad={handleImageLoad} />
+                  <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={spriteDef?.isAnimated} onLoad={handleImageLoad} onPress={() => handleItemPress(node)} />
                 )}
               </View>
               {/* ▼ 水やりエフェクトの表示（知恵の木の上） */}
@@ -198,7 +209,7 @@ const styles = StyleSheet.create({
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
   itemContent: { borderRadius: 16 },
   selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
-  effectOverlay: { position: 'absolute', top: -40, left: 0, right: 0, alignItems: 'center', zIndex: 999 },
+  effectOverlay: { position: 'absolute', top: -40, left: 0, right: 0, alignItems: 'center', zIndex: 999, pointerEvents: 'none' }, // ▼ 修正: タップ判定を阻害しないよう追加
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(224, 247, 250, 0.9)', // 背景色に合わせて少し透過させる

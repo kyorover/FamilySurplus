@@ -10,6 +10,7 @@ interface Props {
   isInteractive?: boolean;
   isAnimated?: boolean;
   onLoad?: () => void; // 追加
+  onPress?: () => void; // ▼ 追加: 親へタップを通知するためのコールバック
 }
 
 export const InteractiveGardenItem: React.FC<Props> = ({ 
@@ -17,7 +18,8 @@ export const InteractiveGardenItem: React.FC<Props> = ({
   displaySize, 
   isInteractive = true,
   isAnimated = false,
-  onLoad
+  onLoad,
+  onPress // ▼ 追加
 }) => {
   const config = SPRITE_CONFIG[itemId];
   const maxFrames = config ? config.frameCount : 1; 
@@ -26,7 +28,8 @@ export const InteractiveGardenItem: React.FC<Props> = ({
   const [currentFrame, setCurrentFrame] = useState(0);
 
   const handlePress = () => {
-    if (!isInteractive || maxFrames <= 1) return;
+    if (onPress) onPress(); // ▼ 追加: アイテム選択機能のために親へ通知
+    if (!isInteractive || maxFrames <= 1) return; // コマ送り自体は条件を満たさないと実行しない
     setCurrentFrame((prev) => (prev + 1) % maxFrames);
   };
 
@@ -67,8 +70,9 @@ export const InteractiveGardenItem: React.FC<Props> = ({
     outputRange: ['-2deg', '2deg']
   });
 
+  // ▼ 修正: disabled条件を外し、すべてのアイテムで選択用タップを受け取れるように変更
   return (
-    <Pressable onPress={handlePress} disabled={!isInteractive || maxFrames <= 1}>
+    <Pressable onPress={handlePress}>
       <Animated.View style={[styles.container, { transform: [{ rotateZ: rotateInterpolate }] }]}>
         <UniversalSprite itemId={itemId} frameIndex={currentFrame} displaySize={displaySize} onLoad={onLoad} />
       </Animated.View>
