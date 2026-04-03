@@ -45,9 +45,10 @@ export const GLOBAL_GARDEN_SETTINGS = {
   TREE_SCALE: 1.5, 
   // 1回の「成長させる」ボタン押下で消費するポイント単位（上限）
   LEVEL_UP_UNIT_COST: 10,
-  // ▼ 追加: デフォルトの木とタイル
+  // ▼ 追加: デフォルトの木と壁紙・タイル
   DEFAULT_TREE_ID: 'PL-01',
-  DEFAULT_TILE_ID: 'WP-01',
+  DEFAULT_TILE_ID: '',
+  DEFAULT_BG_ID: 'BG-01', // ▼ 追加: デフォルトの地面タイル
   // ▼ 追加: ズーム用の環境変数
   MIN_ZOOM_SCALE: 0.5,
   MAX_ZOOM_SCALE: 2.0,

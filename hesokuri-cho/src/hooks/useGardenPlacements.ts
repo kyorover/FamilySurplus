@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { GardenPlacement } from '../types';
 import { useHesokuriStore } from '../store';
-import { SPRITE_CONFIG } from '../config/spriteConfig';
+import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../config/spriteConfig';
 import { GARDEN_CONFIG } from '../functions/gardenUtils';
 
 export const useGardenPlacements = () => {
@@ -16,13 +16,18 @@ export const useGardenPlacements = () => {
   }, [settings?.updatedAt]);
 
   const ownedItems = useMemo(() => {
-    const allMasterKeys = Object.keys(SPRITE_CONFIG);
-    const bgItems = allMasterKeys.filter(k => k.startsWith('BG-'));
-    const plItems = allMasterKeys.filter(k => k.startsWith('PL-'));
-    
-    const rawItems = [...plItems, ...bgItems, ...(settings?.ownedGardenItemIds || [])];
+    // デフォルトで所持しているアイテム（木、壁紙、タイル）
+    const defaultItems = [
+      GLOBAL_GARDEN_SETTINGS.DEFAULT_TREE_ID,
+      GLOBAL_GARDEN_SETTINGS.DEFAULT_TILE_ID, // 壁紙 (WP-01)
+      GLOBAL_GARDEN_SETTINGS.DEFAULT_BG_ID,   // 地面タイル (BG-01)
+    ].filter(Boolean) as string[];
+
+    // デフォルトアイテムと、ユーザーが購入したアイテムを結合
+    const rawItems = [...defaultItems, ...(settings?.ownedGardenItemIds || [])];
     const uniqueItems = Array.from(new Set(rawItems));
     
+    // マスターデータ(SPRITE_CONFIG)に存在するものだけに絞り、木(PL-)を先頭にソート
     return uniqueItems.filter(itemId => SPRITE_CONFIG[itemId]).sort((a, b) => {
       if (a.startsWith('PL-') && !b.startsWith('PL-')) return -1;
       if (!a.startsWith('PL-') && b.startsWith('PL-')) return 1;
