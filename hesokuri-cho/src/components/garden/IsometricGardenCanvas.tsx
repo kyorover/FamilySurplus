@@ -74,16 +74,15 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     return nodes.sort((a, b) => a.zIndex - b.zIndex);
   }, [placements]);
 
-  // ▼ アイテム構成（種類と数）の変更を検知する文字列（座標移動、反転、レベルアップ等では変化させない）
-  const itemConfigString = useMemo(() => {
-    return placements.map(p => p.itemId).sort().join(',');
-  }, [placements]);
+  // ▼ 背景(タイル)と壁紙の変更時のみローディングを発火させるための検知用文字列
+  // （アイテムの片づけ、配置、移動、反転、レベルアップでは発火させない）
+  const itemConfigString = `${bgItemId}-${wpItemId || 'NONE'}`;
 
   // ▼ 画像のロード完了検知ロジック
   const totalImages = renderList.length;
   const loadedCountRef = useRef(0);
 
-  // アイテム構成が変わったらローディングをONにする
+  // タイル構成が変わったらローディングをONにする
   useEffect(() => {
     setIsLoading(true);
     loadedCountRef.current = 0;
