@@ -45,7 +45,7 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
         </View>
       </View>
 
-      <TouchableOpacity activeOpacity={0.6} onPress={onPressCard} style={styles.topArea}>
+      <View style={styles.topArea}>
         <Text style={styles.label}>今月の余るお金</Text>
         <Text style={[styles.amount, { color: isNegative ? '#FF3B30' : '#007AFF' }]}>
           ￥{currentHesokuri.toLocaleString()}
@@ -53,10 +53,16 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
         
         <Text style={styles.spentLabel}>支出の合計</Text>
         <Text style={styles.spentAmount}>￥{totalSpent.toLocaleString()}</Text>
-        <Text style={styles.hintText}>タップして全カテゴリーのカレンダーを見る ＞</Text>
-      </TouchableOpacity>
+      </View>
 
-      {/* 水やり（確認）ボタンエリア */}
+      {/* カレンダー確認ボタン（UI/UX改善） */}
+      <View style={styles.calendarArea}>
+        <TouchableOpacity style={styles.calendarBtn} onPress={onPressCard} activeOpacity={0.7}>
+          <Text style={styles.calendarBtnText}>📅 過去の履歴をカレンダーで確認</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* チェックイン（ポイント獲得）ボタンエリア */}
       <View style={styles.wateringArea}>
         <TouchableOpacity 
           style={[styles.wateringBtn, isWateredToday && styles.wateringBtnDone]} 
@@ -65,11 +71,11 @@ export const HesokuriSummaryCard: React.FC<HesokuriSummaryCardProps> = ({
           activeOpacity={0.7}
         >
           <Text style={[styles.wateringBtnText, isWateredToday && styles.wateringBtnTextDone]}>
-            {isWateredToday ? '✨ 本日のお世話完了！' : '💧 今日の状況を確認（水やり）'}
+            {isWateredToday ? '✨ 本日のチェックイン完了！' : '💰 今月の余剰金をチェックしてポイントGET'}
           </Text>
         </TouchableOpacity>
         {!isWateredToday && (
-          <Text style={styles.wateringHint}>タップで状況を確認してポイントGET</Text>
+          <Text style={styles.wateringHint}>タップで残高を確認して庭ポイントを獲得</Text>
         )}
       </View>
 
@@ -123,11 +129,13 @@ const styles = StyleSheet.create({
   amount: { fontSize: 44, fontWeight: '900', marginBottom: 16, letterSpacing: -1 },
   spentLabel: { fontSize: 14, color: '#8E8E93', fontWeight: 'bold', marginBottom: 2 },
   spentAmount: { fontSize: 28, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 16 },
-  hintText: { fontSize: 12, color: '#007AFF', fontWeight: 'bold', paddingVertical: 8 },
+  calendarArea: { alignItems: 'center', marginBottom: 16 },
+  calendarBtn: { backgroundColor: '#F2F2F7', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, flexDirection: 'row', alignItems: 'center' },
+  calendarBtnText: { color: '#1C1C1E', fontWeight: 'bold', fontSize: 13 },
   wateringArea: { alignItems: 'center', marginBottom: 20, marginTop: 4 },
   wateringBtn: { backgroundColor: '#34C759', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 24, width: '100%', alignItems: 'center', shadowColor: '#34C759', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   wateringBtnDone: { backgroundColor: '#E5E5EA', shadowOpacity: 0, elevation: 0 },
-  wateringBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 },
+  wateringBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
   wateringBtnTextDone: { color: '#8E8E93' },
   wateringHint: { fontSize: 11, color: '#8E8E93', marginTop: 8, fontWeight: 'bold' },
   divider: { height: 1, backgroundColor: '#E5E5EA', marginBottom: 20 },

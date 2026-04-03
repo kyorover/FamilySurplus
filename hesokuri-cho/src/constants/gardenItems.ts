@@ -15,8 +15,8 @@ export type GardenItemMaster = GardenItem & {
 export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   // 非売品アイテム
   { id: 'PL-01', name: '知恵の木', type: 'plant', cost: 0, isShoppable: false, growthEffectId: 'EF-01' },
-  { id: 'PL-02', name: 'ツリーハウス', type: 'plant', cost: 500, isShoppable: true, growthEffectId: 'EF-01' },
-  { id: 'PL-03', name: 'グランピング', type: 'plant', cost: 1000, isShoppable: true, growthEffectId: 'EF-01' },
+  { id: 'PL-02', name: 'ツリーハウス', type: 'plant', cost: 500, isShoppable: true, growthEffectId: 'EF-02' },
+  { id: 'PL-03', name: 'グランピング', type: 'plant', cost: 1000, isShoppable: true, growthEffectId: 'EF-02' },
 
   // エフェクト（非売品）
   { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: false },
