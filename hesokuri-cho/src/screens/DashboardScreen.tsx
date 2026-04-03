@@ -33,7 +33,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
   const [isPocketMoneyModalVisible, setPocketMoneyModalVisible] = useState(false);
-  const [isSettingsMenuVisible, setSettingsMenuVisible] = useState(false); // 新規：設定メニューモーダル
+  const [isSettingsMenuVisible, setSettingsMenuVisible] = useState(false);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
@@ -51,14 +51,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
   if (!settings || !monthlyBudget) return null;
 
-  const hasChild = settings.familyMembers.some(m => m.role === '子供');
   const targetCategories = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
   const targetCategoryIds = new Set(targetCategories.map(c => c.id));
   const totalMonthlyBudget = targetCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
   const totalSpent = expenses.filter(exp => targetCategoryIds.has(exp.categoryId)).reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
 
-  // 年月表示用のフォーマット（例: 2024年7月）
   const [year, month] = monthlyBudget.month_id.split('-');
   const displayMonth = `${year}年${parseInt(month)}月`;
 
@@ -108,17 +106,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
   return (
     <View style={styles.container}>
-      {/* ヘッダーエリア */}
+      {/* 修正：ヘッダーの縦幅をコンパクトに */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{displayMonth}の予算</Text>
-        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.iconBtn}>
-          <Text style={styles.iconText}>⚙️</Text>
+        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}>
+          <Text style={styles.menuBtnText}>≡ メニュー</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} scrollEnabled={isScrollEnabled} showsVerticalScrollIndicator={false}>
         
-        {/* 新規：家計ステータスカード（全てのサマリーを集約） */}
+        {/* ステータスカード */}
         <TouchableOpacity activeOpacity={0.9} onPress={() => setAllCalendarVisible(true)} style={styles.statusCard}>
           <View style={styles.cardHeader}>
             <View>
@@ -156,13 +154,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           <Text style={styles.cardFooterText}>👉 タップでカレンダー・履歴を確認</Text>
         </TouchableOpacity>
 
-        {/* カテゴリ別詳細エリア */}
-        <View style={styles.listSection}>
+        {/* 修正：下段のリストセクションも上段と同じカードスタイルに統一 */}
+        <View style={styles.listSectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>カテゴリ別内訳</Text>
-            {isEditMode && (
+            {isEditMode ? (
               <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsEditMode(false); }} style={styles.compactBtnActive}>
                 <Text style={styles.compactBtnTextActive}>✅ 完了</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsEditMode(true); }} style={styles.compactBtn}>
+                <Text style={styles.compactBtnText}>↕️ 並び替え</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -184,19 +186,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
       </ScrollView>
 
-      {/* 新規：支出入力FAB */}
+      {/* FAB */}
       {!isEditMode && (
         <TouchableOpacity onPress={onNavigateToInput} style={styles.fab}>
           <Text style={styles.fabText}>＋</Text>
         </TouchableOpacity>
       )}
 
-      {/* 新規：設定メニューモーダル（アクションシート風） */}
+      {/* 設定メニュー */}
       <Modal visible={isSettingsMenuVisible} transparent animationType="slide" onRequestClose={() => setSettingsMenuVisible(false)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setSettingsMenuVisible(false)}>
           <View style={styles.menuContent}>
             <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>設定・管理</Text>
+              <Text style={styles.menuTitle}>メニュー</Text>
               <TouchableOpacity onPress={() => setSettingsMenuVisible(false)}><Text style={styles.menuCloseBtn}>✕</Text></TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); setBudgetModalVisible(true); }}>
@@ -207,10 +209,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); onNavigateToHesokuriHistory(); }}>
               <Text style={styles.menuItemIcon}>📈</Text><Text style={styles.menuItemText}>過去のへそくり履歴</Text>
-            </TouchableOpacity>
-            <View style={styles.menuDivider} />
-            <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsEditMode(true); }}>
-              <Text style={styles.menuItemIcon}>↕️</Text><Text style={styles.menuItemText}>カテゴリを並び替え</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -227,13 +225,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 50 : 16, paddingBottom: 16, backgroundColor: '#FFFFFF' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1C1C1E' },
-  iconBtn: { padding: 8 },
-  iconText: { fontSize: 20 },
+  // 修正：paddingTopを減らして高さをタイトに
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 44 : 16, paddingBottom: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E' },
+  // 修正：テキストベースのボタンへ変更
+  menuBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
+  menuBtnText: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E' },
   
   // ステータスカード
-  statusCard: { backgroundColor: '#FFFFFF', margin: 16, padding: 20, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 },
+  statusCard: { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginTop: 16, marginBottom: 16, padding: 20, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   cardSubTitle: { fontSize: 12, color: '#8E8E93', fontWeight: '600', marginBottom: 4 },
   cardTotalAmount: { fontSize: 28, fontWeight: 'bold', color: '#1C1C1E' },
@@ -252,16 +252,18 @@ const styles = StyleSheet.create({
   progressLabelText: { fontSize: 11, color: '#8E8E93' },
   cardFooterText: { fontSize: 12, color: '#007AFF', textAlign: 'center', fontWeight: '600', marginTop: 8 },
 
-  // カテゴリリスト
-  listSection: { flex: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 24, paddingBottom: 16 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 24 },
-  sectionTitle: { fontSize: 17, fontWeight: 'bold', color: '#1C1C1E' },
-  compactBtnActive: { backgroundColor: '#007AFF', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12 },
+  // 修正：リストセクションを上段と同じカードスタイルに
+  listSectionCard: { backgroundColor: '#FFFFFF', marginHorizontal: 16, borderRadius: 24, paddingVertical: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  compactBtn: { backgroundColor: '#F2F2F7', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
+  compactBtnText: { color: '#1C1C1E', fontSize: 12, fontWeight: '600' },
+  compactBtnActive: { backgroundColor: '#007AFF', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
   compactBtnTextActive: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
   viewRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
   dragRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingVertical: 4 },
   dragRowActive: { backgroundColor: '#F0F8FF', zIndex: 999, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
-  dragHandle: { paddingLeft: 24, paddingRight: 8, paddingVertical: 16, justifyContent: 'center' },
+  dragHandle: { paddingLeft: 20, paddingRight: 8, paddingVertical: 16, justifyContent: 'center' },
   dragIcon: { fontSize: 24, color: '#C7C7CC', fontWeight: '300' },
   progressWrap: { flex: 1, paddingHorizontal: 16 },
 
@@ -278,5 +280,4 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16 },
   menuItemIcon: { fontSize: 20, marginRight: 16, width: 24, textAlign: 'center' },
   menuItemText: { fontSize: 16, color: '#1C1C1E', fontWeight: '500' },
-  menuDivider: { height: 1, backgroundColor: '#E5E5EA', marginVertical: 8 },
 });
