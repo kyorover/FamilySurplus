@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'chara' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'item3' |  'chara' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -25,6 +25,7 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   tree2: require('../../assets/images/garden/tree_2.png'),
   item1: require('../../assets/images/garden/item1.png'),
   item2: require('../../assets/images/garden/item2.png'),
+  item3: require('../../assets/images/garden/item3.png'),
   chara: require('../../assets/images/garden/chara.png'),
   // ▼ 追加: 壁紙の画像ソース
   wp1: require('../../assets/images/garden/bg_1.png'),
@@ -70,10 +71,10 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 86, frameHeight: 70, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 20,
     baseScale: 1.2, isAnimated: true, animationSpeed: 400,
   },
-  'EF-02': {
-    sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 256,
-    frameWidth: 78, frameHeight: 80, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 1.0, isAnimated: true, animationSpeed: 200,
+  'EF-02': { // ハンマー
+    sourceId: 'item3', originalWidth: 250, originalHeight: 62, startX: 0, startY: 0,
+    frameWidth: 62, frameHeight: 62, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    baseScale: 0.6, isAnimated: true, animationSpeed: 400,
   },
   'BG-03': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
