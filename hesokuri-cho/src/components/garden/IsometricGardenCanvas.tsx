@@ -13,7 +13,7 @@ import { GardenZoomUI } from './GardenZoomUI';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_HEIGHT = 400; // キャンバスの高さ
-const WALLPAPER_OVERSIZE = 4000; // ▼ 追加: 縮小時・スワイプ時にも余白を出さないための拡張余白
+const WALLPAPER_OVERSIZE = 4000; // 縮小時・スワイプ時にも余白を出さないための拡張余白
 
 interface Props {
   placements?: GardenPlacement[];
@@ -118,8 +118,9 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
     <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: '#E0F7FA' }]} {...panResponder.panHandlers}>
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
       
-      <View style={{ flex: 1, transform: [{ scale: zoomScale }] }} pointerEvents="none">
-        {/* ▼ 修正: 壁紙をスケールレイヤー内に戻し、サイズを大幅に拡張してカメラ(viewOffset)に連動させる */}
+      {/* ▼ 修正: pointerEventsを "none" から "box-none" に変更し、アイテム自身のタップ判定を復活 */}
+      <View style={{ flex: 1, transform: [{ scale: zoomScale }] }} pointerEvents="box-none">
+        
         {wpImageSource && (
           <Image
             source={wpImageSource}
@@ -131,6 +132,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
               top: -WALLPAPER_OVERSIZE + viewOffset.y,
             }}
             resizeMode="repeat"
+            pointerEvents="none" // 壁紙はタップを拾わないように明示
           />
         )}
         
