@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tree' | 'item1' | 'item2' | 'chara' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'chara' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -21,7 +21,8 @@ export interface SpriteDefinition {
 }
 
 export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
-  tree: require('../../assets/images/garden/tree.png'),
+  tree1: require('../../assets/images/garden/tree_1.png'),
+  tree2: require('../../assets/images/garden/tree_2.png'),
   item1: require('../../assets/images/garden/item1.png'),
   item2: require('../../assets/images/garden/item2.png'),
   chara: require('../../assets/images/garden/chara.png'),
@@ -50,17 +51,17 @@ export const GLOBAL_GARDEN_SETTINGS = {
 
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'PL-01': {
-    sourceId: 'tree', originalWidth: 752, originalHeight: 415, startX: 0, startY: 0,
-    frameWidth: 146, frameHeight: 142, frameCount: 5, frameSpacingX: 0, offsetX: 8, offsetY: 50,
+    sourceId: 'tree2', originalWidth: 704, originalHeight: 252, startX: 0, startY: 124,
+    frameWidth: 140, frameHeight: 122, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 44,
     baseScale: 1.5, isAnimated: false,
   },
   'PL-02': {
-    sourceId: 'tree', originalWidth: 752, originalHeight: 415, startX:0, startY: 143,
+    sourceId: 'tree1', originalWidth: 752, originalHeight: 415, startX:0, startY: 143,
     frameWidth: 149, frameHeight: 142, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 52,
     baseScale: 1.5, isAnimated: false,
   },
   'PL-03': {
-    sourceId: 'tree', originalWidth: 752, originalHeight: 415, startX: -1, startY: 286,
+    sourceId: 'tree1', originalWidth: 752, originalHeight: 415, startX: -1, startY: 286,
     frameWidth: 149, frameHeight: 142, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 76,
     baseScale: 1.3, isAnimated: false,
   },
