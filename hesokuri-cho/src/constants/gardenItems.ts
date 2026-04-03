@@ -21,6 +21,7 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   // エフェクト（非売品）
   { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: false },
   { id: 'EF-02', name: 'ハンマー', type: 'ornament', cost: 300, isShoppable: false },
+  { id: 'EF-04', name: 'Levelup', type: 'ornament', cost: 0, isShoppable: true },
 
   // タイル (BG-01 はデフォルトのためショップ非表示)
   { id: 'BG-01', name: 'タイル(標準)', type: 'ornament', cost: 0, isShoppable: false },
