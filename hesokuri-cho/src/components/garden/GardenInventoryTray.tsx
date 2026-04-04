@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 import { ALL_GARDEN_ITEMS } from '../../constants/gardenItems';
+import { SPRITE_CONFIG } from '../../config/spriteConfig'; // 追加: 設定ファイルのインポート
 import { useHesokuriStore } from '../../store';
 
 interface Props {
@@ -22,6 +23,7 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
       return ['WP-NONE', ...ownedItems.filter(id => id.startsWith('WP-'))];
     }
     return ownedItems.filter(itemId => {
+      // プレフィックスによるタブの分類はUIの整理用としてそのまま活用
       if (activeTab === 'ALL') return true;
       if (activeTab === 'BG') return itemId.startsWith('BG-');
       if (activeTab === 'PL') return itemId.startsWith('PL-');
@@ -45,8 +47,12 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
 
   // 在庫数の計算（総所持数 - 配置済みの数）
   const getRemainingStock = (itemId: string) => {
-    if (itemId === 'WP-NONE' || itemId.startsWith('WP-')) return 1; // 壁紙は常に1扱いで制限なし
-    if (itemId.startsWith('BG-')) return 99; // タイルは配置自由の仕様を維持（制限する場合はここを変更）
+    const maxAllowed = itemId === 'WP-NONE' ? 1 : (SPRITE_CONFIG[itemId]?.maxQuantity ?? 99);
+    
+    // 最大数1のアイテム（木・タイル・壁紙など）は重複配置・在庫消費の概念を持たせない
+    if (maxAllowed === 1) {
+      return 1;
+    }
     
     const totalOwned = settings?.itemCounts?.[itemId] || (ownedItems.includes(itemId) ? 1 : 0);
     const placedCount = settings?.gardenPlacements?.filter(p => p.itemId === itemId).length || 0;
@@ -55,8 +61,10 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
   };
 
   const handleSelect = (itemId: string) => {
+    const maxAllowed = itemId === 'WP-NONE' ? 1 : (SPRITE_CONFIG[itemId]?.maxQuantity ?? 99);
     const stock = getRemainingStock(itemId);
-    if (stock <= 0 && !itemId.startsWith('WP-') && !itemId.startsWith('BG-')) {
+    
+    if (maxAllowed > 1 && stock <= 0) {
       Alert.alert('在庫不足', '配置できる在庫がありません。\nショップで追加交換してください。');
       return;
     }
@@ -92,14 +100,15 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
             );
           }
 
+          const maxAllowed = SPRITE_CONFIG[itemId]?.maxQuantity ?? 99;
+          const isRestricted = maxAllowed === 1; // 最大数1のアイテムフラグとして扱う
           const isPlant = itemId.startsWith('PL-');
-          const isBgOrWp = itemId.startsWith('BG-') || itemId.startsWith('WP-');
           const itemLevel = settings?.itemLevels?.[itemId] || (itemId === 'PL-01' ? settings?.plantLevel : 1) || 1;
           const safeLevel = Math.max(1, itemLevel);
           const displayFrameIndex = isPlant ? Math.max(0, Math.min(Math.floor(safeLevel) - 1, 4)) : 0;
           
           const stock = getRemainingStock(itemId);
-          const isOutOfStock = stock <= 0 && !isBgOrWp;
+          const isOutOfStock = !isRestricted && stock <= 0;
 
           return (
             <TouchableOpacity
@@ -122,8 +131,8 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
                 </View>
               )}
 
-              {/* 在庫数バッジ */}
-              {!isBgOrWp && (
+              {/* 複数購入可能なアイテム（maxQuantityが2以上）のみ在庫バッジを表示 */}
+              {!isRestricted && (
                 <View style={[styles.stockBadge, isOutOfStock && styles.stockBadgeZero]}>
                   <Text style={styles.stockBadgeText}>x{stock}</Text>
                 </View>

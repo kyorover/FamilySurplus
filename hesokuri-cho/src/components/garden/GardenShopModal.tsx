@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, Alert, Pla
 import { useHesokuriStore } from '../../store';
 import { GARDEN_ITEMS } from '../../constants/gardenItems';
 import { UniversalSprite } from './UniversalSprite';
+import { SPRITE_CONFIG } from '../../config/spriteConfig'; // 追加: 設定ファイルのインポート
 
 interface GardenShopModalProps {
   visible: boolean;
@@ -22,17 +23,14 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
   const handlePurchase = (itemId: string, cost: number, name: string) => {
     // 現在の所持数を算出
     const currentCount = itemCounts[itemId] || (ownedItems.includes(itemId) ? 1 : 0);
+    // spriteConfigから上限を取得（設定がない場合はデフォルトで99個）
+    const maxAllowed = SPRITE_CONFIG[itemId]?.maxQuantity ?? 99;
 
-    // 木(PL-)、タイル(BG-)、壁紙(WP-)は複数購入不可（最大1個）
-    const isRestricted = itemId.startsWith('PL-') || itemId.startsWith('BG-') || itemId.startsWith('WP-');
-    
-    if (isRestricted && currentCount >= 1) {
-      Alert.alert('確認', 'このアイテムは既に持っています。');
-      return;
-    }
-
-    if (currentCount >= 99) {
-      Alert.alert('上限到達', 'このアイテムはこれ以上持てません（最大99個）。');
+    if (currentCount >= maxAllowed) {
+      Alert.alert(
+        '上限到達', 
+        maxAllowed === 1 ? 'このアイテムは既に持っています。' : `このアイテムはこれ以上持てません（最大${maxAllowed}個）。`
+      );
       return;
     }
 
@@ -80,8 +78,8 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
           <ScrollView contentContainerStyle={styles.listContent}>
             {GARDEN_ITEMS.map((item) => {
               const currentCount = itemCounts[item.id] || (ownedItems.includes(item.id) ? 1 : 0);
-              const isRestricted = item.id.startsWith('PL-') || item.id.startsWith('BG-') || item.id.startsWith('WP-');
-              const isMax = isRestricted ? currentCount >= 1 : currentCount >= 99;
+              const maxAllowed = SPRITE_CONFIG[item.id]?.maxQuantity ?? 99;
+              const isMax = currentCount >= maxAllowed;
 
               return (
                 <View key={item.id} style={styles.itemRow}>
@@ -103,7 +101,7 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
                     disabled={isMax}
                   >
                     <Text style={styles.buyBtnText}>
-                      {isMax ? (isRestricted ? '所持済' : '上限') : '交換'}
+                      {isMax ? (maxAllowed === 1 ? '所持済' : '上限') : '交換'}
                     </Text>
                   </TouchableOpacity>
                 </View>
