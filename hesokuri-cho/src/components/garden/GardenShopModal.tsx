@@ -20,8 +20,16 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
   const itemCounts = settings.itemCounts ?? {};
 
   const handlePurchase = (itemId: string, cost: number, name: string) => {
-    // 旧仕様の互換性と、現在の所持数を算出
+    // 現在の所持数を算出
     const currentCount = itemCounts[itemId] || (ownedItems.includes(itemId) ? 1 : 0);
+
+    // 木(PL-)、タイル(BG-)、壁紙(WP-)は複数購入不可（最大1個）
+    const isRestricted = itemId.startsWith('PL-') || itemId.startsWith('BG-') || itemId.startsWith('WP-');
+    
+    if (isRestricted && currentCount >= 1) {
+      Alert.alert('確認', 'このアイテムは既に持っています。');
+      return;
+    }
 
     if (currentCount >= 99) {
       Alert.alert('上限到達', 'このアイテムはこれ以上持てません（最大99個）。');
@@ -41,7 +49,6 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
         { 
           text: '交換', 
           onPress: () => {
-            // 新規取得の場合は ownedItems にも追加（後方互換）
             const newOwnedItems = ownedItems.includes(itemId) ? ownedItems : [...ownedItems, itemId];
             
             updateSettings({
@@ -73,7 +80,8 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
           <ScrollView contentContainerStyle={styles.listContent}>
             {GARDEN_ITEMS.map((item) => {
               const currentCount = itemCounts[item.id] || (ownedItems.includes(item.id) ? 1 : 0);
-              const isMax = currentCount >= 99;
+              const isRestricted = item.id.startsWith('PL-') || item.id.startsWith('BG-') || item.id.startsWith('WP-');
+              const isMax = isRestricted ? currentCount >= 1 : currentCount >= 99;
 
               return (
                 <View key={item.id} style={styles.itemRow}>
@@ -84,7 +92,9 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
                     <Text style={styles.itemName}>{item.name}</Text>
                     <View style={styles.metaInfo}>
                       <Text style={styles.itemCost}>{item.cost} pt</Text>
-                      <Text style={styles.itemCountBadge}>所持: {currentCount}個</Text>
+                      <Text style={styles.itemCountBadge}>
+                        所持: {currentCount}個
+                      </Text>
                     </View>
                   </View>
                   <TouchableOpacity 
@@ -93,7 +103,7 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
                     disabled={isMax}
                   >
                     <Text style={styles.buyBtnText}>
-                      {isMax ? '上限' : '交換'}
+                      {isMax ? (isRestricted ? '所持済' : '上限') : '交換'}
                     </Text>
                   </TouchableOpacity>
                 </View>
