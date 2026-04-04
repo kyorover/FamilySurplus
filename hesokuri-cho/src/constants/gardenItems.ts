@@ -22,10 +22,10 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'EF-01', name: '水やり', type: 'ornament', cost: 300, isShoppable: false },
   { id: 'EF-02', name: 'ハンマー', type: 'ornament', cost: 300, isShoppable: false },
   { id: 'EF-04', name: 'Levelup', type: 'ornament', cost: 0, isShoppable: false },
-  { id: 'EF-05', name: '矢印1', type: 'ornament', cost: 0, isShoppable: true },
-  { id: 'EF-06', name: '矢印2', type: 'ornament', cost: 0, isShoppable: true },
-  { id: 'EF-07', name: '矢印3', type: 'ornament', cost: 0, isShoppable: true },
-  { id: 'EF-08', name: '矢印4', type: 'ornament', cost: 0, isShoppable: true },
+  { id: 'EF-05', name: '矢印1', type: 'ornament', cost: 0, isShoppable: false },
+  { id: 'EF-06', name: '矢印2', type: 'ornament', cost: 0, isShoppable: false },
+  { id: 'EF-07', name: '矢印3', type: 'ornament', cost: 0, isShoppable: false },
+  { id: 'EF-08', name: '矢印4', type: 'ornament', cost: 0, isShoppable: false },
 
   // タイル (BG-01 はデフォルトのためショップ非表示)
   { id: 'BG-01', name: 'タイル(標準)', type: 'ornament', cost: 0, isShoppable: false },

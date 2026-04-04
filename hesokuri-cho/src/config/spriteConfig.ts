@@ -15,9 +15,9 @@ export interface SpriteDefinition {
   frameSpacingX: number;
   offsetX?: number;
   offsetY?: number;
-  baseScale?: number; // ▼ 追加: お庭配置時のアイテムごとの基準縮尺（未指定は1.0）
-  isAnimated?: boolean;     // ▼ 追加: アニメーション有無
-  animationSpeed?: number;  // ▼ 追加: アニメーション速度（ms/frame）
+  baseScale?: number; // お庭配置時のアイテムごとの基準縮尺（未指定は1.0）
+  isAnimated?: boolean;     // アニメーション有無
+  animationSpeed?: number;  // アニメーション速度（ms/frame）
 }
 
 export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
@@ -50,15 +50,15 @@ export const GLOBAL_GARDEN_SETTINGS = {
   // ▼ 追加: デフォルトの木と壁紙・タイル
   DEFAULT_TREE_ID: 'PL-01',
   DEFAULT_TILE_ID: '',
-  DEFAULT_BG_ID: 'BG-01', // ▼ 追加: デフォルトの地面タイル
-  // ▼ 追加: ズーム用の環境変数
+  DEFAULT_BG_ID: 'BG-01',
   MIN_ZOOM_SCALE: 0.5,
   MAX_ZOOM_SCALE: 2.0,
   DEFAULT_ZOOM_SCALE: 1.0,
-  ZOOM_STEP: 0.2, // ▼ 1回のタップでのズーム量
+  ZOOM_STEP: 0.2,
+  // ▼ 追加: ガーデンコントローラーのボタン間隔（中心点からの距離）。数値を大きくするとボタン間が広がる。
+  CONTROLLER_SPACING: 30,
 };
 
-// ...（以下、既存の SPRITE_CONFIG の定義そのまま）
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'PL-01': {
     sourceId: 'tree2', originalWidth: 704, originalHeight: 252, startX: 0, startY: 130,
@@ -92,23 +92,23 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'EF-05': { // 矢印(右上)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 0, startY: 4,
-    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
-    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
   },
   'EF-06': { // 矢印(左下)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 64, startY: 4,
-    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
-    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
   },
   'EF-07': { // 矢印(左上)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 128, startY: 4,
-    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
-    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
   },
   'EF-08': { // 矢印(右下)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 192, startY: 4,
-    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
-    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
   },
   'BG-01': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
