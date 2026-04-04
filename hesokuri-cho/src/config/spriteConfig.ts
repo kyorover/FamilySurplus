@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'item3' | 'item4' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'item3' | 'item4' | 'arrow' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -27,6 +27,7 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   item2: require('../../assets/images/garden/item2.png'),
   item3: require('../../assets/images/garden/item3.png'),
   item4: require('../../assets/images/garden/item4.png'),
+  arrow: require('../../assets/images/garden/arrow.png'),
   chara: require('../../assets/images/garden/chara.png'),
   levelup: require('../../assets/images/garden/levelup.png'),
   wp1: require('../../assets/images/garden/bg_1.png'),
@@ -88,6 +89,26 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     sourceId: 'levelup', originalWidth: 415, originalHeight: 70, startX: 0, startY: 4,
     frameWidth: 69, frameHeight: 66, frameCount: 6, frameSpacingX: 0, offsetX: 0, offsetY: 40,
     baseScale: 1.0, isAnimated: true, animationSpeed: 140,
+  },
+  'EF-05': { // 矢印
+    sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 0, startY: 4,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
+    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
+  },
+  'EF-06': { // 矢印
+    sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 64, startY: 4,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
+    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
+  },
+  'EF-07': { // 矢印
+    sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 128, startY: 4,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
+    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
+  },
+  'EF-08': { // 矢印
+    sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 192, startY: 4,
+    frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
+    baseScale: 0.6, isAnimated: false, animationSpeed: 0,
   },
   'BG-01': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
