@@ -6,18 +6,14 @@ import { SPRITE_CONFIG } from '../../config/spriteConfig';
 
 interface Props {
   effectId: string;
-  displaySize: number;
+  displaySize: number; // Node側で計算済みの最終表示サイズを受け取る
   durationPerFrame?: number;
   loop?: boolean;
   onAnimationEnd?: () => void;
 }
 
 export const EffectSprite: React.FC<Props> = ({ 
-  effectId, 
-  displaySize, 
-  durationPerFrame = 150,
-  loop = true,
-  onAnimationEnd
+  effectId, displaySize, durationPerFrame = 150, loop = true, onAnimationEnd
 }) => {
   const [currentFrame, setCurrentFrame] = useState(0);
   const config = SPRITE_CONFIG[effectId];
@@ -25,19 +21,14 @@ export const EffectSprite: React.FC<Props> = ({
 
   useEffect(() => {
     if (maxFrames <= 1) return;
-
     let timer: NodeJS.Timeout;
     let frame = 0;
 
     const tick = () => {
       frame++;
       if (frame >= maxFrames) {
-        if (loop) {
-          frame = 0;
-        } else {
-          if (onAnimationEnd) onAnimationEnd();
-          return;
-        }
+        if (loop) frame = 0;
+        else { if (onAnimationEnd) onAnimationEnd(); return; }
       }
       setCurrentFrame(frame);
       timer = setTimeout(tick, durationPerFrame);
@@ -49,25 +40,13 @@ export const EffectSprite: React.FC<Props> = ({
 
   if (!config) return null;
 
-  // ▼ 追加: spriteConfig.ts に定義されたエフェクト固有の baseScale を適用して最終サイズを算出
-  const scaledDisplaySize = displaySize * (config.baseScale ?? 1.0);
-
   return (
     <View style={styles.container}>
-      <UniversalSprite 
-        itemId={effectId} 
-        frameIndex={currentFrame} 
-        displaySize={scaledDisplaySize} 
-      />
+      <UniversalSprite itemId={effectId} frameIndex={currentFrame} displaySize={displaySize} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none', 
-  },
+  container: { justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' },
 });

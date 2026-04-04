@@ -1,15 +1,14 @@
 // src/components/garden/IsometricGardenCanvas.tsx
-import React, { useMemo, useRef, useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, Pressable, PanResponder, ActivityIndicator, Text, Image } from 'react-native';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
+import { View, StyleSheet, Dimensions, Pressable, ActivityIndicator, Text, Image } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
-import { InteractiveGardenItem } from './InteractiveGardenItem';
-import { EffectSprite } from './EffectSprite';
+import { CanvasItemNode } from './CanvasItemNode';
 import { GardenPlacement } from '../../types';
-import { getIsometricCoords, getGridCoordsFromScreen, getZIndexScore, GARDEN_CONFIG } from '../../functions/gardenUtils';
-import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS, IMAGE_SOURCES } from '../../config/spriteConfig';
+import { getIsometricCoords, getGridCoordsFromScreen, GARDEN_CONFIG } from '../../functions/gardenUtils';
+import { SPRITE_CONFIG, IMAGE_SOURCES } from '../../config/spriteConfig';
 import { useHesokuriStore } from '../../store';
-import { ALL_GARDEN_ITEMS } from '../../constants/gardenItems';
 import { GardenZoomUI } from './GardenZoomUI';
+import { useGardenEngine } from '../../hooks/useGardenEngine';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_HEIGHT = 400; // キャンバスの高さ
@@ -29,105 +28,23 @@ interface Props {
   onLoadComplete?: () => void;
 }
 
-type RenderNode = { id: string; type: 'floor' | 'item' | 'large_item'; x: number; y: number; zIndex: number; placementData?: GardenPlacement; originalIndex?: number; };
-
 export const IsometricGardenCanvas: React.FC<Props> = ({ 
   placements = [], onPressTile, selectedItemIndex, viewOffset = { x: 0, y: 0 }, 
-  zoomScale = 1.0, onZoomIn, onZoomOut, onPanMove, onPanRelease, plantLevel = 1, onLoadComplete
+  zoomScale = 1.0, onZoomIn, onZoomOut, onPanMove, onPanRelease, onLoadComplete
 }) => {
   const { settings } = useHesokuriStore();
   const [isLoading, setIsLoading] = useState(true); 
-  
-  // ▼ 修正: boolean ではなく、表示すべきエフェクトのIDを string で管理し、複数種類のエフェクト出し分けに対応
-  const [activeEffects, setActiveEffects] = useState<Record<string, string>>({});
-  const prevExpsRef = useRef<Record<string, number>>({});
-  const prevLevelsRef = useRef<Record<string, number>>({});
 
-  useEffect(() => {
-    if (!settings) return;
+  // ▼ ロジックはカスタムフックに全委譲
+  const { activeEffects, clearActiveEffect, panResponder, renderNodes } = useGardenEngine(
+    placements, selectedItemIndex, onPanMove, onPanRelease
+  );
 
-    const currentExps: Record<string, number> = { ...(settings.itemExps || {}) };
-    const currentLevels: Record<string, number> = { ...(settings.itemLevels || {}) };
-    
-    // 後方互換の取り込み
-    if (settings.plantExp !== undefined) currentExps['PL-01'] = settings.plantExp;
-    if (settings.plantLevel !== undefined) currentLevels['PL-01'] = settings.plantLevel;
+  const bgItemId = placements.find(p => p.itemId.startsWith('BG-'))?.itemId || 'BG-01';
+  const wpItemId = placements.find(p => p.itemId.startsWith('WP-'))?.itemId || null;
+  const wpImageSource = wpItemId ? IMAGE_SOURCES[SPRITE_CONFIG[wpItemId].sourceId] : null;
 
-    let hasChanges = false;
-    const newEffects = { ...activeEffects };
-
-    placements.forEach(p => {
-      if (!p.itemId.startsWith('PL-')) return;
-      const itemId = p.itemId;
-      
-      const cExp = currentExps[itemId] || 0;
-      // 初回マウント時はエフェクトを出さないよう、prevが無ければ現在の値を入れる
-      const pExp = prevExpsRef.current[itemId] ?? cExp; 
-      
-      const cLevel = currentLevels[itemId] || 1;
-      const pLevel = prevLevelsRef.current[itemId] ?? cLevel;
-
-      // ▼ 修正: レベルアップ時と水やり（経験値増加）時でエフェクトIDを出し分ける
-      if (cLevel > pLevel) {
-        // レベルアップ時は専用エフェクト（EF-04）を指定
-        newEffects[itemId] = 'EF-04';
-        hasChanges = true;
-      } else if (cExp > pExp) {
-        // 通常の経験値増加時はマスターデータに設定されたエフェクト（EF-01やEF-02）を指定
-        const treeMaster = ALL_GARDEN_ITEMS.find(item => item.id === itemId);
-        newEffects[itemId] = treeMaster?.growthEffectId || 'EF-01';
-        hasChanges = true;
-      }
-
-      prevExpsRef.current[itemId] = cExp;
-      prevLevelsRef.current[itemId] = cLevel;
-    });
-
-    if (hasChanges) {
-      setActiveEffects(newEffects);
-    }
-  }, [settings?.itemExps, settings?.itemLevels, settings?.plantExp, settings?.plantLevel, placements]);
-
-  const clearActiveEffect = useCallback((itemId: string) => {
-    setActiveEffects(prev => {
-      const next = { ...prev };
-      delete next[itemId];
-      return next;
-    });
-  }, []);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) => selectedItemIndex === null && (Math.abs(gs.dx) > 10 || Math.abs(gs.dy) > 10),
-      onPanResponderMove: (_, gs) => { if (selectedItemIndex === null && onPanMove) onPanMove(gs.dx, gs.dy); },
-      onPanResponderRelease: (_, gs) => { if (selectedItemIndex === null && onPanRelease) onPanRelease(gs.dx, gs.dy); }
-    })
-  ).current;
-
-  const bgPlacement = placements.find(p => p.itemId.startsWith('BG-'));
-  const bgItemId = bgPlacement ? bgPlacement.itemId : 'BG-01';
-
-  const wpPlacement = placements.find(p => p.itemId.startsWith('WP-'));
-  const wpItemId = wpPlacement ? wpPlacement.itemId : null;
-  const wpSprite = wpItemId ? SPRITE_CONFIG[wpItemId] : null;
-  const wpImageSource = wpSprite ? IMAGE_SOURCES[wpSprite.sourceId] : null;
-
-  const renderList = useMemo(() => {
-    const nodes: RenderNode[] = [];
-    for (let x = 0; x < GARDEN_CONFIG.GRID_SIZE; x++) {
-      for (let y = 0; y < GARDEN_CONFIG.GRID_SIZE; y++) nodes.push({ id: `floor-${x}-${y}`, type: 'floor', x, y, zIndex: getZIndexScore(x, y, 'floor') });
-    }
-    placements.forEach((p, index) => {
-      if (p.itemId.startsWith('BG-') || p.itemId.startsWith('WP-')) return; 
-      const isLargeItem = p.itemId.startsWith('PL-');
-      nodes.push({ id: `item-${p.itemId}-${index}`, type: isLargeItem ? 'large_item' : 'item', x: p.x, y: p.y, zIndex: getZIndexScore(p.x, p.y, isLargeItem ? 'large_item' : 'item'), placementData: p, originalIndex: index });
-    });
-    return nodes.sort((a, b) => a.zIndex - b.zIndex);
-  }, [placements]);
-
-  const itemConfigString = `${bgItemId}-${wpItemId || 'NONE'}`;
-  const totalImages = renderList.length;
+  const totalImages = renderNodes.length;
   const loadedCountRef = useRef(0);
 
   const handleImageLoad = useCallback(() => {
@@ -141,27 +58,17 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   useEffect(() => {
     loadedCountRef.current = 0; 
     setIsLoading(true);
-    const fallbackTimer = setTimeout(() => {
-      setIsLoading(false);
-      if (onLoadComplete) onLoadComplete();
-    }, 1500); 
+    const fallbackTimer = setTimeout(() => { setIsLoading(false); if (onLoadComplete) onLoadComplete(); }, 1500); 
     return () => clearTimeout(fallbackTimer);
-  }, [itemConfigString, onLoadComplete]);
+  }, [`${bgItemId}-${wpItemId || 'NONE'}`, onLoadComplete]);
 
   const handleBackgroundPress = (e: any) => {
     if (!onPressTile) return;
-    const { locationX, locationY } = e.nativeEvent;
-    const cx = SCREEN_WIDTH / 2;
-    const cy = CANVAS_HEIGHT / 2;
-    const logicalX = cx + (locationX - cx) / zoomScale;
-    const logicalY = cy + (locationY - cy) / zoomScale;
-
+    const cx = SCREEN_WIDTH / 2; const cy = CANVAS_HEIGHT / 2;
+    const logicalX = cx + (e.nativeEvent.locationX - cx) / zoomScale;
+    const logicalY = cy + (e.nativeEvent.locationY - cy) / zoomScale;
     const grid = getGridCoordsFromScreen(logicalX - viewOffset.x, logicalY - viewOffset.y, SCREEN_WIDTH);
     if (grid.x >= 0 && grid.x < GARDEN_CONFIG.GRID_SIZE && grid.y >= 0 && grid.y < GARDEN_CONFIG.GRID_SIZE) onPressTile(grid.x, grid.y);
-  };
-
-  const handleItemPress = (node: RenderNode) => {
-    if (onPressTile) onPressTile(node.x, node.y);
   };
 
   return (
@@ -169,23 +76,11 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
       
       <View style={{ flex: 1, transform: [{ scale: zoomScale }] }} pointerEvents="box-none">
-        
         {wpImageSource && (
-          <Image
-            source={wpImageSource}
-            style={{
-              position: 'absolute',
-              width: SCREEN_WIDTH + WALLPAPER_OVERSIZE * 2,
-              height: CANVAS_HEIGHT + WALLPAPER_OVERSIZE * 2,
-              left: -WALLPAPER_OVERSIZE + viewOffset.x,
-              top: -WALLPAPER_OVERSIZE + viewOffset.y,
-            }}
-            resizeMode="repeat"
-            pointerEvents="none" 
-          />
+          <Image source={wpImageSource} style={{ position: 'absolute', width: SCREEN_WIDTH + WALLPAPER_OVERSIZE * 2, height: CANVAS_HEIGHT + WALLPAPER_OVERSIZE * 2, left: -WALLPAPER_OVERSIZE + viewOffset.x, top: -WALLPAPER_OVERSIZE + viewOffset.y }} resizeMode="repeat" pointerEvents="none" />
         )}
         
-        {renderList.map((node) => {
+        {renderNodes.map((node) => {
           const coords = getIsometricCoords(node.x, node.y, SCREEN_WIDTH);
           const finalLeft = coords.left + viewOffset.x; const finalTop = coords.top + viewOffset.y;
           
@@ -197,59 +92,20 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
               </View>
             );
           } else {
-            const isLarge = node.type === 'large_item';
-            const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
-            const baseScale = spriteDef?.baseScale ?? 1.0;
-            const baseSize = isLarge ? GARDEN_CONFIG.TILE_WIDTH * GLOBAL_GARDEN_SETTINGS.TREE_SCALE : GARDEN_CONFIG.TILE_WIDTH;
-            const displaySize = baseSize * baseScale;
-            const aspectRatio = spriteDef ? (spriteDef.frameHeight / spriteDef.frameWidth) : 1;
-            const displayHeight = displaySize * aspectRatio;
-            const tileCenterX = finalLeft + GARDEN_CONFIG.TILE_WIDTH / 2;
-            const tileCenterY = finalTop + GARDEN_CONFIG.TILE_HEIGHT / 2;
-            const leftPosition = tileCenterX - displaySize / 2 + (spriteDef?.offsetX || 0) * baseScale;
-            const topPosition = tileCenterY - displayHeight + (spriteDef?.offsetY || 0) * baseScale;
-            const isSelected = selectedItemIndex === node.originalIndex;
-            const isFlipped = node.placementData?.isFlipped;
-            
-            // マップ描画時も個別の木のレベルを取得してコマ番号を決定する
             const itemLevel = settings?.itemLevels?.[node.placementData!.itemId] || (node.placementData!.itemId === 'PL-01' ? settings?.plantLevel : 1) || 1;
-            const safeFrameIndex = Math.max(0, Math.min(Math.floor(itemLevel) - 1, 4));
-
-            // ▼ 修正: string型のエフェクトIDを取得
-            const activeEffectId = activeEffects[node.placementData!.itemId];
-
             return (
-              <View key={node.id} style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
-                <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
-                  {isLarge ? (
-                    <Pressable onPress={() => handleItemPress(node)}>
-                      <UniversalSprite itemId={node.placementData!.itemId} frameIndex={safeFrameIndex} displaySize={displaySize} onLoad={handleImageLoad} />
-                    </Pressable>
-                  ) : (
-                    <InteractiveGardenItem itemId={node.placementData!.itemId} displaySize={displaySize} isAnimated={spriteDef?.isAnimated} onLoad={handleImageLoad} onPress={() => handleItemPress(node)} />
-                  )}
-                </View>
-                {/* ▼ 修正: エフェクトIDが存在する場合のみ指定されたエフェクトを再生 */}
-                {isLarge && activeEffectId && (
-                  <View style={styles.effectOverlay}>
-                    <EffectSprite 
-                      effectId={activeEffectId} 
-                      displaySize={displaySize * 0.8} 
-                      loop={false} 
-                      durationPerFrame={150} 
-                      onAnimationEnd={() => clearActiveEffect(node.placementData!.itemId)} 
-                    />
-                  </View>
-                )}
-              </View>
+              <CanvasItemNode 
+                key={node.id} node={node} finalLeft={finalLeft} finalTop={finalTop}
+                isSelected={selectedItemIndex === node.originalIndex} itemLevel={itemLevel}
+                activeEffectId={activeEffects[node.placementData!.itemId]}
+                onPress={() => onPressTile?.(node.x, node.y)} onLoad={handleImageLoad} clearActiveEffect={clearActiveEffect}
+              />
             );
           }
         })}
       </View>
 
-      {onZoomIn && onZoomOut && (
-        <GardenZoomUI zoomScale={zoomScale} onZoomIn={onZoomIn} onZoomOut={onZoomOut} />
-      )}
+      {onZoomIn && onZoomOut && <GardenZoomUI zoomScale={zoomScale} onZoomIn={onZoomIn} onZoomOut={onZoomOut} />}
 
       {isLoading && (
         <View style={styles.loadingContainer}>
@@ -264,9 +120,6 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 const styles = StyleSheet.create({
   canvasContainer: { width: '100%', height: CANVAS_HEIGHT, position: 'relative', overflow: 'hidden' },
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
-  itemContent: { borderRadius: 16 },
-  selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
-  effectOverlay: { position: 'absolute', top: -40, left: 0, right: 0, alignItems: 'center', zIndex: 999, pointerEvents: 'none' }, 
   loadingContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(224, 247, 250, 0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   loadingText: { marginTop: 12, fontSize: 14, color: '#00695C', fontWeight: 'bold' }
 });
