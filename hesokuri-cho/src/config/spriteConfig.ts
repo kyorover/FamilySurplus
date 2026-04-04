@@ -85,9 +85,9 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     baseScale: 0.6, isAnimated: true, animationSpeed: 400,
   },
   'EF-04': { // レベルアップ
-    sourceId: 'levelup', originalWidth: 224, originalHeight: 72, startX: 0, startY: 36,
-    frameWidth: 38, frameHeight: 36, frameCount: 6, frameSpacingX: 0, offsetX: 0, offsetY: 0,
-    baseScale: 0.8, isAnimated: true, animationSpeed: 100,
+    sourceId: 'levelup', originalWidth: 415, originalHeight: 70, startX: 0, startY: 4,
+    frameWidth: 69, frameHeight: 66, frameCount: 6, frameSpacingX: 0, offsetX: 0, offsetY: 40,
+    baseScale: 1.0, isAnimated: true, animationSpeed: 140,
   },
   'BG-01': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
