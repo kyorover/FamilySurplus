@@ -90,22 +90,22 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 69, frameHeight: 66, frameCount: 6, frameSpacingX: 0, offsetX: 0, offsetY: 40,
     baseScale: 1.0, isAnimated: true, animationSpeed: 140,
   },
-  'EF-05': { // 矢印
+  'EF-05': { // 矢印(右上)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 0, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
     baseScale: 0.6, isAnimated: false, animationSpeed: 0,
   },
-  'EF-06': { // 矢印
+  'EF-06': { // 矢印(左下)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 64, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
     baseScale: 0.6, isAnimated: false, animationSpeed: 0,
   },
-  'EF-07': { // 矢印
+  'EF-07': { // 矢印(左上)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 128, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
     baseScale: 0.6, isAnimated: false, animationSpeed: 0,
   },
-  'EF-08': { // 矢印
+  'EF-08': { // 矢印(右下)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 192, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 40,
     baseScale: 0.6, isAnimated: false, animationSpeed: 0,
