@@ -33,6 +33,7 @@ export interface HouseholdSettings {
   plantExp?: number;   // 知恵の木に蓄積された経験値ポイント
   itemLevels?: Record<string, number>; // 追加: 木それぞれ(itemId)のレベル
   itemExps?: Record<string, number>;   // 追加: 木それぞれ(itemId)の蓄積経験値
+  itemCounts?: Record<string, number>; // 追加: アイテムごとの所持個数
   selectedTreeId?: string; // 選択中の木のID
   selectedTileId?: string; // 選択中のタイルのID
 }

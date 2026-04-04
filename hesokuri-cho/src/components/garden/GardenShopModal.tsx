@@ -17,10 +17,14 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
 
   const currentPoints = settings.gardenPoints ?? 0;
   const ownedItems = settings.ownedGardenItemIds ?? [];
+  const itemCounts = settings.itemCounts ?? {};
 
   const handlePurchase = (itemId: string, cost: number, name: string) => {
-    if (ownedItems.includes(itemId)) {
-      Alert.alert('確認', 'このアイテムは既に持っています。');
+    // 旧仕様の互換性と、現在の所持数を算出
+    const currentCount = itemCounts[itemId] || (ownedItems.includes(itemId) ? 1 : 0);
+
+    if (currentCount >= 99) {
+      Alert.alert('上限到達', 'このアイテムはこれ以上持てません（最大99個）。');
       return;
     }
 
@@ -37,10 +41,17 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
         { 
           text: '交換', 
           onPress: () => {
+            // 新規取得の場合は ownedItems にも追加（後方互換）
+            const newOwnedItems = ownedItems.includes(itemId) ? ownedItems : [...ownedItems, itemId];
+            
             updateSettings({
               ...settings,
               gardenPoints: currentPoints - cost,
-              ownedGardenItemIds: [...ownedItems, itemId]
+              ownedGardenItemIds: newOwnedItems,
+              itemCounts: {
+                ...itemCounts,
+                [itemId]: currentCount + 1
+              }
             });
             Alert.alert('完了', `${name} を獲得しました！`);
           }
@@ -61,7 +72,9 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
 
           <ScrollView contentContainerStyle={styles.listContent}>
             {GARDEN_ITEMS.map((item) => {
-              const isOwned = ownedItems.includes(item.id);
+              const currentCount = itemCounts[item.id] || (ownedItems.includes(item.id) ? 1 : 0);
+              const isMax = currentCount >= 99;
+
               return (
                 <View key={item.id} style={styles.itemRow}>
                   <View style={styles.itemIconWrap}>
@@ -69,15 +82,18 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
                   </View>
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemCost}>{item.cost} pt</Text>
+                    <View style={styles.metaInfo}>
+                      <Text style={styles.itemCost}>{item.cost} pt</Text>
+                      <Text style={styles.itemCountBadge}>所持: {currentCount}個</Text>
+                    </View>
                   </View>
                   <TouchableOpacity 
-                    style={[styles.buyBtn, isOwned && styles.buyBtnDisabled]} 
+                    style={[styles.buyBtn, isMax && styles.buyBtnDisabled]} 
                     onPress={() => handlePurchase(item.id, item.cost, item.name)}
-                    disabled={isOwned}
+                    disabled={isMax}
                   >
                     <Text style={styles.buyBtnText}>
-                      {isOwned ? '所持済' : '交換'}
+                      {isMax ? '上限' : '交換'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -150,9 +166,20 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: 'bold' 
   },
+  metaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   itemCost: { 
     fontSize: 14, 
-    color: '#666' 
+    color: '#666',
+    marginRight: 12
+  },
+  itemCountBadge: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: 'bold',
   },
   buyBtn: { 
     backgroundColor: '#FF9800', 

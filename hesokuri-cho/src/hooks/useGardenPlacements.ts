@@ -105,15 +105,12 @@ export const useGardenPlacements = () => {
       return;
     }
 
-    const existingIndex = currentPlacements.findIndex(p => p.itemId === itemId);
-    if (existingIndex !== -1) {
-      setSelectedPlacedItemIndex(existingIndex);
-    } else {
-      const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
-      const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
-      setPlacements([...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }]);
-      setSelectedPlacedItemIndex(currentPlacements.length); 
-    }
+    // 壁紙、タイル、木以外のアイテム（花、置物など）は在庫がある限り常に新規配置モードとする
+    const spawnX = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
+    const spawnY = Math.max(0, GARDEN_CONFIG.GRID_SIZE - 1);
+    const updated = [...currentPlacements, { itemId, x: spawnX, y: spawnY, isFlipped: false }];
+    setPlacements(updated);
+    setSelectedPlacedItemIndex(updated.length - 1);
   };
 
   const handlePressTile = (x: number, y: number) => {
