@@ -5,11 +5,27 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as cognito from 'aws-cdk-lib/aws-cognito'; // 新規追加: Cognito
 import * as path from 'path';
 
 export class HesokuriBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // === 新規追加: Cognito User Pool (認証基盤) ===
+    const userPool = new cognito.UserPool(this, 'HesokuriUserPool', {
+      userPoolName: 'hesokuri-users',
+      signInAliases: { email: true },
+      selfSignUpEnabled: true,
+      autoVerify: { email: true },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const userPoolClient = new cognito.UserPoolClient(this, 'HesokuriUserPoolClient', {
+      userPool,
+      generateSecret: false,
+    });
+    // ============================================
 
     const settingsTable = new dynamodb.Table(this, 'HouseholdSettingsTable', {
       partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
@@ -32,6 +48,13 @@ export class HesokuriBackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    // === 新規追加：アカウント・課金情報テーブル ===
+    const accountsTable = new dynamodb.Table(this, 'AccountsTable', {
+      partitionKey: { name: 'accountId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
       runtime: lambda.Runtime.NODEJS_22_X, // Node.js 22 LTSへ更新
       entry: path.join(__dirname, '../lambda/index.ts'),
@@ -40,6 +63,7 @@ export class HesokuriBackendStack extends cdk.Stack {
         SETTINGS_TABLE_NAME: settingsTable.tableName,
         EXPENSES_TABLE_NAME: expensesTable.tableName,
         MONTHLY_BUDGETS_TABLE_NAME: monthlyBudgetsTable.tableName, // 新テーブルを環境変数へ追加
+        ACCOUNTS_TABLE_NAME: accountsTable.tableName, // 新テーブルを環境変数へ追加
       },
       timeout: cdk.Duration.seconds(10),
     });
@@ -47,6 +71,7 @@ export class HesokuriBackendStack extends cdk.Stack {
     settingsTable.grantReadWriteData(apiHandler);
     expensesTable.grantReadWriteData(apiHandler);
     monthlyBudgetsTable.grantReadWriteData(apiHandler); // 新テーブルへのアクセス権限を付与
+    accountsTable.grantReadWriteData(apiHandler); // 新テーブルへのアクセス権限を付与
 
     const api = new apigateway.LambdaRestApi(this, 'HesokuriApi', {
       handler: apiHandler,
@@ -62,5 +87,9 @@ export class HesokuriBackendStack extends cdk.Stack {
       value: api.url,
       description: 'The endpoint URL for the Hesokuri API',
     });
+
+    // === 新規追加: Cognito 出力 ===
+    new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
+    new cdk.CfnOutput(this, 'ClientId', { value: userPoolClient.userPoolClientId });
   }
 }

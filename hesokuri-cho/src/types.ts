@@ -76,3 +76,11 @@ export interface GardenPlacement {
   scale?: number;
   isFlipped?: boolean; // 新規追加: アイコンの鏡写し反転
 }
+
+// === 新規追加：アカウント・課金情報（拡張性） ===
+export interface AccountInfo {
+  accountId: string; // Cognitoのsubと一致させる (= householdId)
+  email: string;
+  subscriptionPlan: 'FREE' | 'PREMIUM'; // 広告表示等の制御に使用
+  createdAt: string;
+}

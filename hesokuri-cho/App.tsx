@@ -7,9 +7,11 @@ import { InputScreen } from './src/screens/InputScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { GardenScreen } from './src/screens/GardenScreen'; // ▼ リネーム反映
 import { HesokuriHistoryScreen } from './src/screens/HesokuriHistoryScreen';
+import { LoginScreen } from './src/screens/LoginScreen'; // ▼ 新規追加
 
 export default function App() {
   const { 
+    authToken, // ▼ 新規追加
     settings, pendingSettings, setPendingSettings, monthlyBudget, isLoading, error, 
     fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget, 
     expenseInput, resetExpenseInput, setReturnToCategoryDetail 
@@ -18,11 +20,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'input' | 'settings' | 'history' | 'hesokuriHistory'>('dashboard');
 
   useEffect(() => {
-    fetchSettings();
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    fetchExpenses(currentMonth);
-    fetchMonthlyBudget(currentMonth);
-  }, []);
+    if (authToken) { // ▼ 新規追加: ログイン済みの時だけフェッチ
+      fetchSettings();
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      fetchExpenses(currentMonth);
+      fetchMonthlyBudget(currentMonth);
+    }
+  }, [authToken]);
 
   type TabNavOptions = {
     forceTransition?: boolean;
@@ -100,6 +104,11 @@ export default function App() {
 
     executeTabChange(targetTab, options);
   };
+
+  // ▼ 新規追加: 未ログイン時はLoginScreenを表示
+  if (!authToken) {
+    return <LoginScreen />;
+  }
 
   if (isLoading && !settings) {
     return (
