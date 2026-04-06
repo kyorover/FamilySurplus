@@ -19,6 +19,7 @@ export interface SpriteDefinition {
   isAnimated?: boolean;     // アニメーション有無
   animationSpeed?: number;  // アニメーション速度（ms/frame）
   maxQuantity?: number;     // 追加: アイテムの最大所持数（未指定の場合はデフォルト99）
+  rotation?: number;        // ▼ 追加: 画像の微調整用回転角度（度数法。未指定は0）
 }
 
 export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
@@ -57,7 +58,7 @@ export const GLOBAL_GARDEN_SETTINGS = {
   DEFAULT_ZOOM_SCALE: 1.0,
   ZOOM_STEP: 0.2,
   // ▼ 追加: ガーデンコントローラーのボタン間隔（中心点からの距離）。数値を大きくするとボタン間が広がる。
-  CONTROLLER_SPACING: 30,
+  CONTROLLER_SPACING: 28,
 };
 
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
@@ -94,22 +95,22 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'EF-05': { // 矢印(右上)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 0, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,rotation: 5,
   },
   'EF-06': { // 矢印(左下)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 64, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,rotation: 5,
   },
   'EF-07': { // 矢印(左上)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 128, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,rotation: 354,
   },
   'EF-08': { // 矢印(右下)
     sourceId: 'arrow', originalWidth: 253, originalHeight: 67, startX: 192, startY: 4,
     frameWidth: 64, frameHeight: 64, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
-    baseScale: 0.8, isAnimated: false, animationSpeed: 0,
+    baseScale: 0.8, isAnimated: false, animationSpeed: 0,rotation: 354,
   },
   'BG-01': {
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,

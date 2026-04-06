@@ -39,8 +39,14 @@ export const CanvasItemNode: React.FC<Props> = ({
   const leftPosition = tileCenterX - displaySize / 2 + (spriteDef?.offsetX || 0) * baseScale;
   const topPosition = tileCenterY - displayHeight + (spriteDef?.offsetY || 0) * baseScale;
   
-  const isFlipped = node.placementData?.isFlipped;
   const safeFrameIndex = Math.max(0, Math.min(Math.floor(itemLevel) - 1, 4));
+
+  // ▼ 反転と回転のスタイルを動的に構築
+  const isFlipped = node.placementData?.isFlipped;
+  const rotationDegrees = spriteDef?.rotation || 0;
+  const transforms: any[] = [];
+  if (isFlipped) transforms.push({ scaleX: -1 });
+  if (rotationDegrees !== 0) transforms.push({ rotate: `${rotationDegrees}deg` });
 
   // ▼ エフェクトの配置計算（木とは独立してタイル中心基準で配置）
   const effConfig = activeEffectId ? SPRITE_CONFIG[activeEffectId] : null;
@@ -55,7 +61,11 @@ export const CanvasItemNode: React.FC<Props> = ({
   return (
     <>
       <View style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
-        <View style={[styles.itemContent, isSelected && styles.selectedHighlight, isFlipped && { transform: [{ scaleX: -1 }] }]}>
+        <View style={[
+          styles.itemContent, 
+          isSelected && styles.selectedHighlight, 
+          transforms.length > 0 && { transform: transforms }
+        ]}>
           {isLarge ? (
             <Pressable onPress={onPress}>
               <UniversalSprite itemId={node.placementData!.itemId} frameIndex={safeFrameIndex} displaySize={displaySize} onLoad={onLoad} />

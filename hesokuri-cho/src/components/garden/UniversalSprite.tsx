@@ -49,11 +49,16 @@ export const UniversalSprite: React.FC<Props> = ({
 
   const imageSource = IMAGE_SOURCES[config.sourceId];
 
+  // ▼ 追加: spriteConfigのrotation設定を読み取り適用する
+  const rotationDegrees = config.rotation || 0;
+  const transformStyle = rotationDegrees !== 0 ? { transform: [{ rotate: `${rotationDegrees}deg` }] } : {};
+
   return (
     <View 
       style={[
         styles.container, 
         { width: displaySize, height: displayHeight },
+        transformStyle,
         style
       ]}
     >
