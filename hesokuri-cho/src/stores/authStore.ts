@@ -1,12 +1,11 @@
 // src/stores/authStore.ts
 import { create } from 'zustand';
+import * as SecureStore from 'expo-secure-store';
 import { 
   CognitoIdentityProviderClient, 
   SignUpCommand, 
   ConfirmSignUpCommand, 
-  InitiateAuthCommand,
-  ForgotPasswordCommand,
-  ConfirmForgotPasswordCommand
+  InitiateAuthCommand 
 } from "@aws-sdk/client-cognito-identity-provider";
 
 // TODO: デプロイされたバックエンドの情報を設定してください
@@ -17,17 +16,16 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: COGNITO_REGION
 
 interface AuthState {
   authToken: string | null;
-  authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
+  authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM';
   unconfirmedEmail: string | null;
   isLoading: boolean;
   error: string | null;
-  setAuthMode: (mode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD') => void;
+  setAuthMode: (mode: 'LOGIN' | 'SIGNUP' | 'CONFIRM') => void;
+  initAuth: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -39,6 +37,31 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAuthMode: (mode) => set({ authMode: mode, error: null }),
   
+  initAuth: async () => {
+    try {
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+      if (!refreshToken) return; // 保存されたトークンがない場合は未ログイン状態のまま
+
+      const command = new InitiateAuthCommand({
+        AuthFlow: "REFRESH_TOKEN_AUTH",
+        ClientId: COGNITO_CLIENT_ID,
+        AuthParameters: {
+          REFRESH_TOKEN: refreshToken,
+        },
+      });
+      const response = await cognitoClient.send(command);
+      const newIdToken = response.AuthenticationResult?.IdToken || null;
+      
+      if (newIdToken) {
+        set({ authToken: newIdToken });
+      }
+    } catch (err: any) {
+      console.error("Auto login failed:", err);
+      await SecureStore.deleteItemAsync('refreshToken');
+      set({ authToken: null });
+    }
+  },
+
   signUp: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
@@ -84,7 +107,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       const response = await cognitoClient.send(command);
       const token = response.AuthenticationResult?.IdToken || null;
+      const refreshToken = response.AuthenticationResult?.RefreshToken || null;
+
       if (token) {
+        if (refreshToken) {
+          await SecureStore.setItemAsync('refreshToken', refreshToken);
+        }
         set({ authToken: token, isLoading: false });
       } else {
         throw new Error("認証トークンの取得に失敗しました");
@@ -99,39 +127,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  forgotPassword: async (email) => {
-    set({ isLoading: true, error: null });
-    try {
-      const command = new ForgotPasswordCommand({
-        ClientId: COGNITO_CLIENT_ID,
-        Username: email,
-      });
-      await cognitoClient.send(command);
-      set({ authMode: 'RESET_PASSWORD', unconfirmedEmail: email, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
-      throw err;
-    }
-  },
-
-  confirmResetPassword: async (email, code, newPassword) => {
-    set({ isLoading: true, error: null });
-    try {
-      const command = new ConfirmForgotPasswordCommand({
-        ClientId: COGNITO_CLIENT_ID,
-        Username: email,
-        ConfirmationCode: code,
-        Password: newPassword,
-      });
-      await cognitoClient.send(command);
-      set({ authMode: 'LOGIN', unconfirmedEmail: null, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
-      throw err;
-    }
-  },
-
-  logout: () => {
-    set({ authToken: null });
+  logout: async () => {
+    await SecureStore.deleteItemAsync('refreshToken');
+    set({ authToken: null, authMode: 'LOGIN' });
   },
 }));

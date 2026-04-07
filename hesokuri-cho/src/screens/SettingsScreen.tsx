@@ -1,7 +1,8 @@
 // src/screens/SettingsScreen.tsx
 import React from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView } from 'react-native';
+import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView, Alert } from 'react-native';
 import { useSettingsManager } from '../hooks/useSettingsManager';
+import { useAuthStore } from '../stores/authStore';
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
@@ -12,8 +13,25 @@ import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen'; 
 
 export const SettingsScreen: React.FC = () => {
   const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions } = useSettingsManager();
+  const { logout } = useAuthStore();
 
-  // テスト用画面のオーバーライド
+  const handleLogout = () => {
+    Alert.alert(
+      'ログアウト',
+      'アプリからログアウトしますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { 
+          text: 'ログアウト', 
+          style: 'destructive', 
+          onPress: async () => {
+            await logout();
+          } 
+        }
+      ]
+    );
+  };
+
   if (modals.garden) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: '#F5F5F5' }]}>
@@ -28,12 +46,10 @@ export const SettingsScreen: React.FC = () => {
     );
   }
 
-  // 読み込み完了前は表示しない
   if (!pendingSettings) return null;
 
   return (
     <View style={styles.container}>
-      {/* 共通ヘッダー（入力画面と同様のスタイル） */}
       <View style={styles.headerContainer}>
         <View style={styles.headerSideColumn} />
         <View style={styles.headerCenterColumn}>
@@ -48,7 +64,6 @@ export const SettingsScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={modes.scroll}>
         
-        {/* 家族構成セクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
           <TouchableOpacity onPress={() => modes.setFamilyEdit(!modes.familyEdit)} style={[styles.actionBtn, modes.familyEdit && styles.actionBtnActive]}>
@@ -68,11 +83,9 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => modes.setScroll(true)}
         />
 
-        {/* カテゴリセクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
         </View>
-        {/* 並び替え用ボタン・説明文を削除し、Propsも整理 */}
         <CategoryList 
           categories={activeCategories} 
           onDeleteCategory={actions.deleteCategory} 
@@ -80,7 +93,6 @@ export const SettingsScreen: React.FC = () => {
           onUpdateList={actions.updateCategoryList}
         />
 
-        {/* 詳細設定セクション */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>⚙️ 詳細設定</Text>
         </View>
@@ -106,10 +118,16 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>👤 アカウント</Text>
+        </View>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+          <Text style={styles.logoutBtnText}>ログアウト</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* 各種モーダル */}
       <CategoryAddModal visible={modals.category} onSave={actions.addCategory} onClose={() => modals.setCategory(false)} />
       <FamilyMemberAddModal visible={modals.familyAdd} onSave={actions.addFamily} onClose={() => modals.setFamilyAdd(false)} />
       <FamilyMemberEditModal member={modals.familyEdit} onSave={actions.updateFamily} onClose={() => modals.setFamilyEdit(null)} />
@@ -119,16 +137,13 @@ export const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' }, // 背景色を入力画面と合わせる
-  
-  // ヘッダー用スタイル
+  container: { flex: 1, backgroundColor: '#F2F2F7' }, 
   headerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 100 },
   headerSideColumn: { flex: 1, justifyContent: 'center' },
   headerCenterColumn: { flex: 2, alignItems: 'center', justifyContent: 'center' },
   headerActionBtn: { paddingVertical: 4 },
   headerTitleText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   headerSubmitText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF', textAlign: 'right' },
-
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 8 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
@@ -142,6 +157,8 @@ const styles = StyleSheet.create({
   historyManageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 2 },
   historyManageDesc: { fontSize: 10, color: '#8E8E93' },
   chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
+  logoutBtn: { backgroundColor: '#FF3B30', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 16, marginHorizontal: 8 },
+  logoutBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
