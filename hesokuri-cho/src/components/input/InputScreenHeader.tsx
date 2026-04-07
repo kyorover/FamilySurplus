@@ -4,7 +4,7 @@ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 
 interface InputScreenHeaderProps {
   isEditing: boolean;
-  hasReturnTarget: boolean;
+  hasReturnTarget: boolean; // 親からの互換性維持のためPropsとしては残置
   onCancel: () => void;
   onSubmit: () => void;
 }
@@ -13,11 +13,10 @@ export const InputScreenHeader: React.FC<InputScreenHeaderProps> = ({ isEditing,
   return (
     <View style={styles.headerContainer}>
       <View style={styles.sideColumn}>
-        {hasReturnTarget && (
-          <TouchableOpacity onPress={onCancel} style={styles.actionBtn}>
-            <Text style={styles.cancelText}>キャンセル</Text>
-          </TouchableOpacity>
-        )}
+        {/* hasReturnTarget の条件判定を外し、キャンセルボタンを常時表示 */}
+        <TouchableOpacity onPress={onCancel} style={styles.actionBtn}>
+          <Text style={styles.cancelText}>キャンセル</Text>
+        </TouchableOpacity>
       </View>
       
       <View style={styles.centerColumn}>

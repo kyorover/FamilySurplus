@@ -1,8 +1,7 @@
 // src/screens/InputScreen.tsx
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { useHesokuriStore } from '../store';
-import { ExpenseInputPad } from '../components/input/ExpenseInputPad';
 import { DatePickerModal } from '../components/input/DatePickerModal';
 import { AutocompleteInput } from '../components/input/AutocompleteInput';
 import { InputDisplayHeader } from '../components/input/InputDisplayHeader';
@@ -19,6 +18,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   const paymentMethods = ['現金', 'コード決済', 'クレジット'];
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const amountInputRef = useRef<TextInput>(null);
 
   const { handleSubmit, handleCancel, hasReturnTarget, isAmountError, setIsAmountError } = useExpenseSubmit(onComplete, setIsAmountFocused);
 
@@ -32,16 +32,21 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
     if (!expenseInput.categoryId && activeCategories.length > 0) setExpenseInput({ categoryId: activeCategories[0].id });
   }, [settings]);
 
-  const handleNumpadPress = (val: string) => {
+  // ネイティブキーボードからの入力制御
+  const handleAmountChange = (text: string) => {
     if (isAmountError) setIsAmountError(false);
-    if (val === 'BS') setExpenseInput({ amount: expenseInput.amount.length > 1 ? expenseInput.amount.slice(0, -1) : '0' });
-    else setExpenseInput({ amount: expenseInput.amount === '0' ? (val === '00' ? '0' : val) : (expenseInput.amount.length >= 8 ? expenseInput.amount : expenseInput.amount + val) });
+    // 数字のみを抽出し、最大8桁に制限
+    const numericValue = text.replace(/[^0-9]/g, '').slice(0, 8);
+    setExpenseInput({ amount: numericValue || '0' });
+  };
+
+  const handleFocusAmount = () => {
+    setIsAmountFocused(true);
+    amountInputRef.current?.focus();
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      
-      {/* 新設した専用上部ヘッダー */}
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <InputScreenHeader 
         isEditing={!!expenseInput.id} 
         hasReturnTarget={hasReturnTarget} 
@@ -50,11 +55,29 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
       />
 
       <InputDisplayHeader 
-        date={displayDate} amount={expenseInput.amount} isAmountFocused={isAmountFocused} hasError={isAmountError}
-        onPressDate={() => setDatePickerVisible(true)} onPressAmount={() => setIsAmountFocused(true)} 
+        date={displayDate} 
+        amount={expenseInput.amount} 
+        isAmountFocused={isAmountFocused} 
+        hasError={isAmountError}
+        onPressDate={() => setDatePickerVisible(true)} 
+        onPressAmount={handleFocusAmount} 
       />
 
-      <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
+      {/* ネイティブキーボードを呼び出すための隠しTextInput (確定・保存アクションを排除) */}
+      <TextInput
+        ref={amountInputRef}
+        style={styles.hiddenInput}
+        keyboardType="number-pad"
+        value={expenseInput.amount === '0' ? '' : expenseInput.amount}
+        onChangeText={handleAmountChange}
+        onBlur={() => setIsAmountFocused(false)}
+      />
+
+      <ScrollView 
+        style={styles.scrollArea} 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
           <View style={styles.chipContainer}>
             {activeCategories.map(cat => {
@@ -83,19 +106,25 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
           <AutocompleteInput placeholder="店名（任意）" value={expenseInput.storeName || ''} onChangeText={(text) => setExpenseInput({ storeName: text })} history={settings.storeNameHistory || []} onFocus={() => setIsAmountFocused(false)} />
           <AutocompleteInput placeholder="コメント（任意）" value={expenseInput.memo || ''} onChangeText={(text) => setExpenseInput({ memo: text })} history={settings.memoHistory || []} onFocus={() => setIsAmountFocused(false)} />
         </View>
-
-        {isAmountFocused && <ExpenseInputPad onKeyPress={handleNumpadPress} />}
-        {/* 画面下部の InputActions は削除しました */}
       </ScrollView>
+
       <DatePickerModal visible={isDatePickerVisible} initialDate={displayDate} onSelect={(date) => setExpenseInput({ date })} onClose={() => setDatePickerVisible(false)} />
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' }, scrollArea: { flex: 1 },
-  chipScroll: { maxHeight: 54, minHeight: 54, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FAFAFC' }, chipContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5E5EA', marginRight: 8 }, chipSelected: { backgroundColor: '#007AFF' }, chipDisabled: { backgroundColor: '#F2F2F7', opacity: 0.5 },
-  chipText: { fontSize: 13, color: '#1C1C1E', fontWeight: '600' }, chipTextSelected: { color: '#FFFFFF' }, chipTextDisabled: { color: '#C7C7CC' },
+  container: { flex: 1, backgroundColor: '#F2F2F7' }, 
+  scrollArea: { flex: 1 },
+  scrollContent: { paddingBottom: 32 },
+  hiddenInput: { height: 0, width: 0, opacity: 0, position: 'absolute' },
+  chipScroll: { maxHeight: 54, minHeight: 54, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FAFAFC' }, 
+  chipContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
+  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5E5EA', marginRight: 8 }, 
+  chipSelected: { backgroundColor: '#007AFF' }, 
+  chipDisabled: { backgroundColor: '#F2F2F7', opacity: 0.5 },
+  chipText: { fontSize: 13, color: '#1C1C1E', fontWeight: '600' }, 
+  chipTextSelected: { color: '#FFFFFF' }, 
+  chipTextDisabled: { color: '#C7C7CC' },
   optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 10 },
 });
