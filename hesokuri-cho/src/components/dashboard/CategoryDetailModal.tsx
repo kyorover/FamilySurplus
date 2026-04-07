@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Modal, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ExpenseRecord, Category } from '../../types';
-import { useHesokuriStore } from '../../store';
+import { apiService } from '../../services/apiService';
 import { MonthCalendar } from './MonthCalendar';
 import { DailyExpenseList } from './DailyExpenseList';
 
@@ -21,7 +21,6 @@ interface CategoryDetailModalProps {
 export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
   visible, category, expenses, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete,
 }) => {
-  const { fetchHistoryData } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(currentMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewExpenses, setViewExpenses] = useState<ExpenseRecord[]>([]);
@@ -38,14 +37,36 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
 
   useEffect(() => {
     if (!visible || !category) return;
+    
+    let isMounted = true;
+
     const loadData = async () => {
       setIsLoading(true);
-      const data = await fetchHistoryData(viewMonth);
-      setViewExpenses(data.expenses.filter((e) => e.categoryId === category.id));
-      setIsLoading(false);
+      try {
+        // apiServiceから対象月の明細を直接取得
+        const fetchedExpenses = await apiService.fetchExpenses(viewMonth);
+        if (isMounted) {
+          setViewExpenses(fetchedExpenses.filter((e) => e.categoryId === category.id));
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch expenses for ${viewMonth}`, error);
+        if (isMounted) {
+          setViewExpenses([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
+
     loadData();
-  }, [viewMonth, visible, category]);
+
+    return () => {
+      isMounted = false;
+    };
+  // categoryオブジェクト全体ではなくidを依存配列に含めることで無限ループを防止
+  }, [viewMonth, visible, category?.id]);
 
   if (!category) return null;
 
