@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'item3' | 'item4' | 'arrow' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tree1' | 'tree2' | 'item1' | 'item2' | 'item3' | 'item4' | 'item5' | 'arrow' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -29,6 +29,7 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   item2: require('../../assets/images/garden/item2.png'),
   item3: require('../../assets/images/garden/item3.png'),
   item4: require('../../assets/images/garden/item4.png'),
+  item5: require('../../assets/images/garden/item5.png'),
   arrow: require('../../assets/images/garden/arrow.png'),
   chara: require('../../assets/images/garden/chara.png'),
   levelup: require('../../assets/images/garden/levelup.png'),
@@ -192,17 +193,47 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 60,
     baseScale: 0.8, isAnimated: true, animationSpeed: 300, maxQuantity: 1,
   },
-  'CR-03': { // 子供
+  'CR-03': { // 狸
+    sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 0,
+    frameWidth: 82, frameHeight: 73, frameCount: 6, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    baseScale: 0.9, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
+  },
+  'CR-04': { // 狐
+    sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 66,
+    frameWidth: 82, frameHeight: 72, frameCount: 7, frameSpacingX: 0, offsetX: -3, offsetY: 60,
+    baseScale: 0.8, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
+  },
+  'CR-05': { // パンダ
+    sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 129,
+    frameWidth: 82, frameHeight: 66, frameCount: 8, frameSpacingX: 0, offsetX: 0, offsetY: 50,
+    baseScale: 1.0, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
+  },
+  'CR-06': { // 馬
+    sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 196,
+    frameWidth: 80, frameHeight: 68, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 53,
+    baseScale: 1.0, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
+  },
+  'CR-07': { // ブルドック
+    sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 260,
+    frameWidth: 80, frameHeight: 56, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 53,
+    baseScale: 0.8, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
+  },
+  'CR-200': { // 子供(男の子)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 157,
     frameWidth: 58, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -6, offsetY: 78,
     baseScale: 0.5, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,
   },
-  'CR-04': { // 大人(女)
+  'CR-201': { // 子供(女の子)
+    sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 316,
+    frameWidth: 80, frameHeight: 64, frameCount: 4, frameSpacingX: 0, offsetX: -6, offsetY: 78,
+    baseScale: 0.5, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,
+  },
+  'CR-210': { // 大人(女)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 234,
     frameWidth: 58, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -4, offsetY: 68,
     baseScale: 0.6, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,
   },
-  'CR-05': { // 大人(男)
+  'CR-211': { // 大人(男)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 310,
     frameWidth: 60, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -4, offsetY: 68,
     baseScale: 0.6, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,

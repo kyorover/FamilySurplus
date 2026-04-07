@@ -46,9 +46,15 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'IT-10', name: '観葉植物', type: 'ornament', cost: 50, isShoppable: true },
   { id: 'CR-01', name: 'マンチカン', type: 'ornament', cost: 150, isShoppable: true },
   { id: 'CR-02', name: 'ダックスフンド', type: 'ornament', cost: 150, isShoppable: true },
-  { id: 'CR-03', name: '子供', type: 'ornament', cost: 100, isShoppable: true },
-  { id: 'CR-04', name: '大人(女)', type: 'ornament', cost: 100, isShoppable: true },
-  { id: 'CR-05', name: '大人(男)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'CR-03', name: '狸', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'CR-04', name: '狐', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'CR-05', name: 'パンダ', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'CR-06', name: '馬', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'CR-07', name: 'ブルドック', type: 'ornament', cost: 150, isShoppable: true },
+  { id: 'CR-200', name: '子供', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'CR-201', name: '子供', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'CR-210', name: '大人(女)', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'CR-211', name: '大人(男)', type: 'ornament', cost: 100, isShoppable: true },
   
   // ▼ 追加: 壁紙アイテム
   { id: 'WP-01', name: '壁紙(星空)', type: 'bg', cost: 100, isShoppable: true },
