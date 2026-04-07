@@ -9,7 +9,7 @@ import {
 
 // TODO: デプロイされたバックエンドの情報を設定してください
 const COGNITO_REGION = "ap-northeast-1"; 
-const COGNITO_CLIENT_ID = "YOUR_COGNITO_CLIENT_ID_HERE"; 
+const COGNITO_CLIENT_ID = "3sffgoev4ko2i12d7fa6pivahv"; 
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: COGNITO_REGION });
 

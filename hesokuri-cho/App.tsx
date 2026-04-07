@@ -1,4 +1,5 @@
 // App.tsx
+import 'react-native-get-random-values';
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useHesokuriStore } from './src/store';
