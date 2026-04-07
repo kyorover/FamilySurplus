@@ -1,30 +1,9 @@
 // src/screens/LoginScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
-
-// === 追加: AWS Cognitoのエラーを日本語に変換するヘルパー関数 ===
-const getJapaneseErrorMessage = (error: any): string => {
-  const code = error.name || error.code;
-  
-  if (code === 'InvalidPasswordException' || (error.message && error.message.includes('Password did not conform'))) {
-    return 'パスワードの強度が不足しています。\n8文字以上で、大文字・小文字・数字・特殊記号（!@#$等）を含めてください。';
-  }
-  if (code === 'UsernameExistsException') return 'このメールアドレスは既に登録されています。';
-  if (code === 'UserNotFoundException') return '登録されていないメールアドレスです。';
-  if (code === 'NotAuthorizedException') return 'メールアドレスまたはパスワードが間違っています。';
-  if (code === 'CodeMismatchException') return '確認コードが間違っています。';
-  if (code === 'ExpiredCodeException') return '確認コードの有効期限が切れています。再度登録からやり直してください。';
-  if (code === 'TooManyRequestsException' || code === 'LimitExceededException') {
-    return '試行回数が多すぎます。しばらく時間をおいてから再度お試しください。';
-  }
-  if (code === 'InvalidParameterException' && error.message?.includes('email')) {
-    return 'メールアドレスの形式が正しくありません。';
-  }
-  
-  return 'エラーが発生しました。入力内容をご確認ください。';
-};
-// =========================================================
+import { getJapaneseErrorMessage } from '../functions/authErrorHandler';
+import { AuthInputForm } from '../components/auth/AuthInputForm';
 
 export const LoginScreen = () => {
   const { 
@@ -34,7 +13,7 @@ export const LoginScreen = () => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState(''); // パスワードリセット用
+  const [newPassword, setNewPassword] = useState('');
   const [code, setCode] = useState('');
 
   const handleSubmit = async () => {
@@ -62,97 +41,8 @@ export const LoginScreen = () => {
         Alert.alert('再設定完了', 'パスワードの再設定が完了しました。新しいパスワードでログインしてください。');
       }
     } catch (error: any) {
-      // ▼ 修正: 英語エラーをそのまま出さず、日本語に翻訳して表示する
       Alert.alert('エラー', getJapaneseErrorMessage(error));
     }
-  };
-
-  const renderInputs = () => {
-    if (authMode === 'CONFIRM') {
-      return (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="メールアドレス"
-            value={unconfirmedEmail || email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            editable={!unconfirmedEmail}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="確認コード (6桁)"
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-          />
-        </>
-      );
-    }
-
-    if (authMode === 'FORGOT_PASSWORD') {
-      return (
-        <TextInput
-          style={styles.input}
-          placeholder="登録済みメールアドレス"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-      );
-    }
-
-    if (authMode === 'RESET_PASSWORD') {
-      return (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="メールアドレス"
-            value={unconfirmedEmail || email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            editable={!unconfirmedEmail}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="確認コード (6桁)"
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="新しいパスワード"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry
-          />
-        </>
-      );
-    }
-
-    return (
-      <>
-        <TextInput
-          style={styles.input}
-          placeholder="メールアドレス"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="パスワード"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-      </>
-    );
   };
 
   const getButtonText = () => {
@@ -172,18 +62,15 @@ export const LoginScreen = () => {
       <Text style={styles.subtitle}>家族みんなで、楽しくへそくり。</Text>
       
       <View style={styles.formContainer}>
-        {renderInputs()}
+        <AuthInputForm 
+          authMode={authMode} email={email} setEmail={setEmail}
+          password={password} setPassword={setPassword}
+          newPassword={newPassword} setNewPassword={setNewPassword}
+          code={code} setCode={setCode} unconfirmedEmail={unconfirmedEmail}
+        />
         
-        <TouchableOpacity 
-          style={styles.primaryButton} 
-          onPress={handleSubmit}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.primaryButtonText}>{getButtonText()}</Text>
-          )}
+        <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={isLoading}>
+          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{getButtonText()}</Text>}
         </TouchableOpacity>
 
         <View style={styles.toggleContainer}>
@@ -216,7 +103,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 8 },
   subtitle: { fontSize: 14, color: '#8E8E93', marginBottom: 40 },
   formContainer: { width: '100%', maxWidth: 400, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  input: { backgroundColor: '#F2F2F7', padding: 16, borderRadius: 8, marginBottom: 16, fontSize: 16 },
   primaryButton: { backgroundColor: '#007AFF', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   toggleContainer: { marginTop: 24, alignItems: 'center' },
