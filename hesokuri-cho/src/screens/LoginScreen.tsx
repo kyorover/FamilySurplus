@@ -1,6 +1,9 @@
 // src/screens/LoginScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { 
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert,
+  KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard, Platform 
+} from 'react-native';
 import { useAuthStore } from '../stores/authStore';
 import { getJapaneseErrorMessage } from '../functions/authErrorHandler';
 import { AuthInputForm } from '../components/auth/AuthInputForm';
@@ -17,6 +20,9 @@ export const LoginScreen = () => {
   const [code, setCode] = useState('');
 
   const handleSubmit = async () => {
+    // 実行時にキーボードを確実に閉じる
+    Keyboard.dismiss();
+    
     try {
       if (authMode === 'LOGIN') {
         if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
@@ -57,49 +63,64 @@ export const LoginScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>節約帖</Text>
-      <Text style={styles.subtitle}>家族みんなで、楽しくへそくり。</Text>
-      
-      <View style={styles.formContainer}>
-        <AuthInputForm 
-          authMode={authMode} email={email} setEmail={setEmail}
-          password={password} setPassword={setPassword}
-          newPassword={newPassword} setNewPassword={setNewPassword}
-          code={code} setCode={setCode} unconfirmedEmail={unconfirmedEmail}
-        />
-        
-        <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={isLoading}>
-          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{getButtonText()}</Text>}
-        </TouchableOpacity>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.innerContainer}>
+            <Text style={styles.title}>節約帖</Text>
+            <Text style={styles.subtitle}>家族みんなで、楽しくへそくり。</Text>
+            
+            <View style={styles.formContainer}>
+              <AuthInputForm 
+                authMode={authMode} email={email} setEmail={setEmail}
+                password={password} setPassword={setPassword}
+                newPassword={newPassword} setNewPassword={setNewPassword}
+                code={code} setCode={setCode} unconfirmedEmail={unconfirmedEmail}
+              />
+              
+              <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={isLoading}>
+                {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{getButtonText()}</Text>}
+              </TouchableOpacity>
 
-        <View style={styles.toggleContainer}>
-          {authMode === 'LOGIN' ? (
-            <>
-              <TouchableOpacity onPress={() => setAuthMode('SIGNUP')} disabled={isLoading} style={styles.linkMargin}>
-                <Text style={styles.toggleText}>アカウントをお持ちでない方はこちら</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setAuthMode('FORGOT_PASSWORD')} disabled={isLoading}>
-                <Text style={styles.toggleText}>パスワードを忘れた場合はこちら</Text>
-              </TouchableOpacity>
-            </>
-          ) : authMode === 'SIGNUP' ? (
-            <TouchableOpacity onPress={() => setAuthMode('LOGIN')} disabled={isLoading}>
-              <Text style={styles.toggleText}>既にアカウントをお持ちの方はこちら</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => setAuthMode('LOGIN')} disabled={isLoading}>
-              <Text style={styles.toggleText}>ログイン画面に戻る</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </View>
+              <View style={styles.toggleContainer}>
+                {authMode === 'LOGIN' ? (
+                  <>
+                    <TouchableOpacity onPress={() => setAuthMode('SIGNUP')} disabled={isLoading} style={styles.linkMargin}>
+                      <Text style={styles.toggleText}>アカウントをお持ちでない方はこちら</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setAuthMode('FORGOT_PASSWORD')} disabled={isLoading}>
+                      <Text style={styles.toggleText}>パスワードを忘れた場合はこちら</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : authMode === 'SIGNUP' ? (
+                  <TouchableOpacity onPress={() => setAuthMode('LOGIN')} disabled={isLoading}>
+                    <Text style={styles.toggleText}>既にアカウントをお持ちの方はこちら</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => setAuthMode('LOGIN')} disabled={isLoading}>
+                    <Text style={styles.toggleText}>ログイン画面に戻る</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7', padding: 20 },
+  container: { flex: 1, backgroundColor: '#F2F2F7' },
+  scrollContent: { flexGrow: 1 },
+  innerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   title: { fontSize: 32, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 8 },
   subtitle: { fontSize: 14, color: '#8E8E93', marginBottom: 40 },
   formContainer: { width: '100%', maxWidth: 400, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
