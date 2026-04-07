@@ -10,6 +10,7 @@ import { MonthlyBudgetEditModal } from '../components/dashboard/MonthlyBudgetEdi
 import { PocketMoneyRuleModal } from '../components/dashboard/PocketMoneyRuleModal';
 import { calculateAverageGuideline } from '../functions/budgetUtils';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
+import { Category } from '../types';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -51,20 +52,24 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
   const [year, month] = monthlyBudget.month_id.split('-');
   
-  const handleReorderCategories = async (fromIndex: number, toIndex: number) => {
-    const newCategories = [...(settings.categories || [])];
-    const fullFromIdx = newCategories.findIndex(c => c.id === activeCategories[fromIndex].id);
-    const fullToIdx = newCategories.findIndex(c => c.id === activeCategories[toIndex].id);
-    const [removed] = newCategories.splice(fullFromIdx, 1);
-    newCategories.splice(fullToIdx, 0, removed);
+  // 修正: CategoryListSectionからの新しい並び順を受け取り、ストアに保存する関数
+  const handleSaveOrder = async (newList: Category[]) => {
+    // 画面に表示されていない（フィルタリングされた）カテゴリを保持する
+    const activeIds = new Set(newList.map(c => c.id));
+    const hiddenCategories = (settings.categories || []).filter(c => !activeIds.has(c.id));
+    
+    // 新しい並び順の末尾に非表示カテゴリをくっつけて保存（データロスト防止）
+    const newCategories = [...newList, ...hiddenCategories];
     await updateSettings({ ...settings, categories: newCategories });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{`${year}年${parseInt(month)}月の予算`}</Text>
-        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}><Text style={styles.menuBtnText}>≡ メニュー</Text></TouchableOpacity>
+        <Text style={styles.headerTitle}>{`${year}年${parseInt(month, 10)}月の予算`}</Text>
+        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}>
+          <Text style={styles.menuBtnText}>≡ メニュー</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} scrollEnabled={isScrollEnabled} showsVerticalScrollIndicator={false}>
@@ -77,7 +82,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
         />
         <CategoryListSection 
           categories={activeCategories} monthlyBudget={monthlyBudget} spentByCategory={spentByCategory}
-          isEditMode={isEditMode} setIsEditMode={setIsEditMode} onReorder={handleReorderCategories}
+          isEditMode={isEditMode} setIsEditMode={setIsEditMode} 
+          onSaveOrder={handleSaveOrder} // 修正: onReorder を onSaveOrder に変更
           onDragStateChange={setIsScrollEnabled} onSelectCategory={setSelectedCategoryId}
         />
       </ScrollView>
@@ -90,7 +96,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
       <Modal visible={isSettingsMenuVisible} transparent animationType="slide" onRequestClose={() => setSettingsMenuVisible(false)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setSettingsMenuVisible(false)}>
           <View style={styles.menuContent}>
-            <View style={styles.menuHeader}><Text style={styles.menuTitle}>メニュー</Text><TouchableOpacity onPress={() => setSettingsMenuVisible(false)}><Text style={styles.menuCloseBtn}>✕</Text></TouchableOpacity></View>
+            <View style={styles.menuHeader}>
+              <Text style={styles.menuTitle}>メニュー</Text>
+              <TouchableOpacity onPress={() => setSettingsMenuVisible(false)}><Text style={styles.menuCloseBtn}>✕</Text></TouchableOpacity>
+            </View>
             <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); setBudgetModalVisible(true); }}><Text style={styles.menuItemIcon}>📊</Text><Text style={styles.menuItemText}>今月の予算を編成</Text></TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); setPocketMoneyModalVisible(true); }}><Text style={styles.menuItemIcon}>💰</Text><Text style={styles.menuItemText}>お小遣いルールを設定</Text></TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); onNavigateToHesokuriHistory(); }}><Text style={styles.menuItemIcon}>📈</Text><Text style={styles.menuItemText}>過去のへそくり履歴</Text></TouchableOpacity>
