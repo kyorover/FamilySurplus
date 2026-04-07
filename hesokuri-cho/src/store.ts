@@ -2,8 +2,9 @@
 import { create } from 'zustand';
 import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement } from './types';
 import { GARDEN_CONSTANTS } from './constants';
-import { GLOBAL_GARDEN_SETTINGS } from './config/spriteConfig';
+import { GLOBAL_GARDEN_SETTINGS, SPRITE_CONFIG } from './config/spriteConfig';
 import { apiService } from './services/apiService';
+import { syncFixedCategories } from './functions/categoryUtils';
 
 interface ExpenseInputState { id?: string; date?: string; amount: string; categoryId: string; paymentMethod: string; storeName: string; memo: string; isLocked: boolean; }
 interface HesokuriState {
@@ -39,13 +40,28 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
 
   fetchSettings: async () => {
     set({ isLoading: true, error: null });
-    try { const settings = await apiService.fetchSettings(); set({ settings, isLoading: false }); } 
+    try { 
+      let settings = await apiService.fetchSettings();
+      if (settings) {
+        const syncedCategories = syncFixedCategories(settings);
+        if (JSON.stringify(settings.categories) !== JSON.stringify(syncedCategories)) {
+          settings.categories = syncedCategories;
+          await apiService.updateSettings(settings); 
+        }
+      }
+      set({ settings, isLoading: false }); 
+    } 
     catch (e: any) { set({ error: e.message, isLoading: false }); }
   },
 
   updateSettings: async (newSettings) => {
     set({ isLoading: true, error: null });
-    try { const settings = await apiService.updateSettings(newSettings); set({ settings, pendingSettings: null, isLoading: false }); } 
+    try { 
+      // ▼ バグ修正: 設定画面から保存された際にも、直ちにカテゴリの自己修復・同期を行う
+      const syncedSettings = { ...newSettings, categories: syncFixedCategories(newSettings) };
+      const settings = await apiService.updateSettings(syncedSettings); 
+      set({ settings, pendingSettings: null, isLoading: false }); 
+    } 
     catch (e: any) { set({ error: e.message, isLoading: false }); }
   },
 
@@ -94,8 +110,13 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
 
   updateGardenPlacements: async (placements) => {
     const state = get(); if (!state.settings) return;
-    set({ settings: { ...state.settings, gardenPlacements: placements } });
-    await state.updateSettings({ ...state.settings, gardenPlacements: placements });
+    const counts: Record<string, number> = {};
+    const valid = placements.filter(p => {
+      counts[p.itemId] = (counts[p.itemId] || 0) + 1;
+      return counts[p.itemId] <= (SPRITE_CONFIG[p.itemId]?.maxQuantity ?? 99);
+    });
+    const newSettings = { ...state.settings, gardenPlacements: valid };
+    set({ settings: newSettings }); await state.updateSettings(newSettings);
   },
 
   levelUpTree: async (targetItemId?: string, effectId?: string) => {

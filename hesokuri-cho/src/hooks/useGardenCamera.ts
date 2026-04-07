@@ -2,15 +2,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useHesokuriStore } from '../store';
 import { GLOBAL_GARDEN_SETTINGS } from '../config/spriteConfig';
+import { HouseholdSettings } from '../types';
+
+// types.tsを変更しないための補助型
+type ExtendedSettings = HouseholdSettings & {
+  gardenMapOffset?: { x: number; y: number };
+  gardenZoomScale?: number;
+};
 
 export const useGardenCamera = () => {
   const { settings, updateSettings } = useHesokuriStore();
+  const extSettings = settings as ExtendedSettings;
   
-  const [baseOffset, setBaseOffset] = useState<{x: number, y: number}>(settings?.gardenMapOffset || { x: 0, y: 0 });
+  const [baseOffset, setBaseOffset] = useState<{x: number, y: number}>(extSettings?.gardenMapOffset || { x: 0, y: 0 });
   const [panOffset, setPanOffset] = useState<{x: number, y: number}>({ x: 0, y: 0 });
   
-  // ▼ ズーム状態の管理
-  const [zoomScale, setZoomScale] = useState<number>(GLOBAL_GARDEN_SETTINGS.DEFAULT_ZOOM_SCALE || 1.0);
+  // ▼ ズーム状態の管理（初期値を settings から復元）
+  const [zoomScale, setZoomScale] = useState<number>(extSettings?.gardenZoomScale || GLOBAL_GARDEN_SETTINGS.DEFAULT_ZOOM_SCALE || 1.0);
 
   const currentViewOffset = {
     x: baseOffset.x + panOffset.x,
@@ -51,9 +59,16 @@ export const useGardenCamera = () => {
     setZoomScale(prev => Math.max(prev - GLOBAL_GARDEN_SETTINGS.ZOOM_STEP, GLOBAL_GARDEN_SETTINGS.MIN_ZOOM_SCALE));
   }, []);
 
+  // ▼ 位置とズームの両方を設定に保存する
   useEffect(() => {
-    updateSettings({ ...settings, gardenMapOffset: baseOffset });
-  }, [baseOffset]);
+    if (settings) {
+      updateSettings({ 
+        ...settings, 
+        gardenMapOffset: baseOffset,
+        gardenZoomScale: zoomScale 
+      } as ExtendedSettings);
+    }
+  }, [baseOffset, zoomScale]);
 
   return {
     currentViewOffset, zoomScale,
