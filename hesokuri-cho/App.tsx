@@ -3,6 +3,7 @@ import 'react-native-get-random-values';
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useHesokuriStore } from './src/store';
+import { useAuthStore } from './src/stores/authStore'; // ▼ 新規追加
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { InputScreen } from './src/screens/InputScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -11,8 +12,9 @@ import { HesokuriHistoryScreen } from './src/screens/HesokuriHistoryScreen';
 import { LoginScreen } from './src/screens/LoginScreen'; // ▼ 新規追加
 
 export default function App() {
+  const { authToken } = useAuthStore(); // ▼ 新規追加
+
   const { 
-    authToken, // ▼ 新規追加
     settings, pendingSettings, setPendingSettings, monthlyBudget, isLoading, error, 
     fetchSettings, updateSettings, fetchExpenses, fetchMonthlyBudget, 
     expenseInput, resetExpenseInput, setReturnToCategoryDetail 

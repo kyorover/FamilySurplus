@@ -5,14 +5,14 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
-import * as cognito from 'aws-cdk-lib/aws-cognito'; // 新規追加: Cognito
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as path from 'path';
 
 export class HesokuriBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // === 新規追加: Cognito User Pool (認証基盤) ===
+    // === Cognito User Pool (認証基盤) ===
     const userPool = new cognito.UserPool(this, 'HesokuriUserPool', {
       userPoolName: 'hesokuri-users',
       signInAliases: { email: true },
@@ -24,6 +24,10 @@ export class HesokuriBackendStack extends cdk.Stack {
     const userPoolClient = new cognito.UserPoolClient(this, 'HesokuriUserPoolClient', {
       userPool,
       generateSecret: false,
+      // ▼ 新規追加: パスワード認証フローを許可する
+      authFlows: {
+        userPassword: true,
+      },
     });
     // ============================================
 

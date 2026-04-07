@@ -3,6 +3,29 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
 
+// === 追加: AWS Cognitoのエラーを日本語に変換するヘルパー関数 ===
+const getJapaneseErrorMessage = (error: any): string => {
+  const code = error.name || error.code;
+  
+  if (code === 'InvalidPasswordException' || (error.message && error.message.includes('Password did not conform'))) {
+    return 'パスワードの強度が不足しています。\n8文字以上で、大文字・小文字・数字・特殊記号（!@#$等）を含めてください。';
+  }
+  if (code === 'UsernameExistsException') return 'このメールアドレスは既に登録されています。';
+  if (code === 'UserNotFoundException') return '登録されていないメールアドレスです。';
+  if (code === 'NotAuthorizedException') return 'メールアドレスまたはパスワードが間違っています。';
+  if (code === 'CodeMismatchException') return '確認コードが間違っています。';
+  if (code === 'ExpiredCodeException') return '確認コードの有効期限が切れています。再度登録からやり直してください。';
+  if (code === 'TooManyRequestsException' || code === 'LimitExceededException') {
+    return '試行回数が多すぎます。しばらく時間をおいてから再度お試しください。';
+  }
+  if (code === 'InvalidParameterException' && error.message?.includes('email')) {
+    return 'メールアドレスの形式が正しくありません。';
+  }
+  
+  return 'エラーが発生しました。入力内容をご確認ください。';
+};
+// =========================================================
+
 export const LoginScreen = () => {
   const { 
     login, signUp, confirmSignUp, authMode, setAuthMode, unconfirmedEmail, isLoading 
@@ -15,20 +38,21 @@ export const LoginScreen = () => {
   const handleSubmit = async () => {
     try {
       if (authMode === 'LOGIN') {
-        if (!email || !password) return Alert.alert('エラー', 'メールアドレスとパスワードを入力してください');
+        if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
         await login(email, password);
       } else if (authMode === 'SIGNUP') {
-        if (!email || !password) return Alert.alert('エラー', 'メールアドレスとパスワードを入力してください');
+        if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
         await signUp(email, password);
-        Alert.alert('確認コード送信', 'メールアドレス宛に確認コードを送信しました。');
+        Alert.alert('確認コード送信', 'ご入力いただいたメールアドレス宛に、6桁の確認コードを送信しました。');
       } else if (authMode === 'CONFIRM') {
         const targetEmail = unconfirmedEmail || email;
-        if (!targetEmail || !code) return Alert.alert('エラー', 'メールアドレスと確認コードを入力してください');
+        if (!targetEmail || !code) return Alert.alert('入力エラー', 'メールアドレスと確認コードを入力してください');
         await confirmSignUp(targetEmail, code);
         Alert.alert('登録完了', 'アカウントの認証が完了しました。ログインしてください。');
       }
     } catch (error: any) {
-      Alert.alert('エラー', error.message || '処理に失敗しました');
+      // ▼ 修正: 英語エラーをそのまま出さず、日本語に翻訳して表示する
+      Alert.alert('エラー', getJapaneseErrorMessage(error));
     }
   };
 
