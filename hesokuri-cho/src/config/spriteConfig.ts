@@ -220,13 +220,13 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'CR-200': { // 子供(男の子)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 157,
-    frameWidth: 58, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -6, offsetY: 78,
+    frameWidth: 58, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -7, offsetY: 84,
     baseScale: 0.5, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,
   },
   'CR-201': { // 子供(女の子)
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 316,
-    frameWidth: 80, frameHeight: 64, frameCount: 4, frameSpacingX: 0, offsetX: -6, offsetY: 78,
-    baseScale: 0.5, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,
+    frameWidth: 80, frameHeight: 64, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 56,
+    baseScale: 0.7, isAnimated: true, animationSpeed: 500, maxQuantity: 1,
   },
   'CR-210': { // 大人(女)
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 234,
