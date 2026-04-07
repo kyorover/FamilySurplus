@@ -1,15 +1,17 @@
 // src/screens/HesokuriHistoryScreen.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
+import { apiService } from '../services/apiService';
 
 interface HesokuriHistoryScreenProps {
   onBack: () => void;
 }
 
 export const HesokuriHistoryScreen: React.FC<HesokuriHistoryScreenProps> = ({ onBack }) => {
-  const { settings, fetchHistoryData } = useHesokuriStore();
+  // Storeからはsettingsのみを取得し、副作用を持つ関数は避ける
+  const { settings } = useHesokuriStore();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [historyData, setHistoryData] = useState<Record<number, number | null>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -18,58 +20,85 @@ export const HesokuriHistoryScreen: React.FC<HesokuriHistoryScreenProps> = ({ on
   const currentMonth = new Date().getMonth() + 1;
   const isCurrentYear = selectedYear === currentYear;
 
-  // 計算対象カテゴリのIDセットを抽出（DashboardScreenと同一ロジック）
-  const targetCategoryIds = useMemo(() => {
-    if (!settings) return new Set<string>();
-    const hasChild = settings.familyMembers.some(m => m.role === '子供');
-    const activeCategories = settings.categories.filter(cat => 
-      cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true
-    );
-    const targetCats = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
-    return new Set(targetCats.map(c => c.id));
-  }, [settings]);
-
   useEffect(() => {
+    let isMounted = true;
+
     const loadYearData = async () => {
       if (!settings) return;
       setIsLoading(true);
       
-      const newData: Record<number, number | null> = {};
-      const monthsToFetch = Array.from({ length: 12 }, (_, i) => i + 1);
-      
-      // 12ヶ月分のデータを並列取得
-      const fetchPromises = monthsToFetch.map(async (month) => {
-        if (isCurrentYear && month > currentMonth) {
-          newData[month] = null; // 未来の月
-          return;
-        }
+      try {
+        // 依存配列による無限ループを避けるため、対象カテゴリの計算はuseEffect内でローカルに行う
+        const hasChild = settings.familyMembers.some(m => m.role === '子供');
+        const activeCategories = settings.categories.filter(cat => 
+          cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true
+        );
+        const targetCats = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
+        const targetCategoryIds = new Set(targetCats.map(c => c.id));
+
+        const newData: Record<number, number | null> = {};
+        const monthsToFetch = Array.from({ length: 12 }, (_, i) => i + 1);
         
-        const monthStr = `${selectedYear}-${String(month).padStart(2, '0')}`;
-        const { expenses, budgets } = await fetchHistoryData(monthStr);
-        
-        let totalBudget = 0;
-        let totalSpent = 0;
-        
-        targetCategoryIds.forEach(catId => {
-          totalBudget += (budgets[catId] || 0);
-        });
-        
-        expenses.forEach(exp => {
-          if (targetCategoryIds.has(exp.categoryId)) {
-            totalSpent += exp.amount;
+        // 12ヶ月分のデータを並列取得
+        const fetchPromises = monthsToFetch.map(async (month) => {
+          if (isCurrentYear && month > currentMonth) {
+            newData[month] = null; // 未来の月は計算対象外
+            return;
+          }
+          
+          const monthStr = `${selectedYear}-${String(month).padStart(2, '0')}`;
+          
+          try {
+            // apiServiceを直接呼び出し、エラー時はデフォルト値を返すことでクラッシュを防ぐ
+            const [expenses, budgetData] = await Promise.all([
+              apiService.fetchExpenses(monthStr).catch(() => []),
+              apiService.fetchMonthlyBudget(monthStr, settings).catch(() => ({ budgets: {} }))
+            ]);
+            
+            const budgets = (budgetData as any).budgets || {};
+            
+            let totalBudget = 0;
+            let totalSpent = 0;
+            
+            targetCategoryIds.forEach(catId => {
+              totalBudget += (budgets[catId] || 0);
+            });
+            
+            expenses.forEach(exp => {
+              if (targetCategoryIds.has(exp.categoryId)) {
+                totalSpent += exp.amount;
+              }
+            });
+            
+            newData[month] = totalBudget - totalSpent;
+          } catch (e) {
+            console.warn(`Failed to fetch data for ${monthStr}`);
+            newData[month] = null;
           }
         });
-        
-        newData[month] = totalBudget - totalSpent;
-      });
 
-      await Promise.all(fetchPromises);
-      setHistoryData(newData);
-      setIsLoading(false);
+        await Promise.all(fetchPromises);
+        
+        if (isMounted) {
+          setHistoryData(newData);
+        }
+      } catch (error) {
+        console.error('履歴データの全体取得プロセスに失敗しました', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
     loadYearData();
-  }, [selectedYear, settings, targetCategoryIds, isCurrentYear, currentMonth, fetchHistoryData]);
+
+    // アンマウント時の状態更新を防ぐ
+    return () => {
+      isMounted = false;
+    };
+  // settingsオブジェクト全体ではなく、変更の検知に必要な一意のプリミティブ値のみを依存配列に含める
+  }, [selectedYear, settings?.updatedAt, isCurrentYear, currentMonth]);
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1).reverse();
 
