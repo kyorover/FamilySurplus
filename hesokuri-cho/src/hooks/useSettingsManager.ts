@@ -2,11 +2,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
+import { useAuthStore } from '../stores/authStore';
 import { FamilyMember, Category } from '../types';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 export const useSettingsManager = () => {
   const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
+  const authToken = useAuthStore(state => state.authToken);
   
   // モーダル表示状態
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
@@ -20,18 +22,42 @@ export const useSettingsManager = () => {
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
-  // 初回マウント時に現在の設定を pending（編集中）状態としてコピー
+  // マウント時、またはログイン後にバックエンドから設定をフェッチする初期同期ロジック
   useEffect(() => {
-    if (settings && !pendingSettings) {
-      setPendingSettings(JSON.parse(JSON.stringify(settings)));
-    }
-  }, [settings, pendingSettings, setPendingSettings]);
+    const fetchSettings = async () => {
+      if (!authToken) return;
+      try {
+        const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+        const response = await fetch(`${API_URL}/settings`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // APIから取得したデータを初期状態としてセット（API側に無い場合は既存のローカル状態をコピー）
+          if (data.householdId) {
+            setPendingSettings(data);
+          } else if (settings && !pendingSettings) {
+            setPendingSettings(JSON.parse(JSON.stringify(settings)));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user settings:', error);
+      }
+    };
+
+    fetchSettings();
+  }, [authToken, settings, setPendingSettings]);
 
   // 表示用の有効なカテゴリを算出（子供がいない場合は養育費を隠す等）
   const activeCategories = useMemo(() => {
     if (!pendingSettings) return [];
-    const hasChild = pendingSettings.familyMembers.some(m => m.role === '子供');
-    return pendingSettings.categories.filter(cat => 
+    // undefined対策: 空配列にフォールバック
+    const members = pendingSettings.familyMembers || [];
+    const categories = pendingSettings.categories || [];
+    
+    const hasChild = members.some(m => m.role === '子供');
+    return categories.filter(cat => 
       cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true
     );
   }, [pendingSettings]);
@@ -39,21 +65,24 @@ export const useSettingsManager = () => {
   // --- 更新ハンドラ群 ---
   const handleUpdateFamily = (updatedMember: FamilyMember) => {
     if (!pendingSettings) return;
-    setPendingSettings({ ...pendingSettings, familyMembers: pendingSettings.familyMembers.map(m => m.id === updatedMember.id ? updatedMember : m) });
+    const members = pendingSettings.familyMembers || [];
+    setPendingSettings({ ...pendingSettings, familyMembers: members.map(m => m.id === updatedMember.id ? updatedMember : m) });
   };
 
   const handleAddFamily = (member: FamilyMember) => {
     if (!pendingSettings) return;
-    setPendingSettings({ ...pendingSettings, familyMembers: [...pendingSettings.familyMembers, member] });
+    const members = pendingSettings.familyMembers || [];
+    setPendingSettings({ ...pendingSettings, familyMembers: [...members, member] });
     setFamilyModalVisible(false);
   };
 
   const handleDeleteFamily = (memberId: string) => {
     if (!pendingSettings) return;
-    const isAdult = pendingSettings.familyMembers.find(m => m.id === memberId)?.role === '大人';
-    const adultCount = pendingSettings.familyMembers.filter(m => m.role === '大人').length;
+    const members = pendingSettings.familyMembers || [];
+    const isAdult = members.find(m => m.id === memberId)?.role === '大人';
+    const adultCount = members.filter(m => m.role === '大人').length;
     if (isAdult && adultCount <= 1) return Alert.alert('エラー', '大人は最低1人必要です');
-    setPendingSettings({ ...pendingSettings, familyMembers: pendingSettings.familyMembers.filter(m => m.id !== memberId) });
+    setPendingSettings({ ...pendingSettings, familyMembers: members.filter(m => m.id !== memberId) });
   };
 
   const handleUpdateFamilyList = (newList: FamilyMember[]) => {
@@ -61,31 +90,32 @@ export const useSettingsManager = () => {
     setPendingSettings({ ...pendingSettings, familyMembers: newList });
   };
 
-  // 引数名を明確化し、プロパティへ明示的に代入
   const handleAddCategory = (categoryName: string) => {
     if (!pendingSettings) return;
+    const categories = pendingSettings.categories || [];
     setPendingSettings({ 
       ...pendingSettings, 
       categories: [
-        ...pendingSettings.categories, 
+        ...categories, 
         { id: `c_${Date.now()}`, name: categoryName, budget: 0, isFixed: false }
       ] 
     });
-    // モーダルの非表示はコンポーネント側の onClose コールバックで実行されるためここから削除
   };
 
   const handleDeleteCategory = (categoryId: string) => {
     if (!pendingSettings) return;
+    const categories = pendingSettings.categories || [];
     Alert.alert('確認', 'このカテゴリを削除しますか？', [
       { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => setPendingSettings({ ...pendingSettings, categories: pendingSettings.categories.filter(c => c.id !== categoryId) }) }
+      { text: '削除', style: 'destructive', onPress: () => setPendingSettings({ ...pendingSettings, categories: categories.filter(c => c.id !== categoryId) }) }
     ]);
   };
 
   const handleUpdateCategoryList = (newList: Category[]) => {
     if (!pendingSettings) return;
+    const categories = pendingSettings.categories || [];
     // 非表示になっている固定カテゴリを維持しつつマージする
-    const hiddenCategories = pendingSettings.categories.filter(c => !activeCategories.find(ac => ac.id === c.id));
+    const hiddenCategories = categories.filter(c => !activeCategories.find(ac => ac.id === c.id));
     setPendingSettings({ ...pendingSettings, categories: [...newList, ...hiddenCategories] });
   };
 

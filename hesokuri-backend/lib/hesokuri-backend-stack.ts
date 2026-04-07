@@ -79,6 +79,11 @@ export class HesokuriBackendStack extends cdk.Stack {
     monthlyBudgetsTable.grantReadWriteData(apiHandler); // 新テーブルへのアクセス権限を付与
     accountsTable.grantReadWriteData(apiHandler); // 新テーブルへのアクセス権限を付与
 
+    // ▼ 新規追加: API Gateway用のCognito Authorizer
+    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'HesokuriAuthorizer', {
+      cognitoUserPools: [userPool],
+    });
+
     const api = new apigateway.LambdaRestApi(this, 'HesokuriApi', {
       handler: apiHandler,
       proxy: true,
@@ -87,6 +92,11 @@ export class HesokuriBackendStack extends cdk.Stack {
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: ['Content-Type', 'Authorization'],
       },
+      // ▼ 新規追加: API全体にCognito Authorizerを適用し、未認証リクエストをブロック
+      defaultMethodOptions: {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
     });
 
     new cdk.CfnOutput(this, 'ApiEndpointUrl', {

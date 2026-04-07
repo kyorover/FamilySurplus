@@ -8,9 +8,8 @@ import {
   InitiateAuthCommand 
 } from "@aws-sdk/client-cognito-identity-provider";
 
-// TODO: デプロイされたバックエンドの情報を設定してください
 const COGNITO_REGION = "ap-northeast-1"; 
-const COGNITO_CLIENT_ID = "3sffgoev4ko2i12d7fa6pivahv"; 
+const COGNITO_CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID || "3sffgoev4ko2i12d7fa6pivahv"; 
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: COGNITO_REGION });
 
@@ -40,14 +39,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   initAuth: async () => {
     try {
       const refreshToken = await SecureStore.getItemAsync('refreshToken');
-      if (!refreshToken) return; // 保存されたトークンがない場合は未ログイン状態のまま
+      if (!refreshToken) return;
 
       const command = new InitiateAuthCommand({
         AuthFlow: "REFRESH_TOKEN_AUTH",
         ClientId: COGNITO_CLIENT_ID,
-        AuthParameters: {
-          REFRESH_TOKEN: refreshToken,
-        },
+        AuthParameters: { REFRESH_TOKEN: refreshToken },
       });
       const response = await cognitoClient.send(command);
       const newIdToken = response.AuthenticationResult?.IdToken || null;
@@ -100,19 +97,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       const command = new InitiateAuthCommand({
         AuthFlow: "USER_PASSWORD_AUTH",
         ClientId: COGNITO_CLIENT_ID,
-        AuthParameters: {
-          USERNAME: email,
-          PASSWORD: password,
-        },
+        AuthParameters: { USERNAME: email, PASSWORD: password },
       });
       const response = await cognitoClient.send(command);
       const token = response.AuthenticationResult?.IdToken || null;
       const refreshToken = response.AuthenticationResult?.RefreshToken || null;
 
       if (token) {
-        if (refreshToken) {
-          await SecureStore.setItemAsync('refreshToken', refreshToken);
-        }
+        if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
         set({ authToken: token, isLoading: false });
       } else {
         throw new Error("認証トークンの取得に失敗しました");
