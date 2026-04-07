@@ -1,10 +1,11 @@
 // src/components/dashboard/CategoryDetailModal.tsx
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Modal, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, Modal, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { ExpenseRecord, Category } from '../../types';
 import { apiService } from '../../services/apiService';
 import { MonthCalendar } from './MonthCalendar';
 import { DailyExpenseList } from './DailyExpenseList';
+import { CategoryMonthlyRecordList } from './CategoryMonthlyRecordList';
 
 interface CategoryDetailModalProps {
   visible: boolean;
@@ -19,7 +20,7 @@ interface CategoryDetailModalProps {
 }
 
 export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
-  visible, category, expenses, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete,
+  visible, category, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete,
 }) => {
   const [viewMonth, setViewMonth] = useState<string>(currentMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -37,35 +38,20 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
 
   useEffect(() => {
     if (!visible || !category) return;
-    
     let isMounted = true;
-
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // apiServiceから対象月の明細を直接取得
         const fetchedExpenses = await apiService.fetchExpenses(viewMonth);
-        if (isMounted) {
-          setViewExpenses(fetchedExpenses.filter((e) => e.categoryId === category.id));
-        }
+        if (isMounted) setViewExpenses(fetchedExpenses.filter((e) => e.categoryId === category.id));
       } catch (error) {
-        console.warn(`Failed to fetch expenses for ${viewMonth}`, error);
-        if (isMounted) {
-          setViewExpenses([]);
-        }
+        if (isMounted) setViewExpenses([]);
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
-
     loadData();
-
-    return () => {
-      isMounted = false;
-    };
-  // categoryオブジェクト全体ではなくidを依存配列に含めることで無限ループを防止
+    return () => { isMounted = false; };
   }, [viewMonth, visible, category?.id]);
 
   if (!category) return null;
@@ -95,12 +81,6 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
     setViewExpenses((prev) => prev.filter((e) => e.date_id !== exp.date_id));
   };
 
-  // 月間リストからの追加時は「今日」をデフォルトにする
-  const getTodayStr = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
-
   return (
     <Modal visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -115,41 +95,13 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
             isLoading={isLoading} onMonthChange={handleMonthChange} onYearChange={handleYearChange} onSelectDate={setSelectedDate}
           />
 
-          {/* 未選択（デフォルト）時は、当月の全明細リストを表示 */}
           {!selectedDate && !isLoading && (
-            <View style={styles.monthlyListContainer}>
-              <View style={styles.monthlyListHeader}>
-                <Text style={styles.monthlyListTitle}>{viewMonth.split('-')[1].replace(/^0/, '')}月の全記録</Text>
-                <TouchableOpacity style={styles.addDirectBtn} onPress={() => onAddExpense(category.id, getTodayStr())}>
-                  <Text style={styles.addDirectBtnText}>＋ 追加</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView contentContainerStyle={styles.listContent}>
-                {viewExpenses.length === 0 ? <Text style={styles.emptyText}>記録はありません</Text> : 
-                  viewExpenses.slice().sort((a,b) => b.date.localeCompare(a.date)).map(exp => (
-                    <TouchableOpacity key={exp.id} style={styles.recordItem} onPress={() => onEditExpense(exp)} activeOpacity={0.7}>
-                      <View style={styles.recordHeader}>
-                        <View style={styles.badgeWrap}>
-                          <Text style={styles.dateBadge}>{parseInt(exp.date.split('-')[2], 10)}日</Text>
-                          <Text style={styles.methodBadge}>{exp.paymentMethod}</Text>
-                        </View>
-                        <Text style={styles.amount}>￥{exp.amount.toLocaleString()}</Text>
-                      </View>
-                      <View style={styles.recordBody}>
-                        <View style={styles.textContainer}>
-                          {exp.storeName ? <Text style={styles.storeName} numberOfLines={1}>📍 {exp.storeName}</Text> : null}
-                          {exp.memo ? <Text style={styles.memo} numberOfLines={1}>💬 {exp.memo}</Text> : null}
-                        </View>
-                        <TouchableOpacity onPress={() => handleDeleteWrapper(exp)} style={styles.deleteBtnWrap}><Text style={styles.deleteText}>削除</Text></TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
-                  ))
-                }
-              </ScrollView>
-            </View>
+            <CategoryMonthlyRecordList 
+              viewMonth={viewMonth} viewExpenses={viewExpenses} category={category}
+              onAddExpense={onAddExpense} onEditExpense={onEditExpense} onDeleteWrapper={handleDeleteWrapper}
+            />
           )}
 
-          {/* 日付選択時はその日の明細を表示 */}
           {selectedDate && !isLoading && (
             <DailyExpenseList
               selectedDate={selectedDate} selectedExpenses={expensesByDate[selectedDate] || []} categories={[category]}
@@ -168,25 +120,4 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
   title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   closeText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
-  
-  monthlyListContainer: { flex: 1, marginTop: 16, borderTopWidth: 1, borderTopColor: '#E5E5EA', paddingTop: 16 },
-  monthlyListHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  monthlyListTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  addDirectBtn: { backgroundColor: '#007AFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  addDirectBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 12 },
-  listContent: { paddingBottom: 40 },
-  emptyText: { textAlign: 'center', color: '#8E8E93', marginTop: 24, fontSize: 13 },
-  
-  recordItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F2F2F7', backgroundColor: '#FAFAFC', borderRadius: 8, paddingHorizontal: 12, marginBottom: 8 },
-  recordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  badgeWrap: { flexDirection: 'row', alignItems: 'center' },
-  dateBadge: { fontSize: 11, backgroundColor: '#1C1C1E', color: '#FFFFFF', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden', marginRight: 6, fontWeight: 'bold' },
-  methodBadge: { fontSize: 10, backgroundColor: '#E5E5EA', color: '#8E8E93', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
-  amount: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E' },
-  recordBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  textContainer: { flex: 1, marginRight: 8 },
-  storeName: { fontSize: 13, color: '#1C1C1E', marginBottom: 2, fontWeight: '500' },
-  memo: { fontSize: 12, color: '#8E8E93' },
-  deleteBtnWrap: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#FFF0F0', borderRadius: 6 },
-  deleteText: { fontSize: 12, color: '#FF3B30', fontWeight: 'bold' },
 });
