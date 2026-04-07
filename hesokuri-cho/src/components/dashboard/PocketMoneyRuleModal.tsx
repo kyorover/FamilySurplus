@@ -15,33 +15,34 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
   const [localAllocation, setLocalAllocation] = useState<Record<string, number>>({});
   const [localRule, setLocalRule] = useState<MonthlyBudget['deficitRule']>('みんなで折半');
 
-  const adults = familyMembers.filter(m => m.role === '大人');
+  // 変更点: '大人'フィルタを撤廃し、全メンバーを対象とする
+  const targetMembers = familyMembers;
 
   useEffect(() => {
     if (visible) {
       let alloc = { ...monthlyBudget.bonusAllocation };
       
-      // 大人1人の場合（単身、または親1人+子供）は自動的に100%にする
-      if (adults.length === 1) {
-        alloc[adults[0].id] = 100;
-      } else if (Object.keys(alloc).length === 0 && adults.length > 0) {
+      // 1人の場合は自動的に100%にする
+      if (targetMembers.length === 1) {
+        alloc[targetMembers[0].id] = 100;
+      } else if (Object.keys(alloc).length === 0 && targetMembers.length > 0) {
         // 未設定の場合は均等割り
-        const val = Math.floor(100 / adults.length);
-        adults.forEach(a => { alloc[a.id] = val; });
+        const val = Math.floor(100 / targetMembers.length);
+        targetMembers.forEach(m => { alloc[m.id] = val; });
       }
       
       setLocalAllocation(alloc);
       setLocalRule(monthlyBudget.deficitRule || 'みんなで折半');
     }
-  }, [visible, monthlyBudget]);
+  }, [visible, monthlyBudget, targetMembers]);
 
   const applyPreset = (targetId: string | 'equal') => {
     const newAlloc: Record<string, number> = {};
     if (targetId === 'equal') {
-      const val = Math.floor(100 / adults.length);
-      adults.forEach(a => { newAlloc[a.id] = val; });
+      const val = Math.floor(100 / targetMembers.length);
+      targetMembers.forEach(m => { newAlloc[m.id] = val; });
     } else {
-      adults.forEach(a => { newAlloc[a.id] = a.id === targetId ? 100 : 0; });
+      targetMembers.forEach(m => { newAlloc[m.id] = m.id === targetId ? 100 : 0; });
     }
     setLocalAllocation(newAlloc);
   };
@@ -60,13 +61,12 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
             <Text style={styles.ruleLabel}>💰 余ったお金（へそくり）の配分比率</Text>
             
             <View style={styles.ruleCard}>
-              {/* 大人が2人以上の場合のみ、フレーム内にワンタッチボタンを表示 */}
-              {adults.length > 1 && (
+              {targetMembers.length > 1 && (
                 <View style={styles.presetRow}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {adults.map(adult => (
-                      <TouchableOpacity key={adult.id} style={styles.presetBtn} onPress={() => applyPreset(adult.id)}>
-                        <Text style={styles.presetBtnText}>{adult.name}に100%</Text>
+                    {targetMembers.map(member => (
+                      <TouchableOpacity key={member.id} style={styles.presetBtn} onPress={() => applyPreset(member.id)}>
+                        <Text style={styles.presetBtnText}>{member.name}に100%</Text>
                       </TouchableOpacity>
                     ))}
                     <TouchableOpacity style={styles.presetBtn} onPress={() => applyPreset('equal')}>
@@ -76,17 +76,17 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
                 </View>
               )}
 
-              {adults.map(adult => (
-                <View key={adult.id} style={[styles.allocRow, adults.length === 1 && { marginBottom: 0 }]}>
-                  <Text style={styles.allocName}>{adult.name}</Text>
+              {targetMembers.map(member => (
+                <View key={member.id} style={[styles.allocRow, targetMembers.length === 1 && { marginBottom: 0 }]}>
+                  <Text style={styles.allocName}>{member.name}</Text>
                   <View style={styles.allocInputWrap}>
                     <TextInput
                       style={styles.allocInput}
                       keyboardType="number-pad"
-                      value={String(localAllocation[adult.id] || 0)}
-                      onChangeText={(val) => setLocalAllocation(prev => ({ ...prev, [adult.id]: parseInt(val, 10) || 0 }))}
+                      value={String(localAllocation[member.id] || 0)}
+                      onChangeText={(val) => setLocalAllocation(prev => ({ ...prev, [member.id]: parseInt(val, 10) || 0 }))}
                       selectTextOnFocus={true}
-                      editable={adults.length > 1} // 1人の場合は編集不可にする
+                      editable={targetMembers.length > 1}
                     />
                     <Text style={styles.allocPercent}>%</Text>
                   </View>

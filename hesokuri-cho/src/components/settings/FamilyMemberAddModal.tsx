@@ -1,6 +1,6 @@
 // src/components/settings/FamilyMemberAddModal.tsx
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { FamilyMember } from '../../types';
 
 interface FamilyMemberAddModalProps {
@@ -13,6 +13,8 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
   const [name, setName] = useState('');
   const [role, setRole] = useState<'大人' | '子供'>('大人');
   const [age, setAge] = useState('');
+  const [hasPocketMoney, setHasPocketMoney] = useState(false);
+  const [pocketMoneyAmount, setPocketMoneyAmount] = useState('');
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -21,12 +23,15 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
       name: name.trim(),
       role,
       age: role === '子供' && age ? parseInt(age, 10) : undefined,
-      hasPocketMoney: false,
-      pocketMoneyAmount: 0
+      hasPocketMoney,
+      pocketMoneyAmount: hasPocketMoney && pocketMoneyAmount ? parseInt(pocketMoneyAmount, 10) : 0
     });
+    // State Reset
     setName('');
     setRole('大人');
     setAge('');
+    setHasPocketMoney(false);
+    setPocketMoneyAmount('');
   };
 
   return (
@@ -44,10 +49,19 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
             </TouchableOpacity>
           </View>
 
-          <TextInput style={styles.input} placeholder="名前（例：妻、長男）" value={name} onChangeText={setName} />
-          
+          <TextInput style={styles.input} placeholder="名前" value={name} onChangeText={setName} />
+
           {role === '子供' && (
-            <TextInput style={styles.input} placeholder="年齢（目安の計算に使用します）" keyboardType="number-pad" value={age} onChangeText={setAge} />
+            <TextInput style={styles.input} placeholder="年齢（任意）" keyboardType="numeric" value={age} onChangeText={setAge} />
+          )}
+
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>小遣い制にする</Text>
+            <Switch value={hasPocketMoney} onValueChange={setHasPocketMoney} />
+          </View>
+
+          {hasPocketMoney && (
+            <TextInput style={styles.input} placeholder="月額（円）" keyboardType="numeric" value={pocketMoneyAmount} onChangeText={setPocketMoneyAmount} />
           )}
 
           <View style={styles.buttonRow}>
@@ -75,9 +89,11 @@ const styles = StyleSheet.create({
   roleBtnText: { fontWeight: 'bold', color: '#8E8E93' },
   roleBtnTextActive: { color: '#FFFFFF' },
   input: { backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16, fontSize: 16 },
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 },
+  switchLabel: { fontSize: 16, color: '#1C1C1E', fontWeight: '500' },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#E5E5EA', borderRadius: 8, marginRight: 8 },
-  cancelButtonText: { fontSize: 16, fontWeight: 'bold', color: '#8E8E93' },
+  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 8, marginRight: 8 },
   saveButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#007AFF', borderRadius: 8, marginLeft: 8 },
-  saveButtonText: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
+  cancelButtonText: { fontWeight: 'bold', color: '#8E8E93', fontSize: 16 },
+  saveButtonText: { fontWeight: 'bold', color: '#FFFFFF', fontSize: 16 },
 });

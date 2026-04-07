@@ -10,15 +10,16 @@ interface PocketMoneySettingsProps {
 }
 
 export const PocketMoneySettings: React.FC<PocketMoneySettingsProps> = ({ settings, onChangeMember, onChangeDeficitRule }) => {
-  const adults = settings.familyMembers.filter(m => m.role === '大人');
+  // 変更点: '大人'フィルタを撤廃し、全メンバーを対象とする
+  const targetMembers = settings.familyMembers;
 
-  if (adults.length === 0) return null;
+  if (!targetMembers || targetMembers.length === 0) return null;
 
   return (
     <View style={styles.card}>
-      {adults.map((adult, index) => (
-        <View key={adult.id} style={[styles.memberRow, index > 0 && styles.borderTop]}>
-          <Text style={styles.memberName}>{adult.name}</Text>
+      {targetMembers.map((member, index) => (
+        <View key={member.id} style={[styles.memberRow, index > 0 && styles.borderTop]}>
+          <Text style={styles.memberName}>{member.name} {member.role === '子供' && <Text style={styles.childBadge}>（子供）</Text>}</Text>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>基本のお小遣い</Text>
             <View style={styles.inputWrap}>
@@ -26,8 +27,8 @@ export const PocketMoneySettings: React.FC<PocketMoneySettingsProps> = ({ settin
               <TextInput
                 style={styles.textInput}
                 keyboardType="number-pad"
-                value={String(adult.pocketMoneyAmount)}
-                onChangeText={(val) => onChangeMember({ ...adult, pocketMoneyAmount: parseInt(val, 10) || 0 })}
+                value={String(member.pocketMoneyAmount || 0)}
+                onChangeText={(val) => onChangeMember({ ...member, pocketMoneyAmount: parseInt(val, 10) || 0 })}
               />
             </View>
           </View>
@@ -37,11 +38,11 @@ export const PocketMoneySettings: React.FC<PocketMoneySettingsProps> = ({ settin
               <TextInput
                 style={styles.textInput}
                 keyboardType="number-pad"
-                value={String(adult.surplusRatio)}
+                value={String(member.surplusRatio || 0)}
                 onChangeText={(val) => {
                   let num = parseInt(val, 10) || 0;
                   if (num > 100) num = 100;
-                  onChangeMember({ ...adult, surplusRatio: num });
+                  onChangeMember({ ...member, surplusRatio: num });
                 }}
               />
               <Text style={styles.percent}>%</Text>
@@ -73,6 +74,7 @@ const styles = StyleSheet.create({
   memberRow: { padding: 16 },
   borderTop: { borderTopWidth: 1, borderTopColor: '#E5E5EA' },
   memberName: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 12 },
+  childBadge: { fontSize: 12, color: '#8E8E93', fontWeight: 'normal' },
   inputGroup: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   inputLabel: { fontSize: 13, color: '#8E8E93', fontWeight: '600' },
   inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, width: 120 },
