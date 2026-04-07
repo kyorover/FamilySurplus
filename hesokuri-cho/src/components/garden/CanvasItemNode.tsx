@@ -63,6 +63,7 @@ export const CanvasItemNode: React.FC<Props> = ({
       <View style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
         <View style={[
           styles.itemContent, 
+          { width: displaySize, height: displayHeight }, // ハイライト枠を画像の表示サイズに厳密に合わせるための指定
           isSelected && styles.selectedHighlight, 
           transforms.length > 0 && { transform: transforms }
         ]}>

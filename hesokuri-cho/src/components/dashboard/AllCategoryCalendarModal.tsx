@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Modal, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { ExpenseRecord, Category } from '../../types';
-import { useHesokuriStore } from '../../store';
 import { MonthCalendar } from './MonthCalendar';
 import { DailyExpenseList } from './DailyExpenseList';
+import { apiService } from '../../services/apiService';
 
 interface AllCategoryCalendarModalProps {
   visible: boolean;
@@ -20,7 +20,6 @@ interface AllCategoryCalendarModalProps {
 export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> = ({ 
   visible, categories, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete 
 }) => {
-  const { fetchHistoryData } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(currentMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewExpenses, setViewExpenses] = useState<ExpenseRecord[]>([]);
@@ -51,9 +50,14 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
     if (!visible) return;
     const loadData = async () => {
       setIsLoading(true);
-      const data = await fetchHistoryData(viewMonth);
-      setViewExpenses(data.expenses);
-      setIsLoading(false);
+      try {
+        const expenses = await apiService.fetchExpenses(viewMonth);
+        setViewExpenses(expenses);
+      } catch (error) {
+        console.error('カレンダーデータ取得エラー:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     loadData();
   }, [viewMonth, visible]);
