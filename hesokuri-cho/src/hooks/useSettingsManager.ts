@@ -2,13 +2,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
-import { useAuthStore } from '../stores/authStore';
 import { FamilyMember, Category } from '../types';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 export const useSettingsManager = () => {
   const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
-  const authToken = useAuthStore(state => state.authToken);
   
   // モーダル表示状態
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
@@ -22,37 +20,17 @@ export const useSettingsManager = () => {
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
-  // マウント時、またはログイン後にバックエンドから設定をフェッチする初期同期ロジック
+  // 修正: 冗長でエラーの原因となっていた直接の fetch 処理を削除。
+  // グローバルストアですでに取得済みの settings を pendingSettings にコピーするだけにする。
   useEffect(() => {
-    const fetchSettings = async () => {
-      if (!authToken) return;
-      try {
-        const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
-        const response = await fetch(`${API_URL}/settings`, {
-          headers: { Authorization: `Bearer ${authToken}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          // APIから取得したデータを初期状態としてセット（API側に無い場合は既存のローカル状態をコピー）
-          if (data.householdId) {
-            setPendingSettings(data);
-          } else if (settings && !pendingSettings) {
-            setPendingSettings(JSON.parse(JSON.stringify(settings)));
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch user settings:', error);
-      }
-    };
-
-    fetchSettings();
-  }, [authToken, settings, setPendingSettings]);
+    if (settings && !pendingSettings) {
+      setPendingSettings(JSON.parse(JSON.stringify(settings)));
+    }
+  }, [settings, pendingSettings, setPendingSettings]);
 
   // 表示用の有効なカテゴリを算出（子供がいない場合は養育費を隠す等）
   const activeCategories = useMemo(() => {
     if (!pendingSettings) return [];
-    // undefined対策: 空配列にフォールバック
     const members = pendingSettings.familyMembers || [];
     const categories = pendingSettings.categories || [];
     
