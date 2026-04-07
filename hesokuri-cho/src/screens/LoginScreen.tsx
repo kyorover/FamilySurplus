@@ -28,11 +28,13 @@ const getJapaneseErrorMessage = (error: any): string => {
 
 export const LoginScreen = () => {
   const { 
-    login, signUp, confirmSignUp, authMode, setAuthMode, unconfirmedEmail, isLoading 
+    login, signUp, confirmSignUp, forgotPassword, confirmResetPassword, 
+    authMode, setAuthMode, unconfirmedEmail, isLoading 
   } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState(''); // パスワードリセット用
   const [code, setCode] = useState('');
 
   const handleSubmit = async () => {
@@ -49,6 +51,15 @@ export const LoginScreen = () => {
         if (!targetEmail || !code) return Alert.alert('入力エラー', 'メールアドレスと確認コードを入力してください');
         await confirmSignUp(targetEmail, code);
         Alert.alert('登録完了', 'アカウントの認証が完了しました。ログインしてください。');
+      } else if (authMode === 'FORGOT_PASSWORD') {
+        if (!email) return Alert.alert('入力エラー', 'メールアドレスを入力してください');
+        await forgotPassword(email);
+        Alert.alert('リセットコード送信', 'パスワード再設定用の確認コードをメールで送信しました。');
+      } else if (authMode === 'RESET_PASSWORD') {
+        const targetEmail = unconfirmedEmail || email;
+        if (!targetEmail || !code || !newPassword) return Alert.alert('入力エラー', 'すべての項目を入力してください');
+        await confirmResetPassword(targetEmail, code, newPassword);
+        Alert.alert('再設定完了', 'パスワードの再設定が完了しました。新しいパスワードでログインしてください。');
       }
     } catch (error: any) {
       // ▼ 修正: 英語エラーをそのまま出さず、日本語に翻訳して表示する
@@ -80,6 +91,49 @@ export const LoginScreen = () => {
       );
     }
 
+    if (authMode === 'FORGOT_PASSWORD') {
+      return (
+        <TextInput
+          style={styles.input}
+          placeholder="登録済みメールアドレス"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+      );
+    }
+
+    if (authMode === 'RESET_PASSWORD') {
+      return (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="メールアドレス"
+            value={unconfirmedEmail || email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            editable={!unconfirmedEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="確認コード (6桁)"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="新しいパスワード"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+          />
+        </>
+      );
+    }
+
     return (
       <>
         <TextInput
@@ -101,6 +155,17 @@ export const LoginScreen = () => {
     );
   };
 
+  const getButtonText = () => {
+    switch (authMode) {
+      case 'LOGIN': return 'ログイン';
+      case 'SIGNUP': return '新規登録';
+      case 'CONFIRM': return '認証する';
+      case 'FORGOT_PASSWORD': return 'コードを送信';
+      case 'RESET_PASSWORD': return '再設定する';
+      default: return '';
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>節約帖</Text>
@@ -117,17 +182,20 @@ export const LoginScreen = () => {
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.primaryButtonText}>
-              {authMode === 'LOGIN' ? 'ログイン' : authMode === 'SIGNUP' ? '新規登録' : '認証する'}
-            </Text>
+            <Text style={styles.primaryButtonText}>{getButtonText()}</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.toggleContainer}>
           {authMode === 'LOGIN' ? (
-            <TouchableOpacity onPress={() => setAuthMode('SIGNUP')} disabled={isLoading}>
-              <Text style={styles.toggleText}>アカウントをお持ちでない方はこちら</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity onPress={() => setAuthMode('SIGNUP')} disabled={isLoading} style={styles.linkMargin}>
+                <Text style={styles.toggleText}>アカウントをお持ちでない方はこちら</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setAuthMode('FORGOT_PASSWORD')} disabled={isLoading}>
+                <Text style={styles.toggleText}>パスワードを忘れた場合はこちら</Text>
+              </TouchableOpacity>
+            </>
           ) : authMode === 'SIGNUP' ? (
             <TouchableOpacity onPress={() => setAuthMode('LOGIN')} disabled={isLoading}>
               <Text style={styles.toggleText}>既にアカウントをお持ちの方はこちら</Text>
@@ -152,5 +220,6 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: '#007AFF', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   toggleContainer: { marginTop: 24, alignItems: 'center' },
-  toggleText: { color: '#007AFF', fontSize: 14, fontWeight: '500' }
+  toggleText: { color: '#007AFF', fontSize: 14, fontWeight: '500' },
+  linkMargin: { marginBottom: 16 }
 });

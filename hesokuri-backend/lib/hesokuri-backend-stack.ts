@@ -18,6 +18,8 @@ export class HesokuriBackendStack extends cdk.Stack {
       signInAliases: { email: true },
       selfSignUpEnabled: true,
       autoVerify: { email: true },
+      // ▼ 新規追加: パスワードリセットをユーザーセルフで行えるように明示的に設定
+      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 

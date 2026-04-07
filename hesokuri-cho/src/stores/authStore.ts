@@ -4,7 +4,9 @@ import {
   CognitoIdentityProviderClient, 
   SignUpCommand, 
   ConfirmSignUpCommand, 
-  InitiateAuthCommand 
+  InitiateAuthCommand,
+  ForgotPasswordCommand,
+  ConfirmForgotPasswordCommand
 } from "@aws-sdk/client-cognito-identity-provider";
 
 // TODO: デプロイされたバックエンドの情報を設定してください
@@ -15,14 +17,16 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: COGNITO_REGION
 
 interface AuthState {
   authToken: string | null;
-  authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM';
+  authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
   unconfirmedEmail: string | null;
   isLoading: boolean;
   error: string | null;
-  setAuthMode: (mode: 'LOGIN' | 'SIGNUP' | 'CONFIRM') => void;
+  setAuthMode: (mode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD') => void;
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -91,6 +95,38 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         set({ error: err.message, isLoading: false });
       }
+      throw err;
+    }
+  },
+
+  forgotPassword: async (email) => {
+    set({ isLoading: true, error: null });
+    try {
+      const command = new ForgotPasswordCommand({
+        ClientId: COGNITO_CLIENT_ID,
+        Username: email,
+      });
+      await cognitoClient.send(command);
+      set({ authMode: 'RESET_PASSWORD', unconfirmedEmail: email, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  confirmResetPassword: async (email, code, newPassword) => {
+    set({ isLoading: true, error: null });
+    try {
+      const command = new ConfirmForgotPasswordCommand({
+        ClientId: COGNITO_CLIENT_ID,
+        Username: email,
+        ConfirmationCode: code,
+        Password: newPassword,
+      });
+      await cognitoClient.send(command);
+      set({ authMode: 'LOGIN', unconfirmedEmail: null, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
       throw err;
     }
   },
