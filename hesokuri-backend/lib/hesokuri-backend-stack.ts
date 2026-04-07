@@ -95,5 +95,22 @@ export class HesokuriBackendStack extends cdk.Stack {
     // === 新規追加: Cognito 出力 ===
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new cdk.CfnOutput(this, 'ClientId', { value: userPoolClient.userPoolClientId });
+
+    // ▼ 新規追加: サインアップ完了時の DynamoDB 初期レコード作成トリガー
+    const postConfirmationHandler = new NodejsFunction(this, 'PostConfirmationHandler', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      entry: path.join(__dirname, '../lambda/postConfirmation.ts'),
+      handler: 'handler',
+      environment: {
+        ACCOUNTS_TABLE_NAME: accountsTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+    
+    // Lambdaにテーブルへの書き込み権限を付与
+    accountsTable.grantReadWriteData(postConfirmationHandler);
+    
+    // UserPoolの定義順序を変えずに、後からトリガーを追加する
+    userPool.addTrigger(cognito.UserPoolOperation.POST_CONFIRMATION, postConfirmationHandler);
   }
 }
