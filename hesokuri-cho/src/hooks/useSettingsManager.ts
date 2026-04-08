@@ -100,7 +100,7 @@ export const useSettingsManager = () => {
   const handleSaveAll = () => {
     if (!pendingSettings) return;
     updateSettings(pendingSettings);
-    Alert.alert('完了', '設定を保存しました！\nダッシュボードの表示順にも反映されます。');
+    Alert.alert('完了', '設定を保存しました！');
   };
 
   return {
