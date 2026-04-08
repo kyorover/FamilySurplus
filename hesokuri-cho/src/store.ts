@@ -1,6 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement } from './types';
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement, AccountInfo } from './types'; // ▼ 追記: AccountInfo
 import { GARDEN_CONSTANTS } from './constants';
 import { GLOBAL_GARDEN_SETTINGS, SPRITE_CONFIG } from './config/spriteConfig';
 import { apiService } from './services/apiService';
@@ -9,20 +9,31 @@ import { syncFixedCategories } from './functions/categoryUtils';
 interface ExpenseInputState { id?: string; date?: string; amount: string; categoryId: string; paymentMethod: string; storeName: string; memo: string; isLocked: boolean; }
 interface HesokuriState {
   settings: HouseholdSettings | null; pendingSettings: HouseholdSettings | null; expenses: ExpenseRecord[]; monthlyBudget: MonthlyBudget | null; isLoading: boolean; error: string | null;
+  accountInfo: AccountInfo | null; // ▼ 追記: accountInfo
   expenseInput: ExpenseInputState; returnToCategoryDetail: string | null; returnToCategoryDetailDate: string | null; selectedTreeId: string | null;
   setSelectedTreeId: (id: string | null) => void; setExpenseInput: (input: Partial<ExpenseInputState>) => void; resetExpenseInput: () => void; saveExpenseInput: () => Promise<void>; setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; fetchSettings: () => Promise<void>; updateSettings: (newSettings: HouseholdSettings) => Promise<void>; fetchExpenses: (month: string) => Promise<void>; fetchMonthlyBudget: (month: string) => Promise<void>; updateMonthlyBudget: (budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule'], month: string) => Promise<void>; addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt' | 'date_id'>) => Promise<void>; updateExpense: (expense: ExpenseRecord) => Promise<void>; deleteExpense: (date_id: string) => Promise<void>;
   waterGarden: () => Promise<void>; updateGardenPlacements: (placements: GardenPlacement[]) => Promise<void>; levelUpTree: (targetItemId?: string, effectId?: string) => Promise<void>; setDebugPlantLevel: (level: number) => Promise<void>;
+  fetchAccountInfo: () => Promise<void>; // ▼ 追記: fetchAccountInfo
 }
 
 export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   settings: null, pendingSettings: null, expenses: [], monthlyBudget: null, isLoading: false, error: null, returnToCategoryDetail: null, returnToCategoryDetailDate: null, selectedTreeId: null,
+  accountInfo: null, // ▼ 追記: 初期値
   setSelectedTreeId: (id) => set({ selectedTreeId: id }),
   expenseInput: { amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false },
   setExpenseInput: (input) => set((state) => ({ expenseInput: { ...state.expenseInput, ...input } })),
   resetExpenseInput: () => set({ expenseInput: { id: undefined, date: undefined, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false } }),
   setReturnToCategoryDetail: (id, date = null) => set({ returnToCategoryDetail: id, returnToCategoryDetailDate: date }),
   setPendingSettings: (settings) => set({ pendingSettings: settings }),
+
+  // ▼ 追記: アカウント情報の取得メソッド
+  fetchAccountInfo: async () => {
+    try {
+      const accountInfo = await apiService.fetchAccountInfo();
+      if (accountInfo) set({ accountInfo });
+    } catch (e) { console.error(e); }
+  },
 
   saveExpenseInput: async () => {
     const state = get(); const input = state.expenseInput; const amountNum = parseInt(input.amount, 10);
@@ -41,6 +52,7 @@ export const useHesokuriStore = create<HesokuriState>((set, get) => ({
   fetchSettings: async () => {
     set({ isLoading: true, error: null });
     try { 
+      get().fetchAccountInfo(); // ▼ 追記: 設定取得と同時にアカウント権限もフェッチする
       let settings = await apiService.fetchSettings();
       if (settings) {
         const syncedCategories = syncFixedCategories(settings);

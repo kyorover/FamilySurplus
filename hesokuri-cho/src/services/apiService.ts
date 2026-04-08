@@ -1,9 +1,9 @@
 // src/services/apiService.ts
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget } from '../types';
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, AccountInfo } from '../types'; // ▼ 追記: AccountInfo
 import { useAuthStore } from '../stores/authStore';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
-const HOUSEHOLD_ID = 'default-household-001';
+const HOUSEHOLD_ID = 'default-household-001'; // 元の定義を維持
 
 const getAuthHeaders = () => {
   const token = useAuthStore.getState().authToken;
@@ -11,6 +11,18 @@ const getAuthHeaders = () => {
 };
 
 export const apiService = {
+  // ▼ 追記: アカウント情報の取得 (既存ロジックには干渉させない)
+  async fetchAccountInfo(): Promise<AccountInfo | null> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/account`, { headers: getAuthHeaders() });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Failed to fetch account info:", error);
+      return null;
+    }
+  },
+
   async fetchSettings(): Promise<HouseholdSettings | null> {
     const res = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`, { headers: getAuthHeaders() });
     const data = await res.json();

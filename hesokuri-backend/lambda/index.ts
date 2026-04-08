@@ -10,6 +10,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 const SETTINGS_TABLE = process.env.SETTINGS_TABLE_NAME || '';
 const EXPENSES_TABLE = process.env.EXPENSES_TABLE_NAME || '';
 const MONTHLY_BUDGETS_TABLE = process.env.MONTHLY_BUDGETS_TABLE_NAME || '';
+const ACCOUNTS_TABLE = process.env.ACCOUNTS_TABLE_NAME || ''; // ▼ 追記: AccountsTableの環境変数
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +33,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   try {
+    // ▼ 新規追加: アカウント情報の取得とisAdminのフェイルセーフ
+    if (httpMethod === 'GET' && path === '/account') {
+      const result = await docClient.send(new GetCommand({ TableName: ACCOUNTS_TABLE, Key: { accountId: householdId } }));
+      const accountData = result.Item || { accountId: householdId, email: '', subscriptionPlan: 'FREE' };
+      
+      // 既存のブランクユーザーへの安全対策
+      if (accountData.isAdmin === undefined) {
+        accountData.isAdmin = false;
+      }
+      
+      return buildResponse(200, accountData);
+    }
+
     if (httpMethod === 'GET' && path.startsWith('/settings/')) {
       // 変更: パスパラメータからの抽出を削除し、トークンの householdId を使用
       const result = await docClient.send(new GetCommand({ TableName: SETTINGS_TABLE, Key: { householdId } }));

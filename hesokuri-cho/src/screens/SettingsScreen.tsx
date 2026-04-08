@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView, Alert } from 'react-native';
 import { useSettingsManager } from '../hooks/useSettingsManager';
 import { useAuthStore } from '../stores/authStore';
+import { useHesokuriStore } from '../store'; // ▼ 追記: accountInfo 取得のためストアをインポート
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
@@ -14,6 +15,7 @@ import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen'; 
 export const SettingsScreen: React.FC = () => {
   const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions } = useSettingsManager();
   const { logout } = useAuthStore();
+  const { accountInfo } = useHesokuriStore(); // ▼ 追記: アカウント情報を取得
 
   const handleLogout = () => {
     Alert.alert(
@@ -107,16 +109,19 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.historyManageCard} onPress={() => modals.setGarden(true)} activeOpacity={0.6}>
-          <View style={styles.historyManageContent}>
-            <Text style={styles.historyManageIcon}>🌻</Text>
-            <View>
-              <Text style={styles.historyManageTitle}>お庭機能のテスト（開発用）</Text>
-              <Text style={styles.historyManageDesc}>アイテムの購入・配置・描画を検証します</Text>
+        {/* ▼ 追記: 管理者(isAdmin === true)の場合のみ表示する */}
+        {accountInfo?.isAdmin && (
+          <TouchableOpacity style={styles.historyManageCard} onPress={() => modals.setGarden(true)} activeOpacity={0.6}>
+            <View style={styles.historyManageContent}>
+              <Text style={styles.historyManageIcon}>🌻</Text>
+              <View>
+                <Text style={styles.historyManageTitle}>お庭機能のテスト（開発用）</Text>
+                <Text style={styles.historyManageDesc}>アイテムの購入・配置・描画を検証します</Text>
+              </View>
             </View>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>👤 アカウント</Text>

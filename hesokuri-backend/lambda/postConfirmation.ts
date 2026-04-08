@@ -25,6 +25,7 @@ export const handler = async (event: PostConfirmationTriggerEvent): Promise<Post
       email: email,
       subscriptionPlan: 'FREE', // 初期プラン
       createdAt: now,
+      isAdmin: false, // ▼ 追加: 新規登録時はデフォルトで false を明示的にセットする
     };
 
     try {
@@ -34,11 +35,10 @@ export const handler = async (event: PostConfirmationTriggerEvent): Promise<Post
       }));
       console.log('Successfully created account record in DynamoDB:', item);
     } catch (error) {
-      console.error('Error writing to DynamoDB:', error);
-      throw error;
+      console.error('Error creating account record:', error);
+      // エラーが発生しても、Cognitoのサインアップ自体をブロックしないようにスローしない
     }
   }
 
-  // Cognitoに制御を返すため、必ずeventをそのままreturnする
   return event;
 };
