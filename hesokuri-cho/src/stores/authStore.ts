@@ -10,6 +10,7 @@ import {
   ConfirmForgotPasswordCommand // ▼ 追加: パスワードリセット確定用コマンド
 } from "@aws-sdk/client-cognito-identity-provider";
 import { useHesokuriStore } from '../store'; // ▼ 追加: ログアウト時の状態リセット用
+import { getJapaneseErrorMessage } from '../functions/authErrorHandler'; // ▼ 追加: UI用エラーメッセージ変換
 
 const COGNITO_REGION = "ap-northeast-1"; 
 const COGNITO_CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID || "3sffgoev4ko2i12d7fa6pivahv"; 
@@ -42,8 +43,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuthMode: (mode) => set({ authMode: mode, error: null }),
 
   initAuth: async () => {
-    const token = await SecureStore.getItemAsync('refreshToken');
-    if (token) set({ authToken: token });
+    try {
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+      if (!refreshToken) return;
+      const command = new InitiateAuthCommand({
+        AuthFlow: "REFRESH_TOKEN_AUTH",
+        ClientId: COGNITO_CLIENT_ID,
+        AuthParameters: { REFRESH_TOKEN: refreshToken },
+      });
+      const response = await cognitoClient.send(command);
+      if (response.AuthenticationResult?.IdToken) {
+        set({ authToken: response.AuthenticationResult.IdToken });
+        console.log("[Auth Trace] initAuth: Token refreshed successfully.");
+      }
+    } catch (err: any) {
+      console.error("[Auth Error - initAuth]", { name: err.name || err.code, msg: err.message });
+      await SecureStore.deleteItemAsync('refreshToken');
+      set({ authToken: null });
+    }
   },
 
   signUp: async (email, password) => {
@@ -55,9 +72,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         Password: password,
       });
       await cognitoClient.send(command);
+      console.log(`[Auth Trace] signUp: ${email.trim()}`);
       set({ authMode: 'CONFIRM', unconfirmedEmail: email.trim(), isLoading: false });
     } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+      console.error("[Auth Error - signUp]", { name: err.name || err.code, msg: err.message });
+      set({ error: getJapaneseErrorMessage(err), isLoading: false });
       throw err;
     }
   },
@@ -71,9 +90,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         ConfirmationCode: code.trim(),
       });
       await cognitoClient.send(command);
+      console.log(`[Auth Trace] confirmSignUp: ${email.trim()}`);
       set({ authMode: 'LOGIN', unconfirmedEmail: null, isLoading: false });
     } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+      console.error("[Auth Error - confirmSignUp]", { name: err.name || err.code, msg: err.message });
+      set({ error: getJapaneseErrorMessage(err), isLoading: false });
       throw err;
     }
   },
@@ -93,26 +114,33 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (token) {
         if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
         set({ authToken: token, isLoading: false });
+        console.log("[Auth Trace] login: Success");
       } else {
         throw new Error("認証トークンの取得に失敗しました");
       }
     } catch (err: any) {
+      console.error("[Auth Error - login]", { name: err.name || err.code, msg: err.message });
       if (err.name === 'UserNotConfirmedException') {
         set({ authMode: 'CONFIRM', unconfirmedEmail: email.trim(), isLoading: false });
       } else {
-        set({ error: err.message, isLoading: false });
+        set({ error: getJapaneseErrorMessage(err), isLoading: false });
       }
       throw err;
     }
   },
 
   logout: async () => {
-    await SecureStore.deleteItemAsync('refreshToken');
-    set({ authToken: null, authMode: 'LOGIN', error: null });
-    
-    // ▼ 修正: ログアウト時にHesokuriStoreの残存キャッシュを初期化し、別アカウント再ログイン時のクラッシュを防止
-    useHesokuriStore.getState().setPendingSettings(null);
-    useHesokuriStore.setState({ settings: null, accountInfo: null, expenses: [], monthlyBudget: null });
+    try {
+      await SecureStore.deleteItemAsync('refreshToken');
+      set({ authToken: null, authMode: 'LOGIN', error: null });
+      
+      // ▼ 修正: ログアウト時にHesokuriStoreの残存キャッシュを初期化し、別アカウント再ログイン時のクラッシュを防止
+      useHesokuriStore.getState().setPendingSettings(null);
+      useHesokuriStore.setState({ settings: null, accountInfo: null, expenses: [], monthlyBudget: null });
+      console.log("[Auth Trace] logout: Store cleared successfully");
+    } catch (err: any) {
+      console.error("[Auth Error - logout]", err);
+    }
   },
 
   // ▼ 新規追加: パスワードリセット要求処理
@@ -124,9 +152,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         Username: email.trim(),
       });
       await cognitoClient.send(command);
+      console.log(`[Auth Trace] forgotPassword: ${email.trim()}`);
       set({ authMode: 'RESET_PASSWORD', unconfirmedEmail: email.trim(), isLoading: false });
     } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+      console.error("[Auth Error - forgotPassword]", { name: err.name || err.code, msg: err.message });
+      set({ error: getJapaneseErrorMessage(err), isLoading: false });
       throw err;
     }
   },
@@ -142,9 +172,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         Password: newPassword,
       });
       await cognitoClient.send(command);
+      console.log(`[Auth Trace] confirmForgotPassword: ${email.trim()}`);
       set({ authMode: 'LOGIN', unconfirmedEmail: null, isLoading: false });
     } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+      console.error("[Auth Error - confirmForgotPassword]", { name: err.name || err.code, msg: err.message });
+      set({ error: getJapaneseErrorMessage(err), isLoading: false });
       throw err;
     }
   }

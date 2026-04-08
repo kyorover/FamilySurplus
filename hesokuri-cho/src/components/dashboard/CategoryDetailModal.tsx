@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Modal, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { ExpenseRecord, Category } from '../../types';
-import { apiService } from '../../services/apiService';
+import { useHesokuriStore } from '../../store';
 import { MonthCalendar } from './MonthCalendar';
 import { DailyExpenseList } from './DailyExpenseList';
 import { CategoryMonthlyRecordList } from './CategoryMonthlyRecordList';
@@ -22,10 +22,10 @@ interface CategoryDetailModalProps {
 export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
   visible, category, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete,
 }) => {
+  // 単一情報源（Store）から状態とメソッドを取得
+  const { expenses: globalExpenses, fetchExpenses, isLoading } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(currentMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [viewExpenses, setViewExpenses] = useState<ExpenseRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -37,24 +37,23 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
   }, [visible, initialDate, currentMonth]);
 
   useEffect(() => {
-    if (!visible || !category) return;
-    let isMounted = true;
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedExpenses = await apiService.fetchExpenses(viewMonth);
-        if (isMounted) setViewExpenses(fetchedExpenses.filter((e) => e.categoryId === category.id));
-      } catch (error) {
-        if (isMounted) setViewExpenses([]);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-    loadData();
-    return () => { isMounted = false; };
-  }, [viewMonth, visible, category?.id]);
+    if (visible) {
+      fetchExpenses(viewMonth);
+    }
+  }, [viewMonth, visible]);
+
+  const handleClose = () => {
+    // 親画面（ダッシュボード）の表示月とずれている場合は元に戻してから閉じる
+    if (viewMonth !== currentMonth) {
+      fetchExpenses(currentMonth);
+    }
+    onClose();
+  };
 
   if (!category) return null;
+
+  // ストアの全支出から、現在表示中の月と選択カテゴリーに合致するデータのみを抽出
+  const viewExpenses = globalExpenses.filter((e) => e.date.startsWith(viewMonth) && e.categoryId === category.id);
 
   const expensesByDate = viewExpenses.reduce((acc, exp) => {
     if (!acc[exp.date]) acc[exp.date] = [];
@@ -78,7 +77,7 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
 
   const handleDeleteWrapper = (exp: ExpenseRecord) => {
     onDelete(exp.date_id!);
-    setViewExpenses((prev) => prev.filter((e) => e.date_id !== exp.date_id));
+    // グローバルなStore側で削除され再レンダリングされるため、ローカル配列の操作は不要
   };
 
   return (
@@ -87,7 +86,7 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
         <View style={styles.modalCard}>
           <View style={styles.header}>
             <Text style={styles.title}>{category.name} の明細</Text>
-            <TouchableOpacity onPress={onClose}><Text style={styles.closeText}>閉じる</Text></TouchableOpacity>
+            <TouchableOpacity onPress={handleClose}><Text style={styles.closeText}>閉じる</Text></TouchableOpacity>
           </View>
 
           <MonthCalendar

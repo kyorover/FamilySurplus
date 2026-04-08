@@ -4,7 +4,7 @@ import { StyleSheet, View, Text, Modal, TouchableOpacity, KeyboardAvoidingView, 
 import { ExpenseRecord, Category } from '../../types';
 import { MonthCalendar } from './MonthCalendar';
 import { DailyExpenseList } from './DailyExpenseList';
-import { apiService } from '../../services/apiService';
+import { useHesokuriStore } from '../../store';
 
 interface AllCategoryCalendarModalProps {
   visible: boolean;
@@ -20,10 +20,10 @@ interface AllCategoryCalendarModalProps {
 export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> = ({ 
   visible, categories, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete 
 }) => {
+  // 単一情報源（Store）から状態とメソッドを取得
+  const { expenses, fetchExpenses, isLoading } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(currentMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [viewExpenses, setViewExpenses] = useState<ExpenseRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -47,20 +47,21 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
   }, [visible, initialDate, currentMonth]);
 
   useEffect(() => {
-    if (!visible) return;
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const expenses = await apiService.fetchExpenses(viewMonth);
-        setViewExpenses(expenses);
-      } catch (error) {
-        console.error('カレンダーデータ取得エラー:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    if (visible) {
+      fetchExpenses(viewMonth);
+    }
   }, [viewMonth, visible]);
+
+  const handleClose = () => {
+    // 親画面（ダッシュボード）の表示月とずれている場合は元に戻してから閉じる
+    if (viewMonth !== currentMonth) {
+      fetchExpenses(currentMonth);
+    }
+    onClose();
+  };
+
+  // ストアの全支出から、現在表示中の月のデータのみを抽出
+  const viewExpenses = expenses.filter(e => e.date.startsWith(viewMonth));
 
   const expensesByDate = viewExpenses.reduce((acc, exp) => {
     if (!acc[exp.date]) acc[exp.date] = [];
@@ -102,7 +103,7 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
 
   const handleDeleteWrapper = (exp: ExpenseRecord) => {
     onDelete(exp.date_id!);
-    setViewExpenses((prev) => prev.filter((e) => e.date_id !== exp.date_id));
+    // グローバルなStore側で削除され再レンダリングされるため、ローカル配列の操作は不要
   };
 
   return (
@@ -110,7 +111,7 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.modalCard}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity onPress={handleClose}>
               <Text style={styles.closeText}>閉じる</Text>
             </TouchableOpacity>
             <Text style={styles.title}>全カテゴリーカレンダー</Text>

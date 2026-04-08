@@ -10,12 +10,38 @@ const getAuthHeaders = () => {
   return { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' };
 };
 
+// ▼ 新規追加: Fetchをラップして、401エラーの捕捉と詳細なログ出力を一元管理するインターセプター
+const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(url, { ...options, headers: getAuthHeaders() });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 401エラーの根本原因を追跡するための詳細なログ出力
+      const tokenStr = useAuthStore.getState().authToken ? 'Token Exists (Possible Expiry)' : 'No Token Provided';
+      console.error(`[API 401 Unauthorized] URL: ${url} | Token Status: ${tokenStr}`);
+      throw new Error('認証セッションが切れました、または無効です。再度ログインしてください。');
+    }
+
+    let errorDetail = '';
+    try {
+      const errorJson = await response.json();
+      errorDetail = errorJson.message || JSON.stringify(errorJson);
+    } catch (e) {
+      errorDetail = 'レスポンスの解析に失敗しました';
+    }
+    console.error(`[API Error ${response.status}] URL: ${url} | Detail: ${errorDetail}`);
+    throw new Error(`サーバーエラーが発生しました (${response.status})`);
+  }
+
+  return response;
+};
+
 export const apiService = {
   // ▼ 追記: アカウント情報の取得 (既存ロジックには干渉させない)
   async fetchAccountInfo(): Promise<AccountInfo | null> {
     try {
-      const res = await fetch(`${API_BASE_URL}/account`, { headers: getAuthHeaders() });
-      if (!res.ok) return null;
+      const res = await fetchWithAuth('/account');
       return await res.json();
     } catch (error) {
       console.error("Failed to fetch account info:", error);
@@ -24,68 +50,50 @@ export const apiService = {
   },
 
   async fetchSettings(): Promise<HouseholdSettings | null> {
-    const res = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`, { headers: getAuthHeaders() });
+    // インターセプターにより、401等のエラー時は例外が投げられここで処理が止まる（サイレント上書きを防止）
+    const res = await fetchWithAuth(`/settings/${HOUSEHOLD_ID}`);
     const data = await res.json();
     
-    // 無限ロード回避: データが存在しない場合は初期設定を生成してサーバーに保存
-    if (data.message === 'Settings not found' || data.message === 'Unauthorized') {
-      const initial: HouseholdSettings = {
-        householdId: HOUSEHOLD_ID, familyMembers: [], categories: [],
-        itemLevels: { 'PL-01': 1 }, itemExps: { 'PL-01': 0 },
-        gardenPoints: 0, gardenPlacements: [], updatedAt: new Date().toISOString()
-      };
-      await this.updateSettings(initial);
-      return initial;
-    }
-    return {
-      ...data, familyMembers: data.familyMembers || [], categories: data.categories || [],
-      itemLevels: data.itemLevels || {}, itemExps: data.itemExps || {}, gardenPoints: data.gardenPoints || 0
-    };
+    // 無限ロード回避: データが存在しない場合は初期化
+    if (!data || Object.keys(data).length === 0 || data.message === 'Settings not found') return null;
+    return data;
   },
 
-  async updateSettings(settings: HouseholdSettings): Promise<HouseholdSettings> {
-    const res = await fetch(`${API_BASE_URL}/settings/${HOUSEHOLD_ID}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(settings) });
-    const data = await res.json();
-    return { ...data.data, familyMembers: data.data?.familyMembers || [], categories: data.data?.categories || [], itemLevels: data.data?.itemLevels || {}, itemExps: data.data?.itemExps || {}, gardenPoints: data.data?.gardenPoints || 0 };
+  async updateSettings(settings: HouseholdSettings): Promise<void> {
+    await fetchWithAuth(`/settings/${HOUSEHOLD_ID}`, { method: 'PUT', body: JSON.stringify(settings) });
   },
 
-  async fetchMonthlyBudget(month: string, currentSettings: HouseholdSettings | null): Promise<MonthlyBudget> {
-    const res = await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}?month=${month}`, { headers: getAuthHeaders() });
+  async fetchMonthlyBudget(month: string, settings: HouseholdSettings | null): Promise<MonthlyBudget> {
+    const res = await fetchWithAuth(`/budgets/${HOUSEHOLD_ID}?month=${month}`);
     const data = await res.json();
-    let budgets = data.budgets || {}; 
-    let bonusAllocation = data.bonusAllocation || {}; 
-    let deficitRule = data.deficitRule || 'みんなで折半';
+    if (data && data.budgets && Object.keys(data.budgets).length > 0) return data;
     
-    if (Object.keys(budgets).length === 0 && currentSettings) {
-      (currentSettings.categories || []).forEach(cat => { budgets[cat.id] = cat.budget; });
-      const adults = (currentSettings.familyMembers || []).filter(m => m.role === '大人');
-      adults.forEach(adult => { bonusAllocation[adult.id] = Math.floor(100 / adults.length); });
-      await this.updateMonthlyBudget(month, budgets, bonusAllocation, deficitRule);
-    }
-    return { householdId: HOUSEHOLD_ID, month_id: month, budgets, bonusAllocation, deficitRule, updatedAt: new Date().toISOString() };
+    const budgets: Record<string, number> = {}; const bonusAllocation: Record<string, number> = {};
+    if (settings) { settings.categories.forEach(c => { budgets[c.id] = c.budget; }); }
+    return { householdId: HOUSEHOLD_ID, month_id: month, budgets, bonusAllocation, deficitRule: 'みんなで折半', updatedAt: new Date().toISOString() };
   },
 
   async updateMonthlyBudget(month: string, budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule']): Promise<void> {
-    await fetch(`${API_BASE_URL}/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ month_id: month, budgets, bonusAllocation, deficitRule }) });
+    await fetchWithAuth(`/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', body: JSON.stringify({ month_id: month, budgets, bonusAllocation, deficitRule }) });
   },
 
   async fetchExpenses(month: string): Promise<ExpenseRecord[]> {
-    const res = await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?month=${month}`, { headers: getAuthHeaders() });
+    const res = await fetchWithAuth(`/expenses/${HOUSEHOLD_ID}?month=${month}`);
     const data = await res.json();
     return data.expenses || [];
   },
 
   async addExpense(expense: any): Promise<ExpenseRecord> {
-    const res = await fetch(`${API_BASE_URL}/expenses`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ...expense, householdId: HOUSEHOLD_ID }) });
+    const res = await fetchWithAuth(`/expenses`, { method: 'POST', body: JSON.stringify({ ...expense, householdId: HOUSEHOLD_ID }) });
     const data = await res.json(); return data.data;
   },
 
   async updateExpense(expense: any): Promise<ExpenseRecord> {
-    const res = await fetch(`${API_BASE_URL}/expenses`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(expense) });
+    const res = await fetchWithAuth(`/expenses`, { method: 'PUT', body: JSON.stringify(expense) });
     const data = await res.json(); return data.data;
   },
 
   async deleteExpense(date_id: string): Promise<void> {
-    await fetch(`${API_BASE_URL}/expenses/${HOUSEHOLD_ID}?date_id=${encodeURIComponent(date_id)}`, { method: 'DELETE', headers: getAuthHeaders() });
+    await fetchWithAuth(`/expenses/${HOUSEHOLD_ID}?date_id=${date_id}`, { method: 'DELETE' });
   }
 };
