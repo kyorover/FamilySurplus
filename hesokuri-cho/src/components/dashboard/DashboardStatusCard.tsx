@@ -24,7 +24,7 @@ export const DashboardStatusCard: React.FC<DashboardStatusCardProps> = ({
     <TouchableOpacity activeOpacity={0.9} onPress={onPressCard} style={styles.card}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.subTitle}>今月のへそくり残高</Text>
+          <Text style={styles.subTitle}>👛今月の残高　(予算 - 支出)</Text>
           <Text style={[styles.totalAmount, { color: progressColor }]}>¥{currentHesokuri.toLocaleString()}</Text>
         </View>
         <View style={styles.badge}>
