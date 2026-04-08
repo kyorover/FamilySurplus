@@ -51,12 +51,10 @@ export const FamilyMemberList: React.FC<FamilyMemberListProps> = ({
                   <Text style={styles.name}>{item.name}</Text>
                   <Text style={[styles.roleBadge, item.role === '子供' && styles.roleBadgeChild]}>{item.role}</Text>
                 </View>
-                {item.role === '大人' && (
-                  <View style={styles.pocketMoneyWrap}>
-                    <Text style={styles.pocketMoneyLabel}>基本小遣い：</Text>
-                    <TextInput style={styles.textInput} keyboardType="number-pad" value={String(item.pocketMoneyAmount || '')} onChangeText={(v) => onUpdate({ ...item, pocketMoneyAmount: parseInt(v, 10) || 0 })} />
-                  </View>
-                )}
+                <View style={styles.pocketMoneyWrap}>
+                  <Text style={styles.pocketMoneyLabel}>基本小遣い：</Text>
+                  <TextInput style={styles.textInput} keyboardType="number-pad" value={String(item.pocketMoneyAmount || '')} onChangeText={(v) => onUpdate({ ...item, pocketMoneyAmount: parseInt(v, 10) || 0 })} />
+                </View>
               </View>
               <View style={styles.actionWrap}>
                 <TouchableOpacity onPress={() => onEditClick(item)} style={styles.editBtn}>

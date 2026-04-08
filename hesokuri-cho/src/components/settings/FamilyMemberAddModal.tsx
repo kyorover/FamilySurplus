@@ -27,19 +27,18 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
       pocketMoneyAmount: hasPocketMoney && pocketMoneyAmount ? parseInt(pocketMoneyAmount, 10) : 0
     });
     // State Reset
-    setName('');
-    setRole('大人');
-    setAge('');
-    setHasPocketMoney(false);
-    setPocketMoneyAmount('');
+    setName(''); setRole('大人'); setAge(''); setHasPocketMoney(false); setPocketMoneyAmount('');
+    onClose();
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} transparent={true} animationType="fade">
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>家族を追加</Text>
-
+          <Text style={styles.modalTitle}>メンバーの追加</Text>
+          
           <View style={styles.roleSelector}>
             <TouchableOpacity style={[styles.roleBtn, role === '大人' && styles.roleBtnActive]} onPress={() => setRole('大人')}>
               <Text style={[styles.roleBtnText, role === '大人' && styles.roleBtnTextActive]}>大人</Text>
@@ -49,12 +48,12 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
             </TouchableOpacity>
           </View>
 
-          <TextInput style={styles.input} placeholder="名前" value={name} onChangeText={setName} />
-
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="名前" />
           {role === '子供' && (
-            <TextInput style={styles.input} placeholder="年齢（任意）" keyboardType="numeric" value={age} onChangeText={setAge} />
+            <TextInput style={styles.input} value={age} onChangeText={setAge} placeholder="年齢（任意）" keyboardType="numeric" />
           )}
 
+          {/* 役割(role)に関係なく小遣い設定スイッチを表示する */}
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>小遣い制にする</Text>
             <Switch value={hasPocketMoney} onValueChange={setHasPocketMoney} />

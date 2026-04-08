@@ -8,6 +8,7 @@ import { CategoryDetailModal } from '../components/dashboard/CategoryDetailModal
 import { AllCategoryCalendarModal } from '../components/dashboard/AllCategoryCalendarModal';
 import { MonthlyBudgetEditModal } from '../components/dashboard/MonthlyBudgetEditModal';
 import { PocketMoneyRuleModal } from '../components/dashboard/PocketMoneyRuleModal';
+import { HesokuriPocketMoneyArea } from '../components/dashboard/HesokuriPocketMoneyArea';
 import { calculateAverageGuideline } from '../functions/budgetUtils';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 import { Category } from '../types';
@@ -52,24 +53,25 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
   const [year, month] = monthlyBudget.month_id.split('-');
   
-  // 修正: CategoryListSectionからの新しい並び順を受け取り、ストアに保存する関数
   const handleSaveOrder = async (newList: Category[]) => {
-    // 画面に表示されていない（フィルタリングされた）カテゴリを保持する
     const activeIds = new Set(newList.map(c => c.id));
     const hiddenCategories = (settings.categories || []).filter(c => !activeIds.has(c.id));
-    
-    // 新しい並び順の末尾に非表示カテゴリをくっつけて保存（データロスト防止）
     const newCategories = [...newList, ...hiddenCategories];
     await updateSettings({ ...settings, categories: newCategories });
   };
+
+  const pocketMoneyDetails = (settings.familyMembers || []).filter(m => m.hasPocketMoney).map(m => {
+    const base = m.pocketMoneyAmount || 0;
+    const ratio = monthlyBudget.bonusAllocation?.[m.id] || 0;
+    const bonus = currentHesokuri > 0 ? Math.floor(currentHesokuri * (ratio / 100)) : 0;
+    return { id: m.id, name: m.name, base, bonus, total: base + bonus };
+  });
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{`${year}年${parseInt(month, 10)}月の予算`}</Text>
-        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}>
-          <Text style={styles.menuBtnText}>≡ メニュー</Text>
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}><Text style={styles.menuBtnText}>≡ メニュー</Text></TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} scrollEnabled={isScrollEnabled} showsVerticalScrollIndicator={false}>
@@ -83,16 +85,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
         <CategoryListSection 
           categories={activeCategories} monthlyBudget={monthlyBudget} spentByCategory={spentByCategory}
           isEditMode={isEditMode} setIsEditMode={setIsEditMode} 
-          onSaveOrder={handleSaveOrder} // 修正: onReorder を onSaveOrder に変更
-          onDragStateChange={setIsScrollEnabled} onSelectCategory={setSelectedCategoryId}
+          onSaveOrder={handleSaveOrder} onDragStateChange={setIsScrollEnabled} onSelectCategory={setSelectedCategoryId}
+        />
+        <HesokuriPocketMoneyArea 
+          pocketMoneyDetails={pocketMoneyDetails}
+          onPressPocketMoney={() => setPocketMoneyModalVisible(true)}
         />
       </ScrollView>
 
-      {!isEditMode && (
-        <TouchableOpacity onPress={onNavigateToInput} style={styles.fab}><Text style={styles.fabText}>＋</Text></TouchableOpacity>
-      )}
+      {!isEditMode && (<TouchableOpacity onPress={onNavigateToInput} style={styles.fab}><Text style={styles.fabText}>＋</Text></TouchableOpacity>)}
 
-      {/* 設定メニュー */}
       <Modal visible={isSettingsMenuVisible} transparent animationType="slide" onRequestClose={() => setSettingsMenuVisible(false)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setSettingsMenuVisible(false)}>
           <View style={styles.menuContent}>
@@ -107,7 +109,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
         </TouchableOpacity>
       </Modal>
 
-      {/* 既存モーダル */}
       <CategoryDetailModal visible={!!selectedCategoryId} category={(settings.categories || []).find(c => c.id === selectedCategoryId) || null} expenses={safeExpenses.filter(e => e.categoryId === selectedCategoryId)} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail !== 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setSelectedCategoryId(null); if (returnToCategoryDetail !== 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(c, d) => { setExpenseInput({ id: undefined, date: d, amount: '0', categoryId: c, paymentMethod: '現金', storeName: '', memo: '', isLocked: true }); setReturnToCategoryDetail(c, d); onNavigateToInput(); }} onEditExpense={(e) => { setExpenseInput({ id: e.id, date: e.date, amount: String(e.amount), categoryId: e.categoryId, paymentMethod: e.paymentMethod, storeName: e.storeName || '', memo: e.memo || '', isLocked: true }); setReturnToCategoryDetail(e.categoryId, e.date); onNavigateToInput(); }} />
       <AllCategoryCalendarModal visible={isAllCalendarVisible} categories={activeCategories} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setAllCalendarVisible(false); if (returnToCategoryDetail === 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(d) => { setExpenseInput({ id: undefined, date: d, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false }); setReturnToCategoryDetail('ALL', d); onNavigateToInput(); }} onEditExpense={(e) => { setExpenseInput({ id: e.id, date: e.date, amount: String(e.amount), categoryId: e.categoryId, paymentMethod: e.paymentMethod, storeName: e.storeName || '', memo: e.memo || '', isLocked: false }); setReturnToCategoryDetail('ALL', e.date); onNavigateToInput(); }} />
       <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={calculateAverageGuideline(settings.familyMembers || [])} onSave={async (b) => { await updateMonthlyBudget(b, monthlyBudget.bonusAllocation, monthlyBudget.deficitRule, monthlyBudget.month_id); setBudgetModalVisible(false); }} onClose={() => setBudgetModalVisible(false)} />
