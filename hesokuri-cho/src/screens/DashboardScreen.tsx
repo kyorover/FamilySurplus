@@ -46,6 +46,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const targetCategoryIds = new Set(targetCategories.map(c => c.id));
   const safeExpenses = expenses || [];
   
+  // 先に今月の残高(currentHesokuri)を算出
   const totalMonthlyBudget = targetCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
   const totalSpent = safeExpenses.filter(exp => targetCategoryIds.has(exp.categoryId)).reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
@@ -60,12 +61,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     await updateSettings({ ...settings, categories: newCategories });
   };
 
-  const pocketMoneyDetails = (settings.familyMembers || []).filter(m => m.hasPocketMoney).map(m => {
-    const base = m.pocketMoneyAmount || 0;
-    const ratio = monthlyBudget.bonusAllocation?.[m.id] || 0;
-    const bonus = currentHesokuri > 0 ? Math.floor(currentHesokuri * (ratio / 100)) : 0;
-    return { id: m.id, name: m.name, base, bonus, total: base + bonus };
-  });
+  // 今月の残高をベースに、配分比率(%)を掛けてボーナスを算出
+  const pocketMoneyDetails = useMemo(() => {
+    return (settings.familyMembers || []).filter(m => m.hasPocketMoney).map(m => {
+      const base = m.pocketMoneyAmount || 0;
+      const ratioPercentage = monthlyBudget.bonusAllocation?.[m.id] || 0;
+      const bonus = currentHesokuri > 0 ? Math.floor(currentHesokuri * (ratioPercentage / 100)) : 0;
+      return { id: m.id, name: m.name, base, bonus, total: base + bonus };
+    });
+  }, [settings.familyMembers, monthlyBudget.bonusAllocation, currentHesokuri]);
 
   return (
     <View style={styles.container}>
