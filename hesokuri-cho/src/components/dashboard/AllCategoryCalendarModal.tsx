@@ -30,17 +30,8 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
       const targetMonth = initialDate ? initialDate.slice(0, 7) : currentMonth;
       setViewMonth(targetMonth);
       
-      // デフォルト日付の決定（指定がなければ、当月なら「今日」、それ以外の月なら「1日」とする）
-      let defaultDate = initialDate;
-      if (!defaultDate) {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        if (todayStr.startsWith(currentMonth)) {
-          defaultDate = todayStr;
-        } else {
-          defaultDate = `${currentMonth}-01`;
-        }
-      }
-      setSelectedDate(defaultDate);
+      // デフォルト日付の決定（指定があればその日、なければ未選択状態にする）
+      setSelectedDate(initialDate || null);
     } else {
       setSelectedDate(null);
     }
@@ -69,7 +60,10 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
     return acc;
   }, {} as Record<string, ExpenseRecord[]>);
 
-  const selectedExpenses = selectedDate ? expensesByDate[selectedDate] || [] : [];
+  // 未選択状態（null）の場合は、当月の全データを日付の降順で表示する
+  const selectedExpenses = selectedDate 
+    ? expensesByDate[selectedDate] || [] 
+    : [...viewExpenses].sort((a, b) => b.date.localeCompare(a.date));
 
   const handleMonthChange = (diff: number) => {
     const [yearStr, monthStr] = viewMonth.split('-');
@@ -77,13 +71,8 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
     const nextMonthStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
     setViewMonth(nextMonthStr);
     
-    // 月を切り替えた際も、その月における適切な日付をデフォルト選択する
-    const todayStr = new Date().toISOString().slice(0, 10);
-    if (todayStr.startsWith(nextMonthStr)) {
-      setSelectedDate(todayStr);
-    } else {
-      setSelectedDate(`${nextMonthStr}-01`);
-    }
+    // 月を切り替えた際は未選択状態（全件表示）にする
+    setSelectedDate(null);
   };
 
   const handleYearChange = (diff: number) => {
@@ -92,13 +81,8 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
     const nextMonthStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
     setViewMonth(nextMonthStr);
     
-    // 年を切り替えた際も同様にデフォルト選択
-    const todayStr = new Date().toISOString().slice(0, 10);
-    if (todayStr.startsWith(nextMonthStr)) {
-      setSelectedDate(todayStr);
-    } else {
-      setSelectedDate(`${nextMonthStr}-01`);
-    }
+    // 年を切り替えた際も未選択状態（全件表示）にする
+    setSelectedDate(null);
   };
 
   const handleDeleteWrapper = (exp: ExpenseRecord) => {
@@ -128,12 +112,20 @@ export const AllCategoryCalendarModal: React.FC<AllCategoryCalendarModalProps> =
             onSelectDate={setSelectedDate}
           />
 
-          {selectedDate && !isLoading && (
+          {!isLoading && (
             <DailyExpenseList
               selectedDate={selectedDate}
               selectedExpenses={selectedExpenses}
               categories={categories}
-              onAddExpense={onAddExpense}
+              onAddExpense={(date) => {
+                // 日付未選択時に「＋」を押した場合は、当月なら「今日」、過去未来なら「1日」をデフォルトにする
+                let targetDate = date;
+                if (!targetDate) {
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  targetDate = todayStr.startsWith(viewMonth) ? todayStr : `${viewMonth}-01`;
+                }
+                onAddExpense(targetDate);
+              }}
               onEditExpense={onEditExpense}
               onDelete={handleDeleteWrapper}
             />
