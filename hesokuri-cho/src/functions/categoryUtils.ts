@@ -1,10 +1,11 @@
 // src/functions/categoryUtils.ts
 import { Category, HouseholdSettings } from '../types';
+import { GLOBAL_BUDGET_SETTINGS } from '../config/appConfig';
 
 export const DEFAULT_FIXED_CATEGORIES: Category[] = [
-  { id: 'fixed-1', name: '食費', budget: 50000, isFixed: true, isCalculationTarget: true },
-  { id: 'fixed-2', name: '日用品', budget: 10000, isFixed: true, isCalculationTarget: true },
-  { id: 'fixed-3', name: '外食', budget: 15000, isFixed: true, isCalculationTarget: true },
+  { id: 'fixed-1', name: '食費', budget: GLOBAL_BUDGET_SETTINGS.DEFAULT_FOOD, isFixed: true, isCalculationTarget: true },
+  { id: 'fixed-2', name: '日用品', budget: GLOBAL_BUDGET_SETTINGS.DEFAULT_DAILY_NECESSITIES, isFixed: true, isCalculationTarget: true },
+  { id: 'fixed-3', name: '外食', budget: GLOBAL_BUDGET_SETTINGS.DEFAULT_EATING_OUT, isFixed: true, isCalculationTarget: true },
 ];
 
 /**
@@ -33,7 +34,7 @@ export const syncFixedCategories = (settings: HouseholdSettings): Category[] => 
     newCategories.push({
       id: childCategoryId,
       name: '養育費',
-      budget: 30000,
+      budget: GLOBAL_BUDGET_SETTINGS.DEFAULT_CHILD_CARE,
       isFixed: true,
       isCalculationTarget: true,
     });

@@ -36,6 +36,7 @@ export interface HouseholdSettings {
   itemCounts?: Record<string, number>; // 追加: アイテムごとの所持個数
   selectedTreeId?: string; // 選択中の木のID
   selectedTileId?: string; // 選択中のタイルのID
+  isInitialSetupComplete?: boolean; // 新規追加: オンボーディング（初期設定）の完了フラグ
 }
 
 export interface ExpenseRecord {

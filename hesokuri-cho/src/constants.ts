@@ -7,6 +7,9 @@ export const DEFAULT_CATEGORY_NAMES = {
   DAILY_NECESSITIES: '日用品',
 } as const;
 
+// 新規カテゴリや初期設定時に適用されるデフォルト（暫定）の予算額
+export const DEFAULT_BUDGET_INITIAL_VALUE = 0;
+
 // 庭機能に関する定数
 export const GARDEN_CONSTANTS = {
   MAX_PLANT_LEVEL: 5,

@@ -40,7 +40,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     return (settings.categories || []).filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
   }, [settings]);
 
+  // ▼ ここより前（トップレベル）でのみ Hook (useState, useEffect, useMemo) が許可されます
   if (!settings || !monthlyBudget) return null;
+  // ▲ これ以降は Hook を呼び出してはいけません
 
   const targetCategories = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
   const targetCategoryIds = new Set(targetCategories.map(c => c.id));
@@ -61,15 +63,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     await updateSettings({ ...settings, categories: newCategories });
   };
 
-  // 今月の残高をベースに、配分比率(%)を掛けてボーナスを算出
-  const pocketMoneyDetails = useMemo(() => {
-    return (settings.familyMembers || []).filter(m => m.hasPocketMoney).map(m => {
-      const base = m.pocketMoneyAmount || 0;
-      const ratioPercentage = monthlyBudget.bonusAllocation?.[m.id] || 0;
-      const bonus = currentHesokuri > 0 ? Math.floor(currentHesokuri * (ratioPercentage / 100)) : 0;
-      return { id: m.id, name: m.name, base, bonus, total: base + bonus };
-    });
-  }, [settings.familyMembers, monthlyBudget.bonusAllocation, currentHesokuri]);
+  // 【修正】早期リターンの後にあるため、useMemo を削除し通常の変数として算出（配列が小さいため負荷影響なし）
+  const pocketMoneyDetails = (settings.familyMembers || []).filter(m => m.hasPocketMoney).map(m => {
+    const base = m.pocketMoneyAmount || 0;
+    const ratioPercentage = monthlyBudget.bonusAllocation?.[m.id] || 0;
+    const bonus = currentHesokuri > 0 ? Math.floor(currentHesokuri * (ratioPercentage / 100)) : 0;
+    return { id: m.id, name: m.name, base, bonus, total: base + bonus };
+  });
 
   return (
     <View style={styles.container}>
