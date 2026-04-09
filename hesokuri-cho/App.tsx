@@ -17,6 +17,7 @@ import { BottomTabBar } from './src/components/navigation/BottomTabBar';
 export default function App() {
   const { authToken, initAuth } = useAuthStore();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isDataFetched, setIsDataFetched] = useState(false); // ▼ 新規追加: 初期データ取得完了フラグ
 
   // ▼ 変更: fetchAccountInfo を呼び出しに追加
   const { settings, isLoading, error, fetchAccountInfo, fetchSettings, fetchExpenses, fetchMonthlyBudget } = useHesokuriStore();
@@ -31,13 +32,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (authToken) {
-      fetchAccountInfo(); // ▼ 新規追加: 起動時にアカウント情報（isAdmin等）を取得
-      fetchSettings();
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      fetchExpenses(currentMonth);
-      fetchMonthlyBudget(currentMonth);
-    }
+    const fetchInitialData = async () => {
+      if (authToken) {
+        setIsDataFetched(false);
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        // ▼ 変更: 初期データを一括で取得し、完了するまで待機する
+        await Promise.all([
+          fetchAccountInfo(), // ▼ 新規追加: 起動時にアカウント情報（isAdmin等）を取得
+          fetchSettings(),
+          fetchExpenses(currentMonth),
+          fetchMonthlyBudget(currentMonth)
+        ]);
+        setIsDataFetched(true);
+      } else {
+        setIsDataFetched(false);
+      }
+    };
+    fetchInitialData();
   }, [authToken]);
 
   if (isAuthChecking) {
@@ -46,7 +57,8 @@ export default function App() {
 
   if (!authToken) return <LoginScreen />;
 
-  if (isLoading && !settings) {
+  // ▼ 初期データ取得が未完了、またはストアがローディング中の場合はローディング表示（Onboardingのちらつき防止）
+  if (!isDataFetched || (isLoading && !settings)) {
     return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#007AFF" /></View>;
   }
 
@@ -61,7 +73,8 @@ export default function App() {
     );
   }
 
-  if (!isLoading && !settings && !error) {
+  // ▼ 初期データの取得が完了した上で、settingsが存在しない場合はオンボーディングへ
+  if (isDataFetched && !settings && !error) {
     return <OnboardingScreen onComplete={fetchSettings} />;
   }
 
