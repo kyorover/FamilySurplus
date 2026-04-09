@@ -15,7 +15,8 @@ interface OnboardingScreenProps {
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
-  const { updateSettings } = useHesokuriStore();
+  // ▼ 修正: updateMonthlyBudget を追加取得
+  const { updateSettings, updateMonthlyBudget } = useHesokuriStore();
   const [step, setStep] = useState(1);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [isAddModalVisible, setAddModalVisible] = useState(false);
@@ -55,11 +56,22 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         updatedAt: new Date().toISOString(),
         gardenPoints: 0,
         lastWateringDate: null,
-        ownedGardenItemIds: ['BG-01', 'PL-01'], // spriteConfig.ts に基づく初期値
+        ownedGardenItemIds: ['BG-01', 'PL-01'],
         plantLevel: 1,
         plantExp: 0,
       };
+      
       await updateSettings(initialSettings);
+
+      // ▼ 新規追加: 設定保存後、当月の予算レコード(monthlyBudget)も生成してDBへ保存する
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const initialBudgets: Record<string, number> = {};
+      categories.forEach(c => {
+        initialBudgets[c.id] = c.budget;
+      });
+      // ボーナス配分空、赤字ルール「みんなで折半」を初期値として予算枠を確立
+      await updateMonthlyBudget(initialBudgets, {}, 'みんなで折半', currentMonth);
+
       onComplete(); 
     } catch (e) {
       Alert.alert('エラー', '初期設定の保存に失敗しました。');

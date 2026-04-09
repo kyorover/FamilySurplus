@@ -6,11 +6,12 @@ import {
   SignUpCommand, 
   ConfirmSignUpCommand, 
   InitiateAuthCommand,
-  ForgotPasswordCommand, // ▼ 追加: パスワードリセット要求用コマンド
-  ConfirmForgotPasswordCommand // ▼ 追加: パスワードリセット確定用コマンド
+  ForgotPasswordCommand,
+  ConfirmForgotPasswordCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import { useHesokuriStore } from '../store'; // ▼ 追加: ログアウト時の状態リセット用
-import { getJapaneseErrorMessage } from '../functions/authErrorHandler'; // ▼ 追加: UI用エラーメッセージ変換
+import { getJapaneseErrorMessage } from '../functions/authErrorHandler';
+
+// ▼ Require cycle 回避のためトップレベルの useHesokuriStore のインポートを削除
 
 const COGNITO_REGION = "ap-northeast-1"; 
 const COGNITO_CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID || "3sffgoev4ko2i12d7fa6pivahv"; 
@@ -19,7 +20,7 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: COGNITO_REGION
 
 interface AuthState {
   authToken: string | null;
-  authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD'; // ▼ 追加: パスワードリセット用のモード
+  authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
   unconfirmedEmail: string | null;
   isLoading: boolean;
   error: string | null;
@@ -29,8 +30,8 @@ interface AuthState {
   confirmSignUp: (email: string, code: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>; // ▼ 追加: 関数定義
-  confirmForgotPassword: (email: string, code: string, newPassword: string) => Promise<void>; // ▼ 追加: 関数定義
+  forgotPassword: (email: string) => Promise<void>;
+  confirmForgotPassword: (email: string, code: string, newPassword: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -57,7 +58,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         console.log("[Auth Trace] initAuth: Token refreshed successfully.");
       }
     } catch (err: any) {
-      console.error("[Auth Error - initAuth]", { name: err.name || err.code, msg: err.message });
+      // ユーザー削除等による無効トークンはクラッシュさせず安全にログアウト処理
+      if (err.name === 'NotAuthorizedException' || err.name === 'UserNotFoundException') {
+        console.log("[Auth Trace] initAuth: Token invalid or user deleted. Clearing token.");
+      } else {
+        console.error("[Auth Error - initAuth]", { name: err.name || err.code, msg: err.message });
+      }
       await SecureStore.deleteItemAsync('refreshToken');
       set({ authToken: null });
     }
@@ -68,7 +74,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const command = new SignUpCommand({
         ClientId: COGNITO_CLIENT_ID,
-        Username: email.trim(), // ▼ 修正: スマホキーボード特有の末尾空白を自動削除
+        Username: email.trim(),
         Password: password,
       });
       await cognitoClient.send(command);
@@ -86,7 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const command = new ConfirmSignUpCommand({
         ClientId: COGNITO_CLIENT_ID,
-        Username: email.trim(), // ▼ 修正: 空白除去
+        Username: email.trim(),
         ConfirmationCode: code.trim(),
       });
       await cognitoClient.send(command);
@@ -105,7 +111,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const command = new InitiateAuthCommand({
         AuthFlow: "USER_PASSWORD_AUTH",
         ClientId: COGNITO_CLIENT_ID,
-        AuthParameters: { USERNAME: email.trim(), PASSWORD: password }, // ▼ 修正: 空白除去による再ログインエラー防止
+        AuthParameters: { USERNAME: email.trim(), PASSWORD: password },
       });
       const response = await cognitoClient.send(command);
       const token = response.AuthenticationResult?.IdToken || null;
@@ -134,16 +140,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       await SecureStore.deleteItemAsync('refreshToken');
       set({ authToken: null, authMode: 'LOGIN', error: null });
       
-      // ▼ 修正: ログアウト時にHesokuriStoreの残存キャッシュを初期化し、別アカウント再ログイン時のクラッシュを防止
+      // Require cycleを回避するため、実行時に遅延ロード(動的インポート)する
+      const { useHesokuriStore } = require('../store');
       useHesokuriStore.getState().setPendingSettings(null);
-      useHesokuriStore.setState({ settings: null, accountInfo: null, expenses: [], monthlyBudget: null });
+      // 幻覚(accountInfo)の残留を削除
+      useHesokuriStore.setState({ settings: null, expenses: [], monthlyBudget: null });
       console.log("[Auth Trace] logout: Store cleared successfully");
     } catch (err: any) {
       console.error("[Auth Error - logout]", err);
     }
   },
 
-  // ▼ 新規追加: パスワードリセット要求処理
+  // パスワードリセット要求処理
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });
     try {
@@ -161,7 +169,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  // ▼ 新規追加: パスワードリセット確定処理
+  // パスワードリセット確定処理
   confirmForgotPassword: async (email, code, newPassword) => {
     set({ isLoading: true, error: null });
     try {
