@@ -1,69 +1,110 @@
 // src/hooks/useMonthCheckout.ts
-import { useState, useEffect, useMemo } from 'react';
-import { MonthlyBudget, ExpenseRecord, Category } from '../types';
+import { useState, useEffect, useCallback } from 'react';
+import { ExpenseRecord, MonthlyBudget, Category } from '../types';
+import { apiService } from '../services/apiService';
+import { useHesokuriStore } from '../store';
+import { calculateConfirmedHesokuri } from '../functions/budgetUtils';
 
-/**
- * 月替わり判定とへそくり確定処理を管理するカスタムフック
- */
 export const useMonthCheckout = (
-  currentMonthlyBudget: MonthlyBudget | null,
+  currentBudget: MonthlyBudget | null,
   categories: Category[],
-  expenses: ExpenseRecord[],
-  onSaveSummary: (monthId: string, confirmedAmount: number) => Promise<void>,
-  onTransitionToNewMonth: (oldBudget: MonthlyBudget, newMonthId: string) => Promise<void>
+  currentExpenses: ExpenseRecord[],
+  onConfirmSummary: (monthId: string, amount: number) => Promise<void>,
+  onUpdateBudget: (oldBudget: MonthlyBudget, newMonthId: string) => Promise<void>
 ) => {
   const [isCheckoutVisible, setIsCheckoutVisible] = useState(false);
   const [checkoutMonthId, setCheckoutMonthId] = useState<string | null>(null);
+  const [budgetAmount, setBudgetAmount] = useState(0);
+  const [checkoutExpenses, setCheckoutExpenses] = useState<ExpenseRecord[]>([]);
+
+  // アカウント作成日（基準月）を取得するためにストアを参照
+  const { accountInfo } = useHesokuriStore();
 
   useEffect(() => {
-    if (!currentMonthlyBudget) return;
+    let isMounted = true;
 
-    const today = new Date();
-    // YYYY-MM 形式の現在月を生成
-    const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const checkPastMonths = async () => {
+      // 基準となるアカウント情報や当月予算がない場合はスキップ
+      if (!accountInfo?.createdAt || !currentBudget) return;
 
-    // 現在の月が、保存されている予算の月より新しい場合、月締め処理（前月分の確定）をトリガー
-    if (currentYearMonth > currentMonthlyBudget.month_id) {
-      setCheckoutMonthId(currentMonthlyBudget.month_id);
-      setIsCheckoutVisible(true);
-    }
-  }, [currentMonthlyBudget]);
+      const now = new Date();
+      const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const createdDate = new Date(accountInfo.createdAt);
+      const startMonthStr = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
 
-  // 確定対象月の予算総額を計算（計算対象カテゴリのみ）
-  const targetCategoryIds = useMemo(() => {
-    return new Set(categories.filter(c => c.isFixed || c.isCalculationTarget !== false).map(c => c.id));
-  }, [categories]);
+      if (startMonthStr >= currentMonthStr) return; // アカウント作成が当月以降なら過去月は存在しない
 
-  const budgetAmount = useMemo(() => {
-    if (!currentMonthlyBudget) return 0;
-    return Object.entries(currentMonthlyBudget.budgets)
-      .filter(([catId]) => targetCategoryIds.has(catId))
-      .reduce((sum, [, amount]) => sum + amount, 0);
-  }, [currentMonthlyBudget, targetCategoryIds]);
+      // 1. アカウント作成月から当月の前月までの「チェックすべき月」のリストを作成
+      const pendingMonths: string[] = [];
+      let curr = new Date(createdDate.getFullYear(), createdDate.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // 確定対象月の支出レコードを抽出
-  const checkoutExpenses = useMemo(() => {
-    if (!checkoutMonthId) return [];
-    return expenses.filter(e => 
-      e.date.startsWith(checkoutMonthId) && targetCategoryIds.has(e.categoryId)
-    );
-  }, [expenses, checkoutMonthId, targetCategoryIds]);
+      while (curr < end) {
+        pendingMonths.push(`${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}`);
+        curr.setMonth(curr.getMonth() + 1);
+      }
 
-  const handleConfirmCheckout = async (confirmedAmount: number) => {
-    if (!checkoutMonthId || !currentMonthlyBudget) return;
+      // 2. 該当する年のサマリー履歴をAPIから取得し、既に確定済みの月を除外
+      const years = Array.from(new Set(pendingMonths.map(m => m.split('-')[0])));
+      let allSummaries: any[] = [];
+      for (const y of years) {
+        const sums = await apiService.fetchMonthlySummaries(y);
+        allSummaries = allSummaries.concat(sums);
+      }
 
-    const today = new Date();
-    const nextMonthId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const unconfirmed = pendingMonths.filter(m => !allSummaries.some(s => s.month_id === m && s.isConfirmed));
+      if (unconfirmed.length === 0 || !isMounted) return;
 
-    // 1. 過去月のへそくり額を確定保存
-    await onSaveSummary(checkoutMonthId, confirmedAmount);
-    
-    // 2. 前月の予算設定を当月にコピーして新月へ移行
-    await onTransitionToNewMonth(currentMonthlyBudget, nextMonthId);
+      // 3. 未確定の月を古い順にループ処理する
+      for (let i = 0; i < unconfirmed.length; i++) {
+        const targetMonth = unconfirmed[i];
+        const isLatestUnconfirmed = (i === unconfirmed.length - 1);
 
+        // 過去月の実績と予算を取得（支出がない場合は空配列が返る）
+        const pastExpenses = await apiService.fetchExpenses(targetMonth);
+        const pastBudget = await apiService.fetchMonthlyBudget(targetMonth, null);
+        const pastTotalBudget = Object.values(pastBudget.budgets || {}).reduce((a, b) => a + b, 0);
+
+        if (isLatestUnconfirmed) {
+          // 最も新しい未確定月（当月の直前）の場合は、結果発表モーダルを表示してユーザーに確定させる
+          setBudgetAmount(pastTotalBudget);
+          setCheckoutExpenses(pastExpenses);
+          setCheckoutMonthId(targetMonth);
+          setIsCheckoutVisible(true);
+          return; 
+        } else {
+          // それより古い月（スキップされた月）は、ユーザー操作を待たずにサイレントで確定させる
+          const hesokuri = Math.max(0, calculateConfirmedHesokuri(pastTotalBudget, pastExpenses));
+          await onConfirmSummary(targetMonth, hesokuri);
+
+          // 予算を次月へ自動継承（コピー）
+          const [y, m] = targetMonth.split('-');
+          const nextMonthDate = new Date(parseInt(y), parseInt(m), 1);
+          const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
+          await onUpdateBudget(pastBudget, nextMonthStr);
+        }
+      }
+    };
+
+    checkPastMonths();
+    return () => { isMounted = false; };
+  }, [accountInfo, currentBudget]);
+
+  const handleConfirmCheckout = useCallback(async (confirmedAmount: number) => {
+    if (!checkoutMonthId || !currentBudget) return;
     setIsCheckoutVisible(false);
+
+    // モーダルでの確定操作：へそくりを保存
+    await onConfirmSummary(checkoutMonthId, confirmedAmount);
+
+    // 確定した月の「次の月」を算出し、予算を引き継ぐ
+    const [y, m] = checkoutMonthId.split('-');
+    const nextMonthDate = new Date(parseInt(y), parseInt(m), 1);
+    const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+    await onUpdateBudget(currentBudget, nextMonthStr);
     setCheckoutMonthId(null);
-  };
+  }, [checkoutMonthId, currentBudget, onConfirmSummary, onUpdateBudget]);
 
   return {
     isCheckoutVisible,
