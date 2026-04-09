@@ -5,12 +5,23 @@ import { apiService } from '../../services/apiService';
 import { syncFixedCategories } from '../../functions/categoryUtils';
 
 export const createSettingsSlice: StateCreator<HesokuriState, [], [], any> = (set, get) => ({
+  accountInfo: null, // ▼ 追加
   settings: null,
   pendingSettings: null,
   isLoading: false,
   error: null,
   
   setPendingSettings: (settings) => set({ pendingSettings: settings }),
+
+  // ▼ 新規追加: アカウント情報を取得してストアに保存
+  fetchAccountInfo: async () => {
+    try {
+      const accountInfo = await apiService.fetchAccountInfo();
+      set({ accountInfo });
+    } catch (e: any) {
+      console.error('Failed to fetch account info:', e);
+    }
+  },
 
   fetchSettings: async () => {
     set({ isLoading: true, error: null });

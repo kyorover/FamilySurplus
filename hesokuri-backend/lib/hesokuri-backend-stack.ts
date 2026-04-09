@@ -61,6 +61,14 @@ export class HesokuriBackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    // === 新規追加：月次サマリー（へそくり確定履歴）テーブル ===
+    const summariesTable = new dynamodb.Table(this, 'MonthlySummariesTable', {
+      partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'month_id', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
       runtime: lambda.Runtime.NODEJS_22_X, // Node.js 22 LTSへ更新
       entry: path.join(__dirname, '../lambda/index.ts'),
@@ -68,16 +76,18 @@ export class HesokuriBackendStack extends cdk.Stack {
       environment: {
         SETTINGS_TABLE_NAME: settingsTable.tableName,
         EXPENSES_TABLE_NAME: expensesTable.tableName,
-        MONTHLY_BUDGETS_TABLE_NAME: monthlyBudgetsTable.tableName, // 新テーブルを環境変数へ追加
-        ACCOUNTS_TABLE_NAME: accountsTable.tableName, // 新テーブルを環境変数へ追加
+        MONTHLY_BUDGETS_TABLE_NAME: monthlyBudgetsTable.tableName,
+        ACCOUNTS_TABLE_NAME: accountsTable.tableName,
+        SUMMARIES_TABLE_NAME: summariesTable.tableName, // ▼ 環境変数に追加
       },
       timeout: cdk.Duration.seconds(10),
     });
 
     settingsTable.grantReadWriteData(apiHandler);
     expensesTable.grantReadWriteData(apiHandler);
-    monthlyBudgetsTable.grantReadWriteData(apiHandler); // 新テーブルへのアクセス権限を付与
-    accountsTable.grantReadWriteData(apiHandler); // 新テーブルへのアクセス権限を付与
+    monthlyBudgetsTable.grantReadWriteData(apiHandler);
+    accountsTable.grantReadWriteData(apiHandler);
+    summariesTable.grantReadWriteData(apiHandler); // ▼ サマリーテーブルへのアクセス権限を付与
 
     // ▼ 新規追加: API Gateway用のCognito Authorizer
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'HesokuriAuthorizer', {

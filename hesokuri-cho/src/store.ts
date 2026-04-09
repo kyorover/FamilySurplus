@@ -1,6 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement } from './types'; 
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement, AccountInfo } from './types'; // ▼ 追記: AccountInfo
 import { createSettingsSlice } from './stores/slices/settingsSlice';
 import { createExpenseSlice } from './stores/slices/expenseSlice';
 import { createGardenSlice } from './stores/slices/gardenSlice';
@@ -17,6 +17,7 @@ export interface ExpenseInputState {
 }
 
 export interface HesokuriState {
+  accountInfo: AccountInfo | null; // ▼ 新規追加: アカウント情報
   settings: HouseholdSettings | null; 
   pendingSettings: HouseholdSettings | null; 
   expenses: ExpenseRecord[]; 
@@ -35,6 +36,7 @@ export interface HesokuriState {
   setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; 
   
+  fetchAccountInfo: () => Promise<void>; // ▼ 新規追加: アカウント情報取得
   fetchSettings: () => Promise<void>; 
   updateSettings: (newSettings: HouseholdSettings) => Promise<void>; 
   fetchExpenses: (month: string) => Promise<void>; 
@@ -43,6 +45,8 @@ export interface HesokuriState {
   addExpense: (expense: ExpenseRecord) => Promise<void>; 
   updateExpense: (expense: ExpenseRecord) => Promise<void>; 
   deleteExpense: (date_id: string) => Promise<void>;
+  
+  saveMonthlySummary: (monthId: string, confirmedAmount: number) => Promise<void>;
   
   waterGarden: () => Promise<void>; 
   updateGardenPlacements: (placements: GardenPlacement[]) => Promise<void>; 

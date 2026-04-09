@@ -11,6 +11,7 @@ const SETTINGS_TABLE = process.env.SETTINGS_TABLE_NAME || '';
 const EXPENSES_TABLE = process.env.EXPENSES_TABLE_NAME || '';
 const MONTHLY_BUDGETS_TABLE = process.env.MONTHLY_BUDGETS_TABLE_NAME || '';
 const ACCOUNTS_TABLE = process.env.ACCOUNTS_TABLE_NAME || ''; // ▼ 追記: AccountsTableの環境変数
+const SUMMARIES_TABLE = process.env.SUMMARIES_TABLE_NAME || ''; // ▼ 新規追加: 月次サマリー用テーブルの環境変数
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,6 +87,31 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       budgetData.householdId = householdId; 
       await docClient.send(new PutCommand({ TableName: MONTHLY_BUDGETS_TABLE, Item: budgetData }));
       return buildResponse(200, { message: 'Budget updated', data: budgetData });
+    }
+
+    // ▼ 新規追加: 指定した年の月次サマリー一覧を取得するAPI
+    if (httpMethod === 'GET' && path.startsWith('/summaries/')) {
+      const yearPrefix = queryStringParameters?.year; // 例: "2026"
+      if (!yearPrefix) return buildResponse(400, { message: 'Missing parameters' });
+      const result = await docClient.send(new QueryCommand({
+        TableName: SUMMARIES_TABLE,
+        KeyConditionExpression: 'householdId = :hid AND begins_with(month_id, :year)',
+        ExpressionAttributeValues: { ':hid': householdId, ':year': yearPrefix }
+      }));
+      return buildResponse(200, { summaries: result.Items || [] });
+    }
+
+    // === 新規：月次サマリー（へそくり確定履歴）の保存 (POST) ===
+    if (httpMethod === 'POST' && normalizedPath === '/summaries') {
+      if (!body) return buildResponse(400, { message: 'Invalid request' });
+      const summaryData = removeEmptyStrings(JSON.parse(body));
+      
+      // フロントエンドのIDを盲信せず、AuthorizerのIDで上書き（セキュリティ対策）
+      summaryData.householdId = householdId;
+      summaryData.updatedAt = new Date().toISOString();
+      
+      await docClient.send(new PutCommand({ TableName: SUMMARIES_TABLE, Item: summaryData }));
+      return buildResponse(201, { message: 'Monthly summary recorded', data: summaryData });
     }
 
     if (httpMethod === 'POST' && normalizedPath === '/expenses') {

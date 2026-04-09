@@ -18,7 +18,8 @@ export default function App() {
   const { authToken, initAuth } = useAuthStore();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
 
-  const { settings, isLoading, error, fetchSettings, fetchExpenses, fetchMonthlyBudget } = useHesokuriStore();
+  // ▼ 変更: fetchAccountInfo を呼び出しに追加
+  const { settings, isLoading, error, fetchAccountInfo, fetchSettings, fetchExpenses, fetchMonthlyBudget } = useHesokuriStore();
   const { activeTab, handleTabChange } = useTabNavigation();
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function App() {
 
   useEffect(() => {
     if (authToken) {
+      fetchAccountInfo(); // ▼ 新規追加: 起動時にアカウント情報（isAdmin等）を取得
       fetchSettings();
       const currentMonth = new Date().toISOString().slice(0, 7);
       fetchExpenses(currentMonth);

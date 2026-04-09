@@ -78,10 +78,20 @@ export interface GardenPlacement {
   isFlipped?: boolean; // 新規追加: アイコンの鏡写し反転
 }
 
+// === 新規追加：月次サマリー（へそくり確定履歴） ===
+export interface MonthlySummary {
+  householdId: string;
+  month_id: string; // YYYY-MM形式 (例: 2026-03)
+  isConfirmed: boolean; // 月締めが完了し、へそくり額が確定したか
+  confirmedHesokuriAmount: number; // 確定後のへそくり額（以後の支出変更の影響を受けない）
+  confirmedAt?: string; // 確定処理を行った日時（ISO文字列等）
+}
+
 // === 新規追加：アカウント・課金情報（拡張性） ===
 export interface AccountInfo {
   accountId: string; // Cognitoのsubと一致させる (= householdId)
   email: string;
   subscriptionPlan: 'FREE' | 'PREMIUM'; // 広告表示等の制御に使用
   createdAt: string;
+  isAdmin?: boolean; // ▼ 追加: デバッグ機能等の制御に使用する管理者フラグ
 }

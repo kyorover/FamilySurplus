@@ -111,4 +111,15 @@ export const createExpenseSlice: StateCreator<HesokuriState, [], [], any> = (set
     } 
     catch (e: any) { set({ error: e.message, isLoading: false }); }
   },
+
+  // ▼ 新規追加: 過去のへそくり額を確定してAPI経由で保存
+  saveMonthlySummary: async (monthId, confirmedAmount) => {
+    set({ isLoading: true, error: null });
+    try {
+      await apiService.saveMonthlySummary(monthId, confirmedAmount);
+      set({ isLoading: false });
+    } catch (e: any) {
+      set({ error: e.message, isLoading: false });
+    }
+  },
 });

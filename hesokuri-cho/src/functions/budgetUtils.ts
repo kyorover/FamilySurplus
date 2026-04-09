@@ -101,3 +101,18 @@ export const isYesterdayNoMoneyDay = (
 
   return !hasExpenseYesterday;
 };
+
+/**
+ * 過去月のへそくり額（余剰金）を算出する純粋関数
+ * 月締めのタイミングで過去の予算総額と実際の支出総額から確定金額を求めます。
+ * * @param budgetAmount 対象月の予算総額
+ * @param expenses 対象月の支出記録配列
+ * @returns 算出されたへそくり額（予算 - 支出総額）
+ */
+export const calculateConfirmedHesokuri = (
+  budgetAmount: number,
+  expenses: ExpenseRecord[]
+): number => {
+  const totalExpense = expenses.reduce((sum, record) => sum + record.amount, 0);
+  return budgetAmount - totalExpense;
+};

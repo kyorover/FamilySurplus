@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { useHesokuriStore } from '../store';
-import { DEFAULT_CATEGORY_NAMES } from '../constants';
 import { apiService } from '../services/apiService';
 import { HesokuriHistoryYearSelector } from '../components/history/HesokuriHistoryYearSelector';
 import { HesokuriHistoryList } from '../components/history/HesokuriHistoryList';
@@ -18,7 +17,6 @@ export const HesokuriHistoryScreen: React.FC<HesokuriHistoryScreenProps> = ({ on
   const [isLoading, setIsLoading] = useState(false);
 
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
   const isCurrentYear = selectedYear === currentYear;
   const months = Array.from({ length: 12 }, (_, i) => i + 1).reverse();
 
@@ -29,43 +27,25 @@ export const HesokuriHistoryScreen: React.FC<HesokuriHistoryScreenProps> = ({ on
       setIsLoading(true);
       
       try {
-        const hasChild = settings.familyMembers.some(m => m.role === '子供');
-        const activeCategories = settings.categories.filter(cat => 
-          cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true
-        );
-        const targetCats = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
-        const targetCategoryIds = new Set(targetCats.map(c => c.id));
+        // ▼ N+1問題を解消し、対象年の確定済みサマリーを一括取得する
+        const yearStr = String(selectedYear);
+        const summaries = await apiService.fetchMonthlySummaries(yearStr);
 
         const newData: Record<number, number | null> = {};
-        const monthsToFetch = Array.from({ length: 12 }, (_, i) => i + 1);
         
-        const fetchPromises = monthsToFetch.map(async (month) => {
-          if (isCurrentYear && month > currentMonth) {
-            newData[month] = null;
-            return;
-          }
-          const monthStr = `${selectedYear}-${String(month).padStart(2, '0')}`;
-          try {
-            const [expenses, budgetData] = await Promise.all([
-              apiService.fetchExpenses(monthStr).catch(() => []),
-              apiService.fetchMonthlyBudget(monthStr, settings).catch(() => ({ budgets: {} }))
-            ]);
-            
-            const budgets = (budgetData as any).budgets || {};
-            let totalBudget = 0;
-            let totalSpent = 0;
-            
-            targetCategoryIds.forEach(catId => { totalBudget += (budgets[catId] || 0); });
-            expenses.forEach(exp => {
-              if (targetCategoryIds.has(exp.categoryId)) totalSpent += exp.amount;
-            });
-            newData[month] = totalBudget - totalSpent;
-          } catch (e) {
-            newData[month] = null;
-          }
-        });
+        // 1月〜12月までのデータをマッピング
+        for (let month = 1; month <= 12; month++) {
+          const monthStr = `${yearStr}-${String(month).padStart(2, '0')}`;
+          const summary = summaries.find(s => s.month_id === monthStr);
 
-        await Promise.all(fetchPromises);
+          // サマリーが存在し、かつ確定済みの場合はその金額をセット。未確定・未来月はnullとして扱う
+          if (summary && summary.isConfirmed) {
+            newData[month] = summary.confirmedHesokuriAmount;
+          } else {
+            newData[month] = null;
+          }
+        }
+
         if (isMounted) setHistoryData(newData);
       } catch (error) {
         console.error('Failed to load history', error);
@@ -76,7 +56,7 @@ export const HesokuriHistoryScreen: React.FC<HesokuriHistoryScreenProps> = ({ on
 
     loadYearData();
     return () => { isMounted = false; };
-  }, [selectedYear, settings?.updatedAt, isCurrentYear, currentMonth]);
+  }, [selectedYear, settings]);
 
   return (
     <View style={styles.container}>

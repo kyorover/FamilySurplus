@@ -1,5 +1,5 @@
 // src/screens/DashboardScreen.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Modal, Platform, UIManager } from 'react-native';
 import { useHesokuriStore } from '../store';
 import { DashboardStatusCard } from '../components/dashboard/DashboardStatusCard';
@@ -10,8 +10,10 @@ import { MonthlyBudgetEditModal } from '../components/dashboard/MonthlyBudgetEdi
 import { PocketMoneyRuleModal } from '../components/dashboard/PocketMoneyRuleModal';
 import { HesokuriPocketMoneyArea } from '../components/dashboard/HesokuriPocketMoneyArea';
 import { calculateAverageGuideline } from '../functions/budgetUtils';
-import { DEFAULT_CATEGORY_NAMES } from '../constants';
 import { Category } from '../types';
+import { useMonthCheckout } from '../hooks/useMonthCheckout';
+import { useDashboardStats } from '../hooks/useDashboardStats';
+import { MonthCheckoutModal } from '../components/dashboard/MonthCheckoutModal';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -20,7 +22,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 interface DashboardScreenProps { onNavigateToHesokuriHistory: () => void; onNavigateToInput: () => void; }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHesokuriHistory, onNavigateToInput }) => {
-  const { settings, expenses, monthlyBudget, updateSettings, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail, waterGarden } = useHesokuriStore();
+  // ▼ saveMonthlySummary を新しく取得
+  const { settings, expenses, monthlyBudget, updateSettings, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail, waterGarden, saveMonthlySummary } = useHesokuriStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
@@ -34,23 +37,23 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     else if (returnToCategoryDetail) setSelectedCategoryId(returnToCategoryDetail);
   }, [returnToCategoryDetail]);
 
-  const activeCategories = useMemo(() => {
-    if (!settings) return [];
-    const hasChild = (settings.familyMembers || []).some(m => m.role === '子供');
-    return (settings.categories || []).filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
-  }, [settings]);
+  // ビジネスロジックをカスタムフックへ移譲
+  const { activeCategories, totalMonthlyBudget, totalSpent, currentHesokuri, spentByCategory, pocketMoneyDetails } = useDashboardStats(settings, monthlyBudget, expenses);
+
+  // ▼ 月締め・予算自動継承ロジック
+  const { isCheckoutVisible, checkoutMonthId, budgetAmount, checkoutExpenses, handleConfirmCheckout } = useMonthCheckout(
+    monthlyBudget, activeCategories, expenses || [],
+    async (monthId, confirmedAmount) => {
+      // ▼ API・Storeを経由してDynamoDBへ確定へそくり額を保存
+      await saveMonthlySummary(monthId, confirmedAmount);
+      console.log(`[Dashboard] へそくり確定完了: ${monthId} = ¥${confirmedAmount}`);
+    },
+    async (oldBudget, newMonthId) => await updateMonthlyBudget(oldBudget.budgets, oldBudget.bonusAllocation, oldBudget.deficitRule, newMonthId)
+  );
 
   if (!settings || !monthlyBudget) return null;
 
-  const targetCategories = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
-  const targetCategoryIds = new Set(targetCategories.map(c => c.id));
   const safeExpenses = expenses || [];
-  
-  const totalMonthlyBudget = targetCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
-  const totalSpent = safeExpenses.filter(exp => targetCategoryIds.has(exp.categoryId)).reduce((sum, exp) => sum + exp.amount, 0);
-  const currentHesokuri = totalMonthlyBudget - totalSpent;
-  const spentByCategory = safeExpenses.reduce((acc, exp) => { acc[exp.categoryId] = (acc[exp.categoryId] || 0) + exp.amount; return acc; }, {} as Record<string, number>);
-
   const [year, month] = monthlyBudget.month_id.split('-');
   
   const handleSaveOrder = async (newList: Category[]) => {
@@ -60,36 +63,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     await updateSettings({ ...settings, categories: newCategories });
   };
 
-  const familyMembers = settings.familyMembers || [];
-  const bonusAllocation = monthlyBudget.bonusAllocation || {};
-  
-  // 誰か一人でも明示的に配分が設定されているか判定
-  const isAnyAllocationSet = Object.keys(bonusAllocation).length > 0;
-
-  // 【修正】小遣い制のOff設定を無視してボーナス配分を強制0にする誤ったロジックを撤廃。
-  // 家族全員をボーナス配分の対象として、ルール通りの比率を正しく算出します。
-  const allocationRatios = familyMembers.map(m => {
-    const manualRatio = bonusAllocation[m.id];
-    // 手動設定があればそれを使用。手動設定がなく、他の誰かが設定済みなら 0。誰も設定していなければ 1 (均等割り)
-    const finalRatio = manualRatio !== undefined ? manualRatio : (isAnyAllocationSet ? 0 : 1);
-    return { id: m.id, ratio: finalRatio };
-  });
-  
-  const totalRatio = allocationRatios.reduce((sum, item) => sum + item.ratio, 0);
-
-  const pocketMoneyDetails = familyMembers.map(m => {
-    const base = m.hasPocketMoney ? (m.pocketMoneyAmount || 0) : 0;
-    const allocObj = allocationRatios.find(a => a.id === m.id);
-    const ratio = allocObj ? allocObj.ratio : 0;
-    
-    // 算出した割合(ratio)に基づき、余剰金からボーナスを配分
-    const bonus = (currentHesokuri > 0 && totalRatio > 0) 
-      ? Math.floor(currentHesokuri * (ratio / totalRatio)) 
-      : 0;
-      
-    return { id: m.id, name: m.name, base, bonus, total: base + bonus };
-  });
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -98,23 +71,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} scrollEnabled={isScrollEnabled} showsVerticalScrollIndicator={false}>
-        <DashboardStatusCard 
-          gardenPoints={settings.gardenPoints || 0} lastWateringDate={settings.lastWateringDate}
-          currentHesokuri={currentHesokuri} totalSpent={totalSpent} totalMonthlyBudget={totalMonthlyBudget}
-          progressRatio={totalMonthlyBudget > 0 ? Math.min(1, totalSpent / totalMonthlyBudget) : 0}
-          progressColor={currentHesokuri >= 0 ? '#34C759' : '#FF3B30'}
-          onWaterGarden={waterGarden} onPressCard={() => setAllCalendarVisible(true)}
-        />
-        <CategoryListSection 
-          categories={activeCategories} monthlyBudget={monthlyBudget} spentByCategory={spentByCategory}
-          isEditMode={isEditMode} setIsEditMode={setIsEditMode} 
-          onSaveOrder={handleSaveOrder} onDragStateChange={setIsScrollEnabled} onSelectCategory={setSelectedCategoryId}
-        />
-        <HesokuriPocketMoneyArea 
-          currentHesokuri={currentHesokuri}
-          pocketMoneyDetails={pocketMoneyDetails}
-          onPressPocketMoney={() => setPocketMoneyModalVisible(true)}
-        />
+        <DashboardStatusCard gardenPoints={settings.gardenPoints || 0} lastWateringDate={settings.lastWateringDate} currentHesokuri={currentHesokuri} totalSpent={totalSpent} totalMonthlyBudget={totalMonthlyBudget} progressRatio={totalMonthlyBudget > 0 ? Math.min(1, totalSpent / totalMonthlyBudget) : 0} progressColor={currentHesokuri >= 0 ? '#34C759' : '#FF3B30'} onWaterGarden={waterGarden} onPressCard={() => setAllCalendarVisible(true)} />
+        <CategoryListSection categories={activeCategories} monthlyBudget={monthlyBudget} spentByCategory={spentByCategory} isEditMode={isEditMode} setIsEditMode={setIsEditMode} onSaveOrder={handleSaveOrder} onDragStateChange={setIsScrollEnabled} onSelectCategory={setSelectedCategoryId} />
+        <HesokuriPocketMoneyArea currentHesokuri={currentHesokuri} pocketMoneyDetails={pocketMoneyDetails} onPressPocketMoney={() => setPocketMoneyModalVisible(true)} />
       </ScrollView>
 
       {!isEditMode && (<TouchableOpacity onPress={onNavigateToInput} style={styles.fab}><Text style={styles.fabText}>＋</Text></TouchableOpacity>)}
@@ -137,6 +96,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
       <AllCategoryCalendarModal visible={isAllCalendarVisible} categories={activeCategories} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setAllCalendarVisible(false); if (returnToCategoryDetail === 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(d) => { setExpenseInput({ id: undefined, date: d, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false }); setReturnToCategoryDetail('ALL', d); onNavigateToInput(); }} onEditExpense={(e) => { setExpenseInput({ id: e.id, date: e.date, amount: String(e.amount), categoryId: e.categoryId, paymentMethod: e.paymentMethod, storeName: e.storeName || '', memo: e.memo || '', isLocked: false }); setReturnToCategoryDetail('ALL', e.date); onNavigateToInput(); }} />
       <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={calculateAverageGuideline(settings.familyMembers || [])} onSave={async (b) => { await updateMonthlyBudget(b, monthlyBudget.bonusAllocation, monthlyBudget.deficitRule, monthlyBudget.month_id); setBudgetModalVisible(false); }} onClose={() => setBudgetModalVisible(false)} />
       <PocketMoneyRuleModal visible={isPocketMoneyModalVisible} familyMembers={settings.familyMembers || []} monthlyBudget={monthlyBudget} onSave={async (a, r) => { await updateMonthlyBudget(monthlyBudget.budgets, a, r, monthlyBudget.month_id); setPocketMoneyModalVisible(false); }} onClose={() => setPocketMoneyModalVisible(false)} />
+      
+      {checkoutMonthId && <MonthCheckoutModal visible={isCheckoutVisible} monthId={checkoutMonthId} budgetAmount={budgetAmount} expenses={checkoutExpenses} onConfirm={handleConfirmCheckout} />}
     </View>
   );
 };

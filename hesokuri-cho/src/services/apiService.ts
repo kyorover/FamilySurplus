@@ -1,5 +1,5 @@
 // src/services/apiService.ts
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, AccountInfo } from '../types'; // ▼ 追記: AccountInfo
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, AccountInfo, MonthlySummary } from '../types'; // ▼ 追記: AccountInfo, MonthlySummary
 import { useAuthStore } from '../stores/authStore';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
@@ -75,6 +75,27 @@ export const apiService = {
 
   async updateMonthlyBudget(month: string, budgets: Record<string, number>, bonusAllocation: Record<string, number>, deficitRule: MonthlyBudget['deficitRule']): Promise<void> {
     await fetchWithAuth(`/budgets/${HOUSEHOLD_ID}`, { method: 'PUT', body: JSON.stringify({ month_id: month, budgets, bonusAllocation, deficitRule }) });
+  },
+
+  // ▼ 新規追加: 指定した年の確定済みサマリー一覧を取得
+  async fetchMonthlySummaries(year: string): Promise<MonthlySummary[]> {
+    const res = await fetchWithAuth(`/summaries/${HOUSEHOLD_ID}?year=${year}`);
+    const data = await res.json();
+    return data.summaries || [];
+  },
+
+  // ▼ 新規追加: 過去のへそくり額の確定（月次サマリー）を保存するAPIコール
+  async saveMonthlySummary(monthId: string, confirmedAmount: number): Promise<MonthlySummary> {
+    const payload = {
+      householdId: HOUSEHOLD_ID,
+      month_id: monthId,
+      isConfirmed: true,
+      confirmedHesokuriAmount: confirmedAmount,
+      confirmedAt: new Date().toISOString(),
+    };
+    const res = await fetchWithAuth(`/summaries`, { method: 'POST', body: JSON.stringify(payload) });
+    const data = await res.json();
+    return data.data || payload;
   },
 
   async fetchExpenses(month: string): Promise<ExpenseRecord[]> {

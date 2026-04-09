@@ -1,8 +1,7 @@
 // src/screens/SettingsScreen.tsx
 import React from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView } from 'react-native';
 import { useSettingsManager } from '../hooks/useSettingsManager';
-import { useAuthStore } from '../stores/authStore';
 import { useHesokuriStore } from '../store'; // ▼ 追記: accountInfo 取得のためストアをインポート
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
@@ -11,28 +10,11 @@ import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModa
 import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditModal';
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen'; // ▼ リネーム反映
+import { AdvancedSettingsSection } from '../components/settings/AdvancedSettingsSection'; // ▼ 新規追加: 詳細・アカウント設定セクション
 
 export const SettingsScreen: React.FC = () => {
   const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions } = useSettingsManager();
-  const { logout } = useAuthStore();
   const { accountInfo } = useHesokuriStore(); // ▼ 追記: アカウント情報を取得
-
-  const handleLogout = () => {
-    Alert.alert(
-      'ログアウト',
-      'アプリからログアウトしますか？',
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        { 
-          text: 'ログアウト', 
-          style: 'destructive', 
-          onPress: async () => {
-            await logout();
-          } 
-        }
-      ]
-    );
-  };
 
   if (modals.garden) {
     return (
@@ -95,40 +77,8 @@ export const SettingsScreen: React.FC = () => {
           onUpdateList={actions.updateCategoryList}
         />
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>⚙️ 詳細設定</Text>
-        </View>
-        <TouchableOpacity style={styles.historyManageCard} onPress={() => modals.setHistory(true)} activeOpacity={0.6}>
-          <View style={styles.historyManageContent}>
-            <Text style={styles.historyManageIcon}>📖</Text>
-            <View>
-              <Text style={styles.historyManageTitle}>入力履歴マスタの管理</Text>
-              <Text style={styles.historyManageDesc}>店名やコメントの入力候補を整理します</Text>
-            </View>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
-
-        {/* ▼ 追記: 管理者(isAdmin === true)の場合のみ表示する */}
-        {accountInfo?.isAdmin && (
-          <TouchableOpacity style={styles.historyManageCard} onPress={() => modals.setGarden(true)} activeOpacity={0.6}>
-            <View style={styles.historyManageContent}>
-              <Text style={styles.historyManageIcon}>🌻</Text>
-              <View>
-                <Text style={styles.historyManageTitle}>お庭機能のテスト（開発用）</Text>
-                <Text style={styles.historyManageDesc}>アイテムの購入・配置・描画を検証します</Text>
-              </View>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>👤 アカウント</Text>
-        </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-          <Text style={styles.logoutBtnText}>ログアウト</Text>
-        </TouchableOpacity>
+        {/* ▼ 新規追加: 詳細設定・アカウントセクションをコンポーネント呼び出しに集約 */}
+        <AdvancedSettingsSection modals={modals} accountInfo={accountInfo} />
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -156,14 +106,6 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtnTextActive: { color: '#FFFFFF' },
   hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 8, marginBottom: 12, lineHeight: 18 },
-  historyManageCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  historyManageContent: { flexDirection: 'row', alignItems: 'center' },
-  historyManageIcon: { fontSize: 24, marginRight: 16 },
-  historyManageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 2 },
-  historyManageDesc: { fontSize: 10, color: '#8E8E93' },
-  chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
-  logoutBtn: { backgroundColor: '#FF3B30', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 16, marginHorizontal: 8 },
-  logoutBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
