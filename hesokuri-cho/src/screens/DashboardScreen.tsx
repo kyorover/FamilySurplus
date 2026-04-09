@@ -41,7 +41,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
   const { activeCategories, totalMonthlyBudget, totalSpent, currentHesokuri, spentByCategory, pocketMoneyDetails } = useDashboardStats(settings, monthlyBudget, expenses);
 
   // ▼ 月締め・予算自動継承ロジック
-  const { isCheckoutVisible, checkoutMonthId, budgetAmount, checkoutExpenses, handleConfirmCheckout } = useMonthCheckout(
+  const { isCheckoutVisible, checkoutMonthId, budgetAmount, checkoutExpenses, handleConfirmCheckout, handleCancelCheckout } = useMonthCheckout(
     monthlyBudget, activeCategories, expenses || [],
     async (monthId, confirmedAmount) => {
       // ▼ API・Storeを経由してDynamoDBへ確定へそくり額を保存
@@ -97,7 +97,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
       <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={calculateAverageGuideline(settings.familyMembers || [])} onSave={async (b) => { await updateMonthlyBudget(b, monthlyBudget.bonusAllocation, monthlyBudget.deficitRule, monthlyBudget.month_id); setBudgetModalVisible(false); }} onClose={() => setBudgetModalVisible(false)} />
       <PocketMoneyRuleModal visible={isPocketMoneyModalVisible} familyMembers={settings.familyMembers || []} monthlyBudget={monthlyBudget} onSave={async (a, r) => { await updateMonthlyBudget(monthlyBudget.budgets, a, r, monthlyBudget.month_id); setPocketMoneyModalVisible(false); }} onClose={() => setPocketMoneyModalVisible(false)} />
       
-      {checkoutMonthId && <MonthCheckoutModal visible={isCheckoutVisible} monthId={checkoutMonthId} budgetAmount={budgetAmount} expenses={checkoutExpenses} onConfirm={handleConfirmCheckout} />}
+      {checkoutMonthId && <MonthCheckoutModal visible={isCheckoutVisible} monthId={checkoutMonthId} budgetAmount={budgetAmount} expenses={checkoutExpenses} onConfirm={handleConfirmCheckout} onCancel={handleCancelCheckout} />}
     </View>
   );
 };

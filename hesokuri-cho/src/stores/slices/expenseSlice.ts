@@ -3,6 +3,25 @@ import { StateCreator } from 'zustand';
 import { HesokuriState } from '../../store';
 import { apiService } from '../../services/apiService';
 import { ExpenseRecord } from '../../types';
+import { calculateConfirmedHesokuri } from '../../functions/budgetUtils';
+
+// ▼ 新規追加: 過去月のサイレント上書き更新処理
+const recalculatePastMonthSummary = async (date: string) => {
+  const monthId = date.slice(0, 7);
+  try {
+    const pastBudget = await apiService.fetchMonthlyBudget(monthId, null);
+    const pastTotalBudget = Object.values(pastBudget.budgets || {}).reduce((a, b) => a + b, 0);
+    const pastExpenses = await apiService.fetchExpenses(monthId);
+    
+    // 支出がある場合のみ履歴を更新（0件なら履歴を作らない仕様に準拠）
+    if (pastExpenses.length > 0) {
+      const hesokuri = Math.max(0, calculateConfirmedHesokuri(pastTotalBudget, pastExpenses));
+      await apiService.saveMonthlySummary(monthId, hesokuri);
+    }
+  } catch (error) {
+    console.error('Failed to recalculate past month summary:', error);
+  }
+};
 
 export const createExpenseSlice: StateCreator<HesokuriState, [], [], any> = (set, get) => ({
   expenses: [],
@@ -80,6 +99,8 @@ export const createExpenseSlice: StateCreator<HesokuriState, [], [], any> = (set
       } else {
         set({ isLoading: false });
       }
+      // ▼ 追加: 過去の月なら裏側でサマリーを更新
+      if (get().monthlyBudget?.month_id !== expenseData.date.slice(0, 7)) recalculatePastMonthSummary(expenseData.date);
     } 
     catch (e: any) { 
       set((state) => ({ expenses: state.expenses.filter(e => e.id !== expenseData.id), error: e.message, isLoading: false })); 
@@ -95,6 +116,8 @@ export const createExpenseSlice: StateCreator<HesokuriState, [], [], any> = (set
       } else {
         set({ isLoading: false });
       }
+      // ▼ 追加: 過去の月なら裏側でサマリーを更新
+      if (get().monthlyBudget?.month_id !== expenseData.date.slice(0, 7)) recalculatePastMonthSummary(expenseData.date);
     } 
     catch (e: any) { 
       const month = expenseData.date.slice(0, 7);
@@ -108,6 +131,8 @@ export const createExpenseSlice: StateCreator<HesokuriState, [], [], any> = (set
     try { 
       await apiService.deleteExpense(date_id); 
       set((state) => ({ expenses: state.expenses.filter(e => e.date_id !== date_id), isLoading: false })); 
+      // ▼ 追加: 過去の月なら裏側でサマリーを更新 (date_idの形式は "2026-04-10#loc-..." を前提とする)
+      if (get().monthlyBudget?.month_id !== date_id.slice(0, 7)) recalculatePastMonthSummary(date_id);
     } 
     catch (e: any) { set({ error: e.message, isLoading: false }); }
   },
