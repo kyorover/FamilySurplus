@@ -48,7 +48,7 @@ export const MonthCheckoutModal: React.FC<MonthCheckoutModalProps> = ({
 
           <Text style={styles.description}>
             よく頑張りました！{'\n'}
-            確定した金額はお庭（貯金箱）へ送られます。{'\n'}
+            確定した金額は「へそくり履歴」に記録されます。{'\n'}
             （※確定後は過去の支出を変更しても金額は変動しません）
           </Text>
 
@@ -57,7 +57,7 @@ export const MonthCheckoutModal: React.FC<MonthCheckoutModalProps> = ({
             onPress={() => onConfirm(hesokuriAmount)}
             activeOpacity={0.8}
           >
-            <Text style={styles.confirmButtonText}>確定してお庭へ送る</Text>
+            <Text style={styles.confirmButtonText}>へそくりを確定する</Text>
           </TouchableOpacity>
         </View>
       </View>
