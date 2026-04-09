@@ -60,11 +60,33 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     await updateSettings({ ...settings, categories: newCategories });
   };
 
-  // 【修正】私の勝手な案分ロジックを破棄し、オリジナルの正しい計算（割合%）に完全ロールバック
-  const pocketMoneyDetails = (settings.familyMembers || []).filter(m => m.hasPocketMoney).map(m => {
-    const base = m.pocketMoneyAmount || 0;
-    const ratioPercentage = monthlyBudget.bonusAllocation?.[m.id] || 0;
-    const bonus = currentHesokuri > 0 ? Math.floor(currentHesokuri * (ratioPercentage / 100)) : 0;
+  const familyMembers = settings.familyMembers || [];
+  const bonusAllocation = monthlyBudget.bonusAllocation || {};
+  
+  // 誰か一人でも明示的に配分が設定されているか判定
+  const isAnyAllocationSet = Object.keys(bonusAllocation).length > 0;
+
+  // 【修正】小遣い制のOff設定を無視してボーナス配分を強制0にする誤ったロジックを撤廃。
+  // 家族全員をボーナス配分の対象として、ルール通りの比率を正しく算出します。
+  const allocationRatios = familyMembers.map(m => {
+    const manualRatio = bonusAllocation[m.id];
+    // 手動設定があればそれを使用。手動設定がなく、他の誰かが設定済みなら 0。誰も設定していなければ 1 (均等割り)
+    const finalRatio = manualRatio !== undefined ? manualRatio : (isAnyAllocationSet ? 0 : 1);
+    return { id: m.id, ratio: finalRatio };
+  });
+  
+  const totalRatio = allocationRatios.reduce((sum, item) => sum + item.ratio, 0);
+
+  const pocketMoneyDetails = familyMembers.map(m => {
+    const base = m.hasPocketMoney ? (m.pocketMoneyAmount || 0) : 0;
+    const allocObj = allocationRatios.find(a => a.id === m.id);
+    const ratio = allocObj ? allocObj.ratio : 0;
+    
+    // 算出した割合(ratio)に基づき、余剰金からボーナスを配分
+    const bonus = (currentHesokuri > 0 && totalRatio > 0) 
+      ? Math.floor(currentHesokuri * (ratio / totalRatio)) 
+      : 0;
+      
     return { id: m.id, name: m.name, base, bonus, total: base + bonus };
   });
 
