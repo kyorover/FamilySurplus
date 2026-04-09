@@ -15,7 +15,6 @@ interface OnboardingScreenProps {
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
-  // ▼ 修正: updateMonthlyBudget を追加取得
   const { updateSettings, updateMonthlyBudget } = useHesokuriStore();
   const [step, setStep] = useState(1);
   const [members, setMembers] = useState<FamilyMember[]>([]);
@@ -63,13 +62,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       
       await updateSettings(initialSettings);
 
-      // ▼ 新規追加: 設定保存後、当月の予算レコード(monthlyBudget)も生成してDBへ保存する
       const currentMonth = new Date().toISOString().slice(0, 7);
       const initialBudgets: Record<string, number> = {};
       categories.forEach(c => {
         initialBudgets[c.id] = c.budget;
       });
-      // ボーナス配分空、赤字ルール「みんなで折半」を初期値として予算枠を確立
       await updateMonthlyBudget(initialBudgets, {}, 'みんなで折半', currentMonth);
 
       onComplete(); 
@@ -100,11 +97,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 onUpdateList={setMembers} 
                 onDragStart={() => {}} onDragEnd={() => {}}
               />
-              <FamilyMemberAddModal
-                visible={isAddModalVisible}
-                onSave={(newMember) => setMembers([...members, newMember])}
-                onClose={() => setAddModalVisible(false)}
-              />
             </View>
           )}
 
@@ -114,15 +106,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               <CategoryBudgetList 
                 categories={categories}
                 onCategoryPress={(c) => setEditingCategory(c)}
-              />
-              <BudgetEditModal 
-                visible={!!editingCategory} 
-                category={editingCategory}
-                onSave={(id, budget) => {
-                  setCategories(categories.map(c => c.id === id ? { ...c, budget } : c));
-                  setEditingCategory(null);
-                }}
-                onClose={() => setEditingCategory(null)}
               />
             </View>
           )}
@@ -144,6 +127,22 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             </View>
           )}
         </View>
+
+        {/* 【修正】バグの原因であった Modal コンポーネントを ScrollView の外側（ルート階層）へ移動 */}
+        <FamilyMemberAddModal
+          visible={isAddModalVisible}
+          onSave={(newMember) => setMembers([...members, newMember])}
+          onClose={() => setAddModalVisible(false)}
+        />
+        <BudgetEditModal 
+          visible={!!editingCategory} 
+          category={editingCategory}
+          onSave={(id, budget) => {
+            setCategories(categories.map(c => c.id === id ? { ...c, budget } : c));
+            setEditingCategory(null);
+          }}
+          onClose={() => setEditingCategory(null)}
+        />
       </View>
     </SafeAreaView>
   );
