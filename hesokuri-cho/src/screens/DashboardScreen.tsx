@@ -40,15 +40,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     return (settings.categories || []).filter(cat => cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true);
   }, [settings]);
 
-  // ▼ ここより前（トップレベル）でのみ Hook (useState, useEffect, useMemo) が許可されます
   if (!settings || !monthlyBudget) return null;
-  // ▲ これ以降は Hook を呼び出してはいけません
 
   const targetCategories = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
   const targetCategoryIds = new Set(targetCategories.map(c => c.id));
   const safeExpenses = expenses || [];
   
-  // 先に今月の残高(currentHesokuri)を算出
   const totalMonthlyBudget = targetCategories.reduce((sum, cat) => sum + (monthlyBudget.budgets[cat.id] || 0), 0);
   const totalSpent = safeExpenses.filter(exp => targetCategoryIds.has(exp.categoryId)).reduce((sum, exp) => sum + exp.amount, 0);
   const currentHesokuri = totalMonthlyBudget - totalSpent;
@@ -63,7 +60,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     await updateSettings({ ...settings, categories: newCategories });
   };
 
-  // 【修正】早期リターンの後にあるため、useMemo を削除し通常の変数として算出（配列が小さいため負荷影響なし）
+  // 【修正】私の勝手な案分ロジックを破棄し、オリジナルの正しい計算（割合%）に完全ロールバック
   const pocketMoneyDetails = (settings.familyMembers || []).filter(m => m.hasPocketMoney).map(m => {
     const base = m.pocketMoneyAmount || 0;
     const ratioPercentage = monthlyBudget.bonusAllocation?.[m.id] || 0;
@@ -92,6 +89,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           onSaveOrder={handleSaveOrder} onDragStateChange={setIsScrollEnabled} onSelectCategory={setSelectedCategoryId}
         />
         <HesokuriPocketMoneyArea 
+          currentHesokuri={currentHesokuri}
           pocketMoneyDetails={pocketMoneyDetails}
           onPressPocketMoney={() => setPocketMoneyModalVisible(true)}
         />
