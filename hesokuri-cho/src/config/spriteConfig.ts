@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tree1' | 'item1' | 'item2' | 'item3' | 'item4' | 'item5' | 'arrow' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tile1' | 'tile2' | 'tile3' | 'tile4' | 'tile5' | 'tile6' | 'tile7' | 'tree1' | 'item1' | 'item2' | 'item3' | 'item4' | 'item5' | 'arrow' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4' | 'wp5'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -29,6 +29,13 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   item3: require('../../assets/images/garden/item3.png'),
   item4: require('../../assets/images/garden/item4.png'),
   item5: require('../../assets/images/garden/item5.png'),
+  tile1: require('../../assets/images/garden/tile_1.png'),
+  tile2: require('../../assets/images/garden/tile_2.png'),
+  tile3: require('../../assets/images/garden/tile_3.png'),
+  tile4: require('../../assets/images/garden/tile_4.png'),
+  tile5: require('../../assets/images/garden/tile_5.png'),
+  tile6: require('../../assets/images/garden/tile_6.png'),
+  tile7: require('../../assets/images/garden/tile_7.png'),
   arrow: require('../../assets/images/garden/arrow.png'),
   chara: require('../../assets/images/garden/chara.png'),
   levelup: require('../../assets/images/garden/levelup.png'),
@@ -36,6 +43,7 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   wp2: require('../../assets/images/garden/bg_2.png'),
   wp3: require('../../assets/images/garden/bg_3.png'),
   wp4: require('../../assets/images/garden/bg_4.png'),
+  wp5: require('../../assets/images/garden/bg_5.png'),
 };
 
 export const GLOBAL_GARDEN_SETTINGS = {
@@ -113,23 +121,38 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     baseScale: 0.8, isAnimated: false, animationSpeed: 0,rotation: 354,
   },
   'BG-01': {
-    sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 167,
-    frameWidth: 78, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    sourceId: 'tile1', originalWidth: 82, originalHeight: 98, startX: 0, startY: 0,
+    frameWidth: 82, frameHeight: 98, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 30,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
   'BG-02': {
-    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 6, startY: 0,
-    frameWidth: 60, frameHeight: 49, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    sourceId: 'tile2', originalWidth: 82, originalHeight: 98, startX: 0, startY: 0,
+    frameWidth: 82, frameHeight: 98, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 30,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
   'BG-03': {
-    sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 6, startY: 50,
-    frameWidth: 60, frameHeight: 45, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    sourceId: 'tile3', originalWidth: 84, originalHeight: 98, startX: 0, startY: 0,
+    frameWidth: 84, frameHeight: 98, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 30,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
   'BG-04': {
-    sourceId: 'item4', originalWidth: 63, originalHeight: 63, startX: 3, startY: 0,
-    frameWidth: 57, frameHeight: 63, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 20,
+    sourceId: 'tile4', originalWidth: 84, originalHeight: 98, startX: 0, startY: 0,
+    frameWidth: 84, frameHeight: 98, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 30,
+    baseScale: 1.0, isAnimated: false, maxQuantity: 1,
+  },
+  'BG-05': {
+    sourceId: 'tile5', originalWidth: 84, originalHeight: 98, startX: 0, startY: 0,
+    frameWidth: 84, frameHeight: 98, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 30,
+    baseScale: 1.0, isAnimated: false, maxQuantity: 1,
+  },
+  'BG-06': {
+    sourceId: 'tile6', originalWidth: 84, originalHeight: 98, startX: 0, startY: 0,
+    frameWidth: 84, frameHeight: 98, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 30,
+    baseScale: 1.0, isAnimated: false, maxQuantity: 1,
+  },
+  'BG-07': {
+    sourceId: 'tile7', originalWidth: 84, originalHeight: 98, startX: 0, startY: 0,
+    frameWidth: 84, frameHeight: 98, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 30,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
   'IT-01': { // レトロな街灯
@@ -238,23 +261,28 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     baseScale: 0.6, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,
   },
   'WP-01': {
-    sourceId: 'wp1', originalWidth: 100, originalHeight: 100, startX: 0, startY: 0,
-    frameWidth: 100, frameHeight: 100, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    sourceId: 'wp1', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
+    frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
   'WP-02': {
-    sourceId: 'wp2', originalWidth: 100, originalHeight: 100, startX: 0, startY: 0,
-    frameWidth: 100, frameHeight: 100, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    sourceId: 'wp2', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
+    frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
   'WP-03': {
-    sourceId: 'wp3', originalWidth: 100, originalHeight: 100, startX: 0, startY: 0,
-    frameWidth: 100, frameHeight: 100, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    sourceId: 'wp3', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
+    frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
   'WP-04': {
-    sourceId: 'wp4', originalWidth: 100, originalHeight: 100, startX: 0, startY: 0,
-    frameWidth: 100, frameHeight: 100, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    sourceId: 'wp4', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
+    frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    baseScale: 1.0, isAnimated: false, maxQuantity: 1,
+  },
+  'WP-05': {
+    sourceId: 'wp5', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
+    frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },
 };

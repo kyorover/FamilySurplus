@@ -28,10 +28,13 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'EF-08', name: '矢印4', type: 'ornament', cost: 0, isShoppable: false },
 
   // タイル (BG-01 はデフォルトのためショップ非表示)
-  { id: 'BG-01', name: 'タイル(標準)', type: 'ornament', cost: 0, isShoppable: false },
-  { id: 'BG-02', name: 'タイル(レンガ)', type: 'ornament', cost: 100, isShoppable: true },
-  { id: 'BG-03', name: 'タイル(石畳)', type: 'ornament', cost: 100, isShoppable: true },
-  { id: 'BG-04', name: '草むら', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'BG-01', name: '標準', type: 'ornament', cost: 0, isShoppable: false },
+  { id: 'BG-02', name: '道', type: 'ornament', cost: 100, isShoppable: false },
+  { id: 'BG-03', name: '草むら', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'BG-04', name: 'あぜ道', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'BG-05', name: 'レンガ', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'BG-06', name: '石畳', type: 'ornament', cost: 100, isShoppable: true },
+  { id: 'BG-07', name: '枯葉', type: 'ornament', cost: 100, isShoppable: false },
 
   // ショップ販売アイテム
   { id: 'IT-01', name: 'レトロな街灯', type: 'ornament', cost: 100, isShoppable: true },
@@ -59,8 +62,9 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   // ▼ 追加: 壁紙アイテム
   { id: 'WP-01', name: '壁紙(星空)', type: 'bg', cost: 100, isShoppable: true },
   { id: 'WP-02', name: '壁紙(草むら)', type: 'bg', cost: 100, isShoppable: true },
-  { id: 'WP-03', name: '壁紙(木の柄)', type: 'bg', cost: 100, isShoppable: true },
-  { id: 'WP-04', name: '壁紙(お空)', type: 'bg', cost: 100, isShoppable: true },
+  { id: 'WP-03', name: '壁紙(草むらとお花)', type: 'bg', cost: 100, isShoppable: true },
+  { id: 'WP-04', name: '壁紙(花のみち)', type: 'bg', cost: 100, isShoppable: true },
+  { id: 'WP-05', name: '壁紙(花と空)', type: 'bg', cost: 100, isShoppable: true },
 ];
 
 /**
