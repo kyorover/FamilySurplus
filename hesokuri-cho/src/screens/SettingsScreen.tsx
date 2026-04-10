@@ -2,19 +2,22 @@
 import React from 'react';
 import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView } from 'react-native';
 import { useSettingsManager } from '../hooks/useSettingsManager';
-import { useHesokuriStore } from '../store'; // ▼ 追記: accountInfo 取得のためストアをインポート
+import { useHesokuriStore } from '../store';
 import { CategoryList } from '../components/settings/CategoryList';
 import { CategoryAddModal } from '../components/settings/CategoryAddModal';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
 import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditModal';
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
-import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen'; // ▼ リネーム反映
-import { AdvancedSettingsSection } from '../components/settings/AdvancedSettingsSection'; // ▼ 新規追加: 詳細・アカウント設定セクション
+import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen';
+import { AdvancedSettingsSection } from '../components/settings/AdvancedSettingsSection';
+import { BudgetSettingsSection } from '../components/settings/BudgetSettingsSection';
+import { BudgetEditModal } from '../components/settings/BudgetEditModal';
 
 export const SettingsScreen: React.FC = () => {
-  const { pendingSettings, setPendingSettings, activeCategories, modals, modes, actions } = useSettingsManager();
-  const { accountInfo } = useHesokuriStore(); // ▼ 追記: アカウント情報を取得
+  // ▼ 修正: setPendingSettings をフックから正しく受け取る
+  const { pendingSettings, setPendingSettings, activeCategories, budgetEvaluation, modals, modes, actions } = useSettingsManager();
+  const { accountInfo } = useHesokuriStore();
 
   if (modals.garden) {
     return (
@@ -48,8 +51,9 @@ export const SettingsScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={modes.scroll}>
         
+        {/* === 家族構成 === */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成と基本のお小遣い</Text>
+          <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成</Text>
           <TouchableOpacity onPress={() => modes.setFamilyEdit(!modes.familyEdit)} style={[styles.actionBtn, modes.familyEdit && styles.actionBtnActive]}>
             <Text style={[styles.actionBtnText, modes.familyEdit && styles.actionBtnTextActive]}>{modes.familyEdit ? '✅ 完了' : '↕️ 並び替え'}</Text>
           </TouchableOpacity>
@@ -67,8 +71,16 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => modes.setScroll(true)}
         />
 
+        {/* ▼ 追加: 分割した予算設定セクション */}
+        <BudgetSettingsSection 
+          activeCategories={activeCategories}
+          budgetEvaluation={budgetEvaluation}
+          onCategoryPress={modals.setBudgetEdit}
+        />
+
+        {/* === カテゴリ管理 === */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>🏷️ カテゴリ一覧</Text>
+          <Text style={styles.sectionTitle}>🏷️ カテゴリ管理</Text>
         </View>
         <CategoryList 
           categories={activeCategories} 
@@ -77,15 +89,17 @@ export const SettingsScreen: React.FC = () => {
           onUpdateList={actions.updateCategoryList}
         />
 
-        {/* ▼ 新規追加: 詳細設定・アカウントセクションをコンポーネント呼び出しに集約 */}
         <AdvancedSettingsSection modals={modals} accountInfo={accountInfo} />
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* モーダル群 */}
+      <BudgetEditModal visible={!!modals.budgetEdit} category={modals.budgetEdit} onSave={actions.updateCategoryBudget} onClose={() => modals.setBudgetEdit(null)} />
       <CategoryAddModal visible={modals.category} onSave={actions.addCategory} onClose={() => modals.setCategory(false)} />
       <FamilyMemberAddModal visible={modals.familyAdd} onSave={actions.addFamily} onClose={() => modals.setFamilyAdd(false)} />
       <FamilyMemberEditModal member={modals.familyEdit} onSave={actions.updateFamily} onClose={() => modals.setFamilyEdit(null)} />
+      {/* ▼ 修正: setPendingSettings が正しく渡されるようになりエラーが解消 */}
       <InputHistoryManagerModal visible={modals.history} settings={pendingSettings} onUpdate={setPendingSettings} onClose={() => modals.setHistory(false)} />
     </View>
   );

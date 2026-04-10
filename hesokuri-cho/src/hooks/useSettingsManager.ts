@@ -2,100 +2,61 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useHesokuriStore } from '../store';
-import { FamilyMember, Category } from '../types';
+import { FamilyMember, Category, HouseholdSettings } from '../types';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
+import { evaluateBudget, calculateAverageGuideline } from '../functions/budgetUtils';
+import { useFamilyActions } from './useFamilyActions';
+import { useCategoryActions } from './useCategoryActions';
 
 export const useSettingsManager = () => {
-  const { settings, pendingSettings, setPendingSettings, updateSettings } = useHesokuriStore();
+  const { settings, updateSettings, statistics } = useHesokuriStore();
+  const [pendingSettings, setPendingSettings] = useState<HouseholdSettings | null>(null);
   
-  // モーダル表示状態
+  // モーダル・モード状態
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isFamilyModalVisible, setFamilyModalVisible] = useState(false);
   const [editingFamilyMember, setEditingFamilyMember] = useState<FamilyMember | null>(null);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   const [isGardenTestVisible, setGardenTestVisible] = useState(false);
+  const [editingBudgetCategory, setEditingBudgetCategory] = useState<Category | null>(null);
   
-  // 画面モード状態
   const [isFamilyEditMode, setIsFamilyEditMode] = useState(false);
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
-  // 修正: 冗長でエラーの原因となっていた直接の fetch 処理を削除。
-  // グローバルストアですでに取得済みの settings を pendingSettings にコピーするだけにする。
   useEffect(() => {
     if (settings && !pendingSettings) {
       setPendingSettings(JSON.parse(JSON.stringify(settings)));
     }
-  }, [settings, pendingSettings, setPendingSettings]);
+  }, [settings, pendingSettings]);
 
-  // 表示用の有効なカテゴリを算出（子供がいない場合は養育費を隠す等）
   const activeCategories = useMemo(() => {
     if (!pendingSettings) return [];
     const members = pendingSettings.familyMembers || [];
     const categories = pendingSettings.categories || [];
-    
     const hasChild = members.some(m => m.role === '子供');
     return categories.filter(cat => 
       cat.isFixed && cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE ? hasChild : true
     );
   }, [pendingSettings]);
 
-  // --- 更新ハンドラ群 ---
-  const handleUpdateFamily = (updatedMember: FamilyMember) => {
-    if (!pendingSettings) return;
+  const budgetEvaluation = useMemo(() => {
+    if (!pendingSettings) return null;
     const members = pendingSettings.familyMembers || [];
-    setPendingSettings({ ...pendingSettings, familyMembers: members.map(m => m.id === updatedMember.id ? updatedMember : m) });
-  };
+    const hasChild = members.some(m => m.role === '子供');
 
-  const handleAddFamily = (member: FamilyMember) => {
-    if (!pendingSettings) return;
-    const members = pendingSettings.familyMembers || [];
-    setPendingSettings({ ...pendingSettings, familyMembers: [...members, member] });
-    setFamilyModalVisible(false);
-  };
+    const fixedCategories = activeCategories.filter(c => c.isFixed);
+    const totalFixedBudget = fixedCategories.reduce((sum, c) => sum + (c.budget || 0), 0);
 
-  const handleDeleteFamily = (memberId: string) => {
-    if (!pendingSettings) return;
-    const members = pendingSettings.familyMembers || [];
-    const isAdult = members.find(m => m.id === memberId)?.role === '大人';
-    const adultCount = members.filter(m => m.role === '大人').length;
-    if (isAdult && adultCount <= 1) return Alert.alert('エラー', '大人は最低1人必要です');
-    setPendingSettings({ ...pendingSettings, familyMembers: members.filter(m => m.id !== memberId) });
-  };
+    const averageGuideline = calculateAverageGuideline(members, statistics);
+    const evaluation = evaluateBudget(totalFixedBudget, averageGuideline);
 
-  const handleUpdateFamilyList = (newList: FamilyMember[]) => {
-    if (!pendingSettings) return;
-    setPendingSettings({ ...pendingSettings, familyMembers: newList });
-  };
+    return { totalFixedBudget, averageGuideline, evaluation, hasChild };
+  }, [pendingSettings, activeCategories, statistics]);
 
-  const handleAddCategory = (categoryName: string) => {
-    if (!pendingSettings) return;
-    const categories = pendingSettings.categories || [];
-    setPendingSettings({ 
-      ...pendingSettings, 
-      categories: [
-        ...categories, 
-        { id: `c_${Date.now()}`, name: categoryName, budget: 0, isFixed: false }
-      ] 
-    });
-  };
-
-  const handleDeleteCategory = (categoryId: string) => {
-    if (!pendingSettings) return;
-    const categories = pendingSettings.categories || [];
-    Alert.alert('確認', 'このカテゴリを削除しますか？', [
-      { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => setPendingSettings({ ...pendingSettings, categories: categories.filter(c => c.id !== categoryId) }) }
-    ]);
-  };
-
-  const handleUpdateCategoryList = (newList: Category[]) => {
-    if (!pendingSettings) return;
-    const categories = pendingSettings.categories || [];
-    // 非表示になっている固定カテゴリを維持しつつマージする
-    const hiddenCategories = categories.filter(c => !activeCategories.find(ac => ac.id === c.id));
-    setPendingSettings({ ...pendingSettings, categories: [...newList, ...hiddenCategories] });
-  };
+  // サブフック（ロジック層）の呼び出し
+  const familyActions = useFamilyActions(pendingSettings, setPendingSettings);
+  const categoryActions = useCategoryActions(pendingSettings, setPendingSettings, activeCategories);
 
   const handleSaveAll = () => {
     if (!pendingSettings) return;
@@ -107,12 +68,14 @@ export const useSettingsManager = () => {
     pendingSettings,
     setPendingSettings,
     activeCategories,
+    budgetEvaluation, 
     modals: {
       category: isCategoryModalVisible, setCategory: setCategoryModalVisible,
       familyAdd: isFamilyModalVisible, setFamilyAdd: setFamilyModalVisible,
       familyEdit: editingFamilyMember, setFamilyEdit: setEditingFamilyMember,
       history: isHistoryModalVisible, setHistory: setHistoryModalVisible,
       garden: isGardenTestVisible, setGarden: setGardenTestVisible,
+      budgetEdit: editingBudgetCategory, setBudgetEdit: setEditingBudgetCategory,
     },
     modes: {
       familyEdit: isFamilyEditMode, setFamilyEdit: setIsFamilyEditMode,
@@ -120,13 +83,15 @@ export const useSettingsManager = () => {
       scroll: isScrollEnabled, setScroll: setIsScrollEnabled,
     },
     actions: {
-      updateFamily: handleUpdateFamily,
-      addFamily: handleAddFamily,
-      deleteFamily: handleDeleteFamily,
-      updateFamilyList: handleUpdateFamilyList,
-      addCategory: handleAddCategory,
-      deleteCategory: handleDeleteCategory,
-      updateCategoryList: handleUpdateCategoryList,
+      updateFamily: familyActions.updateFamily,
+      addFamily: (m: FamilyMember) => { familyActions.addFamily(m); setFamilyModalVisible(false); },
+      deleteFamily: familyActions.deleteFamily,
+      updateFamilyList: familyActions.updateFamilyList,
+      
+      updateCategoryBudget: (id: string, val: number) => { categoryActions.updateCategoryBudget(id, val); setEditingBudgetCategory(null); },
+      addCategory: categoryActions.addCategory,
+      deleteCategory: categoryActions.deleteCategory,
+      updateCategoryList: categoryActions.updateCategoryList,
       saveAll: handleSaveAll,
     }
   };
