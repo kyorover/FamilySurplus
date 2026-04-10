@@ -8,12 +8,12 @@ interface Props {
   frameIndex?: number;
   displaySize: number; // 画面上に表示する基準サイズ（幅）
   style?: ViewStyle;
-  onLoad?: () => void; // 追加：画像読み込み完了イベント
+  onLoad?: () => void; // 画像読み込み完了イベント
 }
 
 /**
  * 複雑なスプライトシートから指定の座標計算（startX, startY等）を用いて
- * 正確にコマを切り出すコンポーネント
+ * 正確にコマを切り出す純粋な描画コンポーネント
  */
 export const UniversalSprite: React.FC<Props> = ({ 
   itemId, 
@@ -49,16 +49,14 @@ export const UniversalSprite: React.FC<Props> = ({
 
   const imageSource = IMAGE_SOURCES[config.sourceId];
 
-  // ▼ 追加: spriteConfigのrotation設定を読み取り適用する
-  const rotationDegrees = config.rotation || 0;
-  const transformStyle = rotationDegrees !== 0 ? { transform: [{ rotate: `${rotationDegrees}deg` }] } : {};
+  // ▼ 修正: ここで行っていた二重の回転(rotation)処理を削除し、
+  // レイアウト制御はすべて親コンポーネント(CanvasItemNode等)に委譲します。
 
   return (
     <View 
       style={[
         styles.container, 
         { width: displaySize, height: displayHeight },
-        transformStyle,
         style
       ]}
     >
@@ -73,7 +71,7 @@ export const UniversalSprite: React.FC<Props> = ({
         }}
         // stretchで強制的に指定サイズに引き伸ばし、コンテナ外をoverflowで隠す
         resizeMode="stretch" 
-        onLoad={onLoad} // 追加
+        onLoad={onLoad}
       />
     </View>
   );

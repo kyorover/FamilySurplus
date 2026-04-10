@@ -14,7 +14,7 @@ interface Props {
   finalTop: number;
   isSelected: boolean;
   itemLevel: number;
-  activeEffectId?: string; // ▼ 修正復元: booleanではなくstring型でエフェクトIDを受け取る
+  activeEffectId?: string; 
   onPress: () => void;
   onLoad: () => void;
   clearActiveEffect: (itemId: string) => void;
@@ -36,8 +36,13 @@ export const CanvasItemNode: React.FC<Props> = ({
   const displaySize = baseSize * baseScale;
   const aspectRatio = spriteDef ? (spriteDef.frameHeight / spriteDef.frameWidth) : 1;
   const displayHeight = displaySize * aspectRatio;
-  const leftPosition = tileCenterX - displaySize / 2 + (spriteDef?.offsetX || 0) * baseScale;
-  const topPosition = tileCenterY - displayHeight + (spriteDef?.offsetY || 0) * baseScale;
+  
+  // ▼ 修正: オフセットに対するスケール乗算を完全に削除。
+  // さらに、文字列結合によるワープバグを防ぐため、強制的に Number() で数値化する。
+  const offsetX = Number(spriteDef?.offsetX || 0);
+  const offsetY = Number(spriteDef?.offsetY || 0);
+  const leftPosition = tileCenterX - displaySize / 2 + offsetX;
+  const topPosition = tileCenterY - displayHeight + offsetY;
   
   const safeFrameIndex = Math.max(0, Math.min(Math.floor(itemLevel) - 1, 4));
 
@@ -55,15 +60,18 @@ export const CanvasItemNode: React.FC<Props> = ({
   const effRatio = effConfig ? (effConfig.frameHeight / effConfig.frameWidth) : 1;
   const effHeight = effSize * effRatio;
   
-  const effLeft = tileCenterX - effSize / 2 + (effConfig?.offsetX || 0) * effScale;
-  const effTop = tileCenterY - effHeight + (effConfig?.offsetY || 0) * effScale;
+  // ▼ 修正: エフェクトも同様にスケール乗算を外し、強制数値化して絶対ピクセル移動に統一。
+  const effOffsetX = Number(effConfig?.offsetX || 0);
+  const effOffsetY = Number(effConfig?.offsetY || 0);
+  const effLeft = tileCenterX - effSize / 2 + effOffsetX;
+  const effTop = tileCenterY - effHeight + effOffsetY;
 
   return (
     <>
       <View style={{ position: 'absolute', left: leftPosition, top: topPosition, zIndex: node.zIndex }} pointerEvents="box-none">
         <View style={[
           styles.itemContent, 
-          { width: displaySize, height: displayHeight }, // ハイライト枠を画像の表示サイズに厳密に合わせるための指定
+          { width: displaySize, height: displayHeight }, 
           isSelected && styles.selectedHighlight, 
           transforms.length > 0 && { transform: transforms }
         ]}>
@@ -77,7 +85,6 @@ export const CanvasItemNode: React.FC<Props> = ({
         </View>
       </View>
 
-      {/* ▼ 修正復元: エフェクトIDが存在する場合のみ指定されたエフェクトを再生 */}
       {isLarge && activeEffectId && (
         <View style={{ position: 'absolute', left: effLeft, top: effTop, zIndex: node.zIndex + 1 }} pointerEvents="none">
           <EffectSprite 

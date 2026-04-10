@@ -58,7 +58,6 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
                 [itemId]: currentCount + 1
               }
             });
-            Alert.alert('完了', `${name} を獲得しました！`);
           }
         }
       ]
