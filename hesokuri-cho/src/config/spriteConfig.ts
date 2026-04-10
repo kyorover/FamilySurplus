@@ -74,7 +74,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'PL-03': {
     sourceId: 'tree1', originalWidth: 760, originalHeight: 661, startX: 0, startY: 483,
-    frameWidth: 152, frameHeight: 179, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 106,
+    frameWidth: 152, frameHeight: 179, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 86,
     baseScale: 1.4, isAnimated: false, maxQuantity: 1,
   },
   'EF-01': { // じょうろ
@@ -84,8 +84,8 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'EF-02': { // ハンマー
     sourceId: 'item3', originalWidth: 250, originalHeight: 62, startX: 0, startY: 0,
-    frameWidth: 62, frameHeight: 62, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 0,
-    baseScale: 0.6, isAnimated: true, animationSpeed: 400,
+    frameWidth: 62, frameHeight: 62, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    baseScale: 0.6, isAnimated: true, animationSpeed: 500,
   },
   'EF-04': { // レベルアップ
     sourceId: 'levelup', originalWidth: 415, originalHeight: 70, startX: 0, startY: 4,
