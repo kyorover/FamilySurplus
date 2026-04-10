@@ -11,14 +11,23 @@ interface CategoryListSectionProps {
   spentByCategory: Record<string, number>;
   isEditMode: boolean;
   setIsEditMode: (mode: boolean) => void;
-  // ★変更点：from/toではなく、保存時に新しい配列を丸ごと渡す形に変更
   onSaveOrder: (newList: Category[]) => void; 
   onDragStateChange: (isDragging: boolean) => void;
   onSelectCategory: (id: string) => void;
+  // ▼ 追加: 予算編成モーダルを開くためのアクション
+  onPressBudgetEdit: () => void;
 }
 
 export const CategoryListSection: React.FC<CategoryListSectionProps> = ({
-  categories, monthlyBudget, spentByCategory, isEditMode, setIsEditMode, onSaveOrder, onDragStateChange, onSelectCategory
+  categories, 
+  monthlyBudget, 
+  spentByCategory, 
+  isEditMode, 
+  setIsEditMode, 
+  onSaveOrder, 
+  onDragStateChange, 
+  onSelectCategory,
+  onPressBudgetEdit
 }) => {
   // 並び替え用のローカルステート
   const [localCategories, setLocalCategories] = useState<Category[]>(categories);
@@ -71,20 +80,26 @@ export const CategoryListSection: React.FC<CategoryListSectionProps> = ({
 
   return (
     <View style={styles.card}>
-      {/* モードによってヘッダーを完全に切り替える */}
+      {/* モードによってヘッダーを切り替える */}
       {!isEditMode ? (
         <View style={styles.header}>
           <Text style={styles.title}>カテゴリ別内訳</Text>
-          <TouchableOpacity onPress={handleStartEdit} style={styles.btn}>
-            <Text style={styles.btnText}>↕️ 並び替え</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {/* ▼ 予算編成ボタンを追加：操作をこのフレームに集約 */}
+            <TouchableOpacity onPress={onPressBudgetEdit} style={styles.actionBtn}>
+              <Text style={styles.actionBtnText}>✎ 予算編成</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleStartEdit} style={styles.actionBtn}>
+              <Text style={styles.actionBtnText}>↕️ 並び替え</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <View style={styles.editHeader}>
           <TouchableOpacity onPress={handleCancel} style={styles.headerActionBtn}>
             <Text style={styles.cancelText}>キャンセル</Text>
           </TouchableOpacity>
-          <Text style={styles.editTitle}>並び替え</Text>
+          <Text style={styles.editTitle}>並び替え中</Text>
           <TouchableOpacity onPress={handleSave} style={styles.headerActionBtn}>
             <Text style={styles.saveText}>保存</Text>
           </TouchableOpacity>
@@ -119,11 +134,12 @@ export const CategoryListSection: React.FC<CategoryListSectionProps> = ({
 const styles = StyleSheet.create({
   card: { backgroundColor: '#FFFFFF', marginHorizontal: 16, borderRadius: 24, paddingVertical: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
   
-  // 通常時のヘッダー
+  // 通常時のヘッダー：アクションボタンを横並びに
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 20 },
   title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  btn: { backgroundColor: '#F2F2F7', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
-  btnText: { color: '#1C1C1E', fontSize: 12, fontWeight: '600' },
+  headerActions: { flexDirection: 'row' },
+  actionBtn: { backgroundColor: '#F2F2F7', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginLeft: 8 },
+  actionBtnText: { color: '#007AFF', fontSize: 12, fontWeight: 'bold' },
   
   // 編集モード時のヘッダー
   editHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 16, backgroundColor: '#E3F2FD', paddingVertical: 8, borderRadius: 8, marginHorizontal: 16 },

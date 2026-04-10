@@ -13,16 +13,36 @@ import { Category } from '../types';
 import { useMonthCheckout } from '../hooks/useMonthCheckout';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { MonthCheckoutModal } from '../components/dashboard/MonthCheckoutModal';
+import { BudgetEvaluationCard } from '../components/settings/BudgetEvaluationCard';
+import { evaluateBudget } from '../functions/budgetUtils';
+import { DEFAULT_CATEGORY_NAMES } from '../constants';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-interface DashboardScreenProps { onNavigateToHesokuriHistory: () => void; onNavigateToInput: () => void; }
+interface DashboardScreenProps { 
+  onNavigateToHesokuriHistory: () => void; 
+  onNavigateToInput: () => void; 
+}
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHesokuriHistory, onNavigateToInput }) => {
-  // ▼ nationalStatistics をストアから取得
-  const { settings, expenses, monthlyBudget, nationalStatistics, updateSettings, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail, waterGarden, saveMonthlySummary } = useHesokuriStore();
+  const { 
+    settings, 
+    expenses, 
+    monthlyBudget, 
+    nationalStatistics, 
+    updateSettings, 
+    updateMonthlyBudget, 
+    deleteExpense, 
+    setExpenseInput, 
+    returnToCategoryDetail, 
+    returnToCategoryDetailDate, 
+    setReturnToCategoryDetail, 
+    waterGarden, 
+    saveMonthlySummary 
+  } = useHesokuriStore();
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
@@ -36,21 +56,35 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     else if (returnToCategoryDetail) setSelectedCategoryId(returnToCategoryDetail);
   }, [returnToCategoryDetail]);
 
-  // ▼ ビジネスロジックをカスタムフックへ移譲（guideline もフックから取得するように改修）
-  const { activeCategories, totalMonthlyBudget, totalSpent, currentHesokuri, spentByCategory, pocketMoneyDetails, guideline } = useDashboardStats(
+  const { 
+    activeCategories, 
+    totalMonthlyBudget, 
+    totalSpent, 
+    currentHesokuri, 
+    spentByCategory, 
+    pocketMoneyDetails, 
+    guideline 
+  } = useDashboardStats(
     settings, 
     monthlyBudget, 
     expenses, 
     nationalStatistics
   );
 
-  // ▼ 月締め・予算自動継承ロジック
-  const { isCheckoutVisible, checkoutMonthId, budgetAmount, checkoutExpenses, handleConfirmCheckout, handleCancelCheckout } = useMonthCheckout(
+  const evaluation = evaluateBudget(totalMonthlyBudget, guideline);
+  const hasChild = (settings?.categories || []).some(cat => cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE);
+
+  const { 
+    isCheckoutVisible, 
+    checkoutMonthId, 
+    budgetAmount, 
+    checkoutExpenses, 
+    handleConfirmCheckout, 
+    handleCancelCheckout 
+  } = useMonthCheckout(
     monthlyBudget, activeCategories, expenses || [],
     async (monthId, confirmedAmount) => {
-      // ▼ API・Storeを経由してDynamoDBへ確定へそくり額を保存
       await saveMonthlySummary(monthId, confirmedAmount);
-      console.log(`[Dashboard] へそくり確定完了: ${monthId} = ¥${confirmedAmount}`);
     },
     async (oldBudget, newMonthId) => await updateMonthlyBudget(oldBudget.budgets, oldBudget.bonusAllocation, oldBudget.deficitRule, newMonthId)
   );
@@ -71,17 +105,64 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{`${year}年${parseInt(month, 10)}月の予算`}</Text>
-        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}><Text style={styles.menuBtnText}>≡ メニュー</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setSettingsMenuVisible(true)} style={styles.menuBtn}>
+          <Text style={styles.menuBtnText}>≡ メニュー</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} scrollEnabled={isScrollEnabled} showsVerticalScrollIndicator={false}>
-        <DashboardStatusCard gardenPoints={settings.gardenPoints || 0} lastWateringDate={settings.lastWateringDate} currentHesokuri={currentHesokuri} totalSpent={totalSpent} totalMonthlyBudget={totalMonthlyBudget} progressRatio={totalMonthlyBudget > 0 ? Math.min(1, totalSpent / totalMonthlyBudget) : 0} progressColor={currentHesokuri >= 0 ? '#34C759' : '#FF3B30'} onWaterGarden={waterGarden} onPressCard={() => setAllCalendarVisible(true)} />
-        <CategoryListSection categories={activeCategories} monthlyBudget={monthlyBudget} spentByCategory={spentByCategory} isEditMode={isEditMode} setIsEditMode={setIsEditMode} onSaveOrder={handleSaveOrder} onDragStateChange={setIsScrollEnabled} onSelectCategory={setSelectedCategoryId} />
-        <HesokuriPocketMoneyArea currentHesokuri={currentHesokuri} pocketMoneyDetails={pocketMoneyDetails} onPressPocketMoney={() => setPocketMoneyModalVisible(true)} />
+        <DashboardStatusCard 
+          gardenPoints={settings.gardenPoints || 0} 
+          lastWateringDate={settings.lastWateringDate} 
+          currentHesokuri={currentHesokuri} 
+          totalSpent={totalSpent} 
+          totalMonthlyBudget={totalMonthlyBudget} 
+          progressRatio={totalMonthlyBudget > 0 ? Math.min(1, totalSpent / totalMonthlyBudget) : 0} 
+          progressColor={currentHesokuri >= 0 ? '#34C759' : '#FF3B30'} 
+          onWaterGarden={waterGarden} 
+          onPressCard={() => setAllCalendarVisible(true)} 
+        />
+        
+        {/* 予算評価カード：このバッジの結果を見て下の操作へ誘導する */}
+        <View style={styles.evaluationWrapper}>
+          <BudgetEvaluationCard 
+            fixedMonthlyBudget={totalMonthlyBudget}
+            averageGuideline={guideline}
+            evaluation={evaluation}
+            hasChild={hasChild}
+          />
+        </View>
+
+        {/* 【根本解決】
+          カテゴリリストのフレーム（CategoryListSection）に「予算編成」ボタンを統合。
+          ダッシュボード側の見出しやボタンの散らばりを排除し、操作を一本化。
+        */}
+        <CategoryListSection 
+          categories={activeCategories} 
+          monthlyBudget={monthlyBudget} 
+          spentByCategory={spentByCategory} 
+          isEditMode={isEditMode} 
+          setIsEditMode={setIsEditMode} 
+          onSaveOrder={handleSaveOrder} 
+          onDragStateChange={setIsScrollEnabled} 
+          onSelectCategory={setSelectedCategoryId} 
+          onPressBudgetEdit={() => setBudgetModalVisible(true)}
+        />
+
+        <HesokuriPocketMoneyArea 
+          currentHesokuri={currentHesokuri} 
+          pocketMoneyDetails={pocketMoneyDetails} 
+          onPressPocketMoney={() => setPocketMoneyModalVisible(true)} 
+        />
       </ScrollView>
 
-      {!isEditMode && (<TouchableOpacity onPress={onNavigateToInput} style={styles.fab}><Text style={styles.fabText}>＋</Text></TouchableOpacity>)}
+      {!isEditMode && (
+        <TouchableOpacity onPress={onNavigateToInput} style={styles.fab}>
+          <Text style={styles.fabText}>＋</Text>
+        </TouchableOpacity>
+      )}
 
+      {/* メニュー：日常の操作はリスト内ボタンに移動したため、低頻度アクションのみを残す */}
       <Modal visible={isSettingsMenuVisible} transparent animationType="slide" onRequestClose={() => setSettingsMenuVisible(false)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setSettingsMenuVisible(false)}>
           <View style={styles.menuContent}>
@@ -89,21 +170,23 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
               <Text style={styles.menuTitle}>メニュー</Text>
               <TouchableOpacity onPress={() => setSettingsMenuVisible(false)}><Text style={styles.menuCloseBtn}>✕</Text></TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); setBudgetModalVisible(true); }}><Text style={styles.menuItemIcon}>📊</Text><Text style={styles.menuItemText}>今月の予算を編成</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); setPocketMoneyModalVisible(true); }}><Text style={styles.menuItemIcon}>💰</Text><Text style={styles.menuItemText}>お小遣いルールを設定</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); onNavigateToHesokuriHistory(); }}><Text style={styles.menuItemIcon}>📈</Text><Text style={styles.menuItemText}>過去のへそくり履歴</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); setPocketMoneyModalVisible(true); }}>
+              <Text style={styles.menuItemIcon}>💰</Text>
+              <Text style={styles.menuItemText}>お小遣いルールを設定</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setSettingsMenuVisible(false); onNavigateToHesokuriHistory(); }}>
+              <Text style={styles.menuItemIcon}>📈</Text>
+              <Text style={styles.menuItemText}>過去のへそくり履歴</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
+      {/* モーダル群 */}
       <CategoryDetailModal visible={!!selectedCategoryId} category={(settings.categories || []).find(c => c.id === selectedCategoryId) || null} expenses={safeExpenses.filter(e => e.categoryId === selectedCategoryId)} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail !== 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setSelectedCategoryId(null); if (returnToCategoryDetail !== 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(c, d) => { setExpenseInput({ id: undefined, date: d, amount: '0', categoryId: c, paymentMethod: '現金', storeName: '', memo: '', isLocked: true }); setReturnToCategoryDetail(c, d); onNavigateToInput(); }} onEditExpense={(e) => { setExpenseInput({ id: e.id, date: e.date, amount: String(e.amount), categoryId: e.categoryId, paymentMethod: e.paymentMethod, storeName: e.storeName || '', memo: e.memo || '', isLocked: true }); setReturnToCategoryDetail(e.categoryId, e.date); onNavigateToInput(); }} />
       <AllCategoryCalendarModal visible={isAllCalendarVisible} categories={activeCategories} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setAllCalendarVisible(false); if (returnToCategoryDetail === 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(d) => { setExpenseInput({ id: undefined, date: d, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false }); setReturnToCategoryDetail('ALL', d); onNavigateToInput(); }} onEditExpense={(e) => { setExpenseInput({ id: e.id, date: e.date, amount: String(e.amount), categoryId: e.categoryId, paymentMethod: e.paymentMethod, storeName: e.storeName || '', memo: e.memo || '', isLocked: false }); setReturnToCategoryDetail('ALL', e.date); onNavigateToInput(); }} />
-      
-      {/* ▼ guideline をフックから取得した正確な値に変更 */}
       <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={guideline} onSave={async (b) => { await updateMonthlyBudget(b, monthlyBudget.bonusAllocation, monthlyBudget.deficitRule, monthlyBudget.month_id); setBudgetModalVisible(false); }} onClose={() => setBudgetModalVisible(false)} />
-      
       <PocketMoneyRuleModal visible={isPocketMoneyModalVisible} familyMembers={settings.familyMembers || []} monthlyBudget={monthlyBudget} onSave={async (a, r) => { await updateMonthlyBudget(monthlyBudget.budgets, a, r, monthlyBudget.month_id); setPocketMoneyModalVisible(false); }} onClose={() => setPocketMoneyModalVisible(false)} />
-      
       {checkoutMonthId && <MonthCheckoutModal visible={isCheckoutVisible} monthId={checkoutMonthId} budgetAmount={budgetAmount} expenses={checkoutExpenses} onConfirm={handleConfirmCheckout} onCancel={handleCancelCheckout} />}
     </View>
   );
@@ -115,6 +198,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   menuBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
   menuBtnText: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E' },
+  evaluationWrapper: { paddingHorizontal: 16, marginTop: 8 },
   fab: { position: 'absolute', right: 24, bottom: 24, backgroundColor: '#007AFF', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 8 },
   fabText: { color: '#FFFFFF', fontSize: 32, fontWeight: '300', marginTop: -2 },
   menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },

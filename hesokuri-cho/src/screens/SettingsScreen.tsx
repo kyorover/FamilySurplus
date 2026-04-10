@@ -11,12 +11,16 @@ import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditMo
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen';
 import { AdvancedSettingsSection } from '../components/settings/AdvancedSettingsSection';
-import { BudgetSettingsSection } from '../components/settings/BudgetSettingsSection';
-import { BudgetEditModal } from '../components/settings/BudgetEditModal';
 
 export const SettingsScreen: React.FC = () => {
-  // ▼ 修正: setPendingSettings をフックから正しく受け取る
-  const { pendingSettings, setPendingSettings, activeCategories, budgetEvaluation, modals, modes, actions } = useSettingsManager();
+  const { 
+    pendingSettings, 
+    activeCategories, 
+    hasChanges,
+    modals, 
+    modes, 
+    actions 
+  } = useSettingsManager();
   const { accountInfo } = useHesokuriStore();
 
   if (modals.garden) {
@@ -43,15 +47,19 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.headerTitleText}>設定</Text>
         </View>
         <View style={styles.headerSideColumn}>
-          <TouchableOpacity onPress={actions.saveAll} style={styles.headerActionBtn}>
+          <TouchableOpacity 
+            onPress={actions.saveAll} 
+            style={[styles.headerActionBtn, !hasChanges && { opacity: 0.3 }]}
+            disabled={!hasChanges}
+          >
             <Text style={styles.headerSubmitText}>保存</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }} scrollEnabled={modes.scroll}>
+      <ScrollView contentContainerStyle={{ paddingVertical: 16 }} scrollEnabled={modes.scroll} showsVerticalScrollIndicator={false}>
         
-        {/* === 家族構成 === */}
+        {/* 見出しと端（16px）を揃える */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成</Text>
           <TouchableOpacity onPress={() => modes.setFamilyEdit(!modes.familyEdit)} style={[styles.actionBtn, modes.familyEdit && styles.actionBtnActive]}>
@@ -59,6 +67,8 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
         <Text style={styles.hintText}>「≡」をタップしたままスライドして並び替えます。</Text>
+        
+        {/* 内部マージン 16px を活用 */}
         <FamilyMemberList 
           members={pendingSettings.familyMembers} 
           isReorderMode={modes.familyEdit}
@@ -71,36 +81,31 @@ export const SettingsScreen: React.FC = () => {
           onDragEnd={() => modes.setScroll(true)}
         />
 
-        {/* ▼ 追加: 分割した予算設定セクション */}
-        <BudgetSettingsSection 
-          activeCategories={activeCategories}
-          budgetEvaluation={budgetEvaluation}
-          onCategoryPress={modals.setBudgetEdit}
-        />
-
-        {/* === カテゴリ管理 === */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🏷️ カテゴリ管理</Text>
         </View>
-        <CategoryList 
-          categories={activeCategories} 
-          onDeleteCategory={actions.deleteCategory} 
-          onAddCategory={() => modals.setCategory(true)} 
-          onUpdateList={actions.updateCategoryList}
-        />
+        {/* 自前マージンなし。Viewで包んで 16px を強制 */}
+        <View style={styles.marginWrapper}>
+          <CategoryList 
+            categories={activeCategories} 
+            onDeleteCategory={actions.deleteCategory} 
+            onAddCategory={() => modals.setCategory(true)} 
+            onUpdateList={actions.updateCategoryList}
+          />
+        </View>
 
-        <AdvancedSettingsSection modals={modals} accountInfo={accountInfo} />
+        {/* 自前マージンなし。Viewで包んで 16px を強制 */}
+        <View style={styles.marginWrapper}>
+          <AdvancedSettingsSection modals={modals} accountInfo={accountInfo} />
+        </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* モーダル群 */}
-      <BudgetEditModal visible={!!modals.budgetEdit} category={modals.budgetEdit} onSave={actions.updateCategoryBudget} onClose={() => modals.setBudgetEdit(null)} />
       <CategoryAddModal visible={modals.category} onSave={actions.addCategory} onClose={() => modals.setCategory(false)} />
       <FamilyMemberAddModal visible={modals.familyAdd} onSave={actions.addFamily} onClose={() => modals.setFamilyAdd(false)} />
       <FamilyMemberEditModal member={modals.familyEdit} onSave={actions.updateFamily} onClose={() => modals.setFamilyEdit(null)} />
-      {/* ▼ 修正: setPendingSettings が正しく渡されるようになりエラーが解消 */}
-      <InputHistoryManagerModal visible={modals.history} settings={pendingSettings} onUpdate={setPendingSettings} onClose={() => modals.setHistory(false)} />
+      <InputHistoryManagerModal visible={modals.history} settings={pendingSettings} onUpdate={() => {}} onClose={() => modals.setHistory(false)} />
     </View>
   );
 };
@@ -108,18 +113,22 @@ export const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' }, 
   headerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 100 },
-  headerSideColumn: { flex: 1, justifyContent: 'center' },
-  headerCenterColumn: { flex: 2, alignItems: 'center', justifyContent: 'center' },
+  headerSideColumn: { flex: 1 },
+  headerCenterColumn: { flex: 2, alignItems: 'center' },
   headerActionBtn: { paddingVertical: 4 },
   headerTitleText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   headerSubmitText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF', textAlign: 'right' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 8 },
+  
+  marginWrapper: { marginHorizontal: 16 },
+
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
   actionBtnActive: { backgroundColor: '#007AFF' },
   actionBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtnTextActive: { color: '#FFFFFF' },
-  hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 8, marginBottom: 12, lineHeight: 18 },
+  hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 16, marginBottom: 12, lineHeight: 18 },
+  
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
