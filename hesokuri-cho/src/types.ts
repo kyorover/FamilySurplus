@@ -96,14 +96,15 @@ export interface AccountInfo {
   isAdmin?: boolean; // ▼ 追加: デバッグ機能等の制御に使用する管理者フラグ
 }
 
-// === 新規追加：公的統計データキャッシュ ===
+// === 公的統計データキャッシュ ===
 export interface NationalStatistics {
-  month: string;          // 例: "2026-04"
-  cpi: number;            // 最新の消費者物価指数 (基準年=100)
+  month: string;           // 例: "2026-04"
+  cpi: number;             // 最新の消費者物価指数 (基準年=100)
   averageExpenses: {
     single: Record<string, number>; // 単身世帯の平均固定支出
     twoPerson: Record<string, number>; // 2人世帯の平均固定支出
     threePlus: Record<string, number>; // 3人以上世帯の平均固定支出
+    infant?: number; // ▼ 追加：乳幼児(0-3歳)特有の養育費ベースライン統計値
   };
   updatedAt: string;
 }

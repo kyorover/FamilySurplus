@@ -9,7 +9,6 @@ import { AllCategoryCalendarModal } from '../components/dashboard/AllCategoryCal
 import { MonthlyBudgetEditModal } from '../components/dashboard/MonthlyBudgetEditModal';
 import { PocketMoneyRuleModal } from '../components/dashboard/PocketMoneyRuleModal';
 import { HesokuriPocketMoneyArea } from '../components/dashboard/HesokuriPocketMoneyArea';
-import { calculateAverageGuideline } from '../functions/budgetUtils';
 import { Category } from '../types';
 import { useMonthCheckout } from '../hooks/useMonthCheckout';
 import { useDashboardStats } from '../hooks/useDashboardStats';
@@ -22,8 +21,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 interface DashboardScreenProps { onNavigateToHesokuriHistory: () => void; onNavigateToInput: () => void; }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHesokuriHistory, onNavigateToInput }) => {
-  // ▼ saveMonthlySummary を新しく取得
-  const { settings, expenses, monthlyBudget, updateSettings, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail, waterGarden, saveMonthlySummary } = useHesokuriStore();
+  // ▼ nationalStatistics をストアから取得
+  const { settings, expenses, monthlyBudget, nationalStatistics, updateSettings, updateMonthlyBudget, deleteExpense, setExpenseInput, returnToCategoryDetail, returnToCategoryDetailDate, setReturnToCategoryDetail, waterGarden, saveMonthlySummary } = useHesokuriStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
   const [isBudgetModalVisible, setBudgetModalVisible] = useState(false);
@@ -37,8 +36,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
     else if (returnToCategoryDetail) setSelectedCategoryId(returnToCategoryDetail);
   }, [returnToCategoryDetail]);
 
-  // ビジネスロジックをカスタムフックへ移譲
-  const { activeCategories, totalMonthlyBudget, totalSpent, currentHesokuri, spentByCategory, pocketMoneyDetails } = useDashboardStats(settings, monthlyBudget, expenses);
+  // ▼ ビジネスロジックをカスタムフックへ移譲（guideline もフックから取得するように改修）
+  const { activeCategories, totalMonthlyBudget, totalSpent, currentHesokuri, spentByCategory, pocketMoneyDetails, guideline } = useDashboardStats(
+    settings, 
+    monthlyBudget, 
+    expenses, 
+    nationalStatistics
+  );
 
   // ▼ 月締め・予算自動継承ロジック
   const { isCheckoutVisible, checkoutMonthId, budgetAmount, checkoutExpenses, handleConfirmCheckout, handleCancelCheckout } = useMonthCheckout(
@@ -94,7 +98,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
       <CategoryDetailModal visible={!!selectedCategoryId} category={(settings.categories || []).find(c => c.id === selectedCategoryId) || null} expenses={safeExpenses.filter(e => e.categoryId === selectedCategoryId)} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail !== 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setSelectedCategoryId(null); if (returnToCategoryDetail !== 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(c, d) => { setExpenseInput({ id: undefined, date: d, amount: '0', categoryId: c, paymentMethod: '現金', storeName: '', memo: '', isLocked: true }); setReturnToCategoryDetail(c, d); onNavigateToInput(); }} onEditExpense={(e) => { setExpenseInput({ id: e.id, date: e.date, amount: String(e.amount), categoryId: e.categoryId, paymentMethod: e.paymentMethod, storeName: e.storeName || '', memo: e.memo || '', isLocked: true }); setReturnToCategoryDetail(e.categoryId, e.date); onNavigateToInput(); }} />
       <AllCategoryCalendarModal visible={isAllCalendarVisible} categories={activeCategories} currentMonth={monthlyBudget.month_id} initialDate={returnToCategoryDetail === 'ALL' ? returnToCategoryDetailDate : null} onClose={() => { setAllCalendarVisible(false); if (returnToCategoryDetail === 'ALL') setReturnToCategoryDetail(null, null); }} onDelete={deleteExpense} onAddExpense={(d) => { setExpenseInput({ id: undefined, date: d, amount: '0', categoryId: '', paymentMethod: '現金', storeName: '', memo: '', isLocked: false }); setReturnToCategoryDetail('ALL', d); onNavigateToInput(); }} onEditExpense={(e) => { setExpenseInput({ id: e.id, date: e.date, amount: String(e.amount), categoryId: e.categoryId, paymentMethod: e.paymentMethod, storeName: e.storeName || '', memo: e.memo || '', isLocked: false }); setReturnToCategoryDetail('ALL', e.date); onNavigateToInput(); }} />
-      <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={calculateAverageGuideline(settings.familyMembers || [])} onSave={async (b) => { await updateMonthlyBudget(b, monthlyBudget.bonusAllocation, monthlyBudget.deficitRule, monthlyBudget.month_id); setBudgetModalVisible(false); }} onClose={() => setBudgetModalVisible(false)} />
+      
+      {/* ▼ guideline をフックから取得した正確な値に変更 */}
+      <MonthlyBudgetEditModal visible={isBudgetModalVisible} categories={activeCategories} monthlyBudget={monthlyBudget} guideline={guideline} onSave={async (b) => { await updateMonthlyBudget(b, monthlyBudget.bonusAllocation, monthlyBudget.deficitRule, monthlyBudget.month_id); setBudgetModalVisible(false); }} onClose={() => setBudgetModalVisible(false)} />
+      
       <PocketMoneyRuleModal visible={isPocketMoneyModalVisible} familyMembers={settings.familyMembers || []} monthlyBudget={monthlyBudget} onSave={async (a, r) => { await updateMonthlyBudget(monthlyBudget.budgets, a, r, monthlyBudget.month_id); setPocketMoneyModalVisible(false); }} onClose={() => setPocketMoneyModalVisible(false)} />
       
       {checkoutMonthId && <MonthCheckoutModal visible={isCheckoutVisible} monthId={checkoutMonthId} budgetAmount={budgetAmount} expenses={checkoutExpenses} onConfirm={handleConfirmCheckout} onCancel={handleCancelCheckout} />}

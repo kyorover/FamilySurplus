@@ -23,6 +23,7 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
   // （世帯主: 1.0、その他大人: 0.5、子供[簡易的に一律]: 0.3）
   let isHeadCounted = false;
   let householdScore = 0;
+  let infantCount = 0; // 0〜3歳の乳幼児の数
 
   members.forEach(m => {
     if (m.role === '大人') {
@@ -33,8 +34,17 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
         householdScore += 0.5;
       }
     } else if (m.role === '子供') {
-      // 本格実装時は年齢に応じて変動させるが、今回は基本スコアとして0.3を加算
-      householdScore += (m.age !== undefined && m.age >= 14) ? 0.5 : 0.3;
+      // 本格実装時は年齢に応じて変動させる
+      if (m.age !== undefined && m.age <= 3) {
+        // 0〜3歳：おむつやミルク等、特殊な固定消耗品がかかるため係数計算の対象外とする
+        infantCount += 1;
+      } else if (m.age !== undefined && m.age >= 14) {
+        // 14歳以上：大人と同等の食費・生活費スケールになるため 0.5
+        householdScore += 0.5;
+      } else {
+        // 4歳〜13歳、または年齢未入力(フォールバック)：基本スコアとして0.3を加算
+        householdScore += 0.3;
+      }
     }
   });
 
@@ -45,7 +55,16 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
   const cpiRatio = stats.cpi / 100;
 
   // 世帯のベースライン = 単身平均 × 物価指数 × 世帯スコア
-  return Math.round(baseSingleExpense * cpiRatio * householdScore);
+  let guideline = Math.round(baseSingleExpense * cpiRatio * householdScore);
+
+  // 4. 乳幼児特有のコストを統計データから取得して加算
+  // stats.averageExpenses.infant が存在することを前提とし、未定義時は0で計算
+  const infantBaseCost = (stats.averageExpenses as any).infant || 0;
+  if (infantCount > 0) {
+    guideline += (infantCount * infantBaseCost);
+  }
+
+  return guideline;
 };
 
 /**

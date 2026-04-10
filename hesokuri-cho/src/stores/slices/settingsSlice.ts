@@ -28,7 +28,17 @@ export const createSettingsSlice: StateCreator<HesokuriState, [], [], any> = (se
   fetchNationalStatistics: async () => {
     try {
       const nationalStatistics = await apiService.fetchNationalStatistics();
-      set({ nationalStatistics });
+      if (nationalStatistics) {
+        // バックエンドから infant 項目が欠落していても計算が破綻しないよう、マッピングを保証
+        const updatedStats = {
+          ...nationalStatistics,
+          averageExpenses: {
+            ...nationalStatistics.averageExpenses,
+            infant: nationalStatistics.averageExpenses?.infant ?? 0,
+          }
+        };
+        set({ nationalStatistics: updatedStats });
+      }
     } catch (e: any) {
       console.error('Failed to fetch national statistics:', e);
     }

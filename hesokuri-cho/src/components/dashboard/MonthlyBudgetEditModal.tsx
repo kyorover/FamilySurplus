@@ -38,8 +38,11 @@ export const MonthlyBudgetEditModal: React.FC<MonthlyBudgetEditModalProps> = ({
       budget: localBudgets[cat.id] || 0
     }));
 
-  const fixedMonthlyBudget = displayCategories.filter(cat => cat.isFixed).reduce((sum, cat) => sum + cat.budget, 0);
-  const evaluation = evaluateBudget(fixedMonthlyBudget, guideline);
+  // 【修正】評価対象となる予算総額の算出。固定費および計算対象カテゴリの合計値とする
+  const totalTargetBudget = displayCategories.reduce((sum, cat) => sum + cat.budget, 0);
+  
+  // ダッシュボードから渡された、年齢考慮済みの正確な guideline を用いて評価
+  const evaluation = evaluateBudget(totalTargetBudget, guideline);
   const hasChild = categories.some(cat => cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE);
 
   return (
@@ -57,7 +60,7 @@ export const MonthlyBudgetEditModal: React.FC<MonthlyBudgetEditModalProps> = ({
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <BudgetEvaluationCard 
-            fixedMonthlyBudget={fixedMonthlyBudget} 
+            fixedMonthlyBudget={totalTargetBudget} 
             averageGuideline={guideline} 
             evaluation={evaluation} 
             hasChild={hasChild} 

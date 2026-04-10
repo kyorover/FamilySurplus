@@ -11,6 +11,7 @@ interface FamilyMemberEditModalProps {
 
 export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ member, onSave, onClose }) => {
   const [name, setName] = useState('');
+  const [age, setAge] = useState('');
   const [hasPocketMoney, setHasPocketMoney] = useState(false);
   const [pocketMoneyAmount, setPocketMoneyAmount] = useState('');
 
@@ -18,6 +19,7 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
   useEffect(() => {
     if (member) {
       setName(member.name);
+      setAge(member.age !== undefined ? String(member.age) : '');
       setHasPocketMoney(member.hasPocketMoney || false);
       setPocketMoneyAmount(member.pocketMoneyAmount ? String(member.pocketMoneyAmount) : '');
     }
@@ -28,6 +30,8 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
       onSave({ 
         ...member, 
         name: name.trim(),
+        // 子供の場合のみ年齢を保存し、大人の場合は undefined にする（AddModalと同期）
+        age: member.role === '子供' && age.trim() !== '' ? parseInt(age, 10) : undefined,
         hasPocketMoney,
         pocketMoneyAmount: hasPocketMoney && pocketMoneyAmount ? parseInt(pocketMoneyAmount, 10) : 0
       });
@@ -47,6 +51,17 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
             onChangeText={setName} 
             placeholder="名前"
           />
+
+          {/* 子供の場合のみ年齢入力フィールドを表示（AddModalの仕様に準拠） */}
+          {member?.role === '子供' && (
+            <TextInput 
+              style={styles.input} 
+              value={age} 
+              onChangeText={setAge} 
+              placeholder="年齢（任意）"
+              keyboardType="numeric"
+            />
+          )}
 
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>小遣い制にする</Text>

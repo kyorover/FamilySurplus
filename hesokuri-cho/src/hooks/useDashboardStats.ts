@@ -1,12 +1,14 @@
 // src/hooks/useDashboardStats.ts
 import { useMemo } from 'react';
-import { HouseholdSettings, MonthlyBudget, ExpenseRecord } from '../types';
+import { HouseholdSettings, MonthlyBudget, ExpenseRecord, NationalStatistics } from '../types';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
+import { calculateAverageGuideline } from '../functions/budgetUtils';
 
 export const useDashboardStats = (
   settings: HouseholdSettings | null,
   monthlyBudget: MonthlyBudget | null,
-  expenses: ExpenseRecord[] | null
+  expenses: ExpenseRecord[] | null,
+  stats: NationalStatistics | null // ▼ 追加: 統計データを引数で受け取る
 ) => {
   const activeCategories = useMemo(() => {
     if (!settings) return [];
@@ -16,7 +18,7 @@ export const useDashboardStats = (
 
   return useMemo(() => {
     if (!settings || !monthlyBudget) {
-      return { activeCategories: [], totalMonthlyBudget: 0, totalSpent: 0, currentHesokuri: 0, spentByCategory: {}, pocketMoneyDetails: [] };
+      return { activeCategories: [], totalMonthlyBudget: 0, totalSpent: 0, currentHesokuri: 0, spentByCategory: {}, pocketMoneyDetails: [], guideline: 0 };
     }
 
     const targetCategories = activeCategories.filter(cat => cat.isFixed || cat.isCalculationTarget !== false);
@@ -27,6 +29,9 @@ export const useDashboardStats = (
     const totalSpent = safeExpenses.filter(exp => targetCategoryIds.has(exp.categoryId)).reduce((sum, exp) => sum + exp.amount, 0);
     const currentHesokuri = totalMonthlyBudget - totalSpent;
     const spentByCategory = safeExpenses.reduce((acc, exp) => { acc[exp.categoryId] = (acc[exp.categoryId] || 0) + exp.amount; return acc; }, {} as Record<string, number>);
+
+    // ▼ 年齢考慮済みの世間目安（guideline）を算出
+    const guideline = calculateAverageGuideline(settings.familyMembers, stats);
 
     const familyMembers = settings.familyMembers || [];
     const bonusAllocation = monthlyBudget.bonusAllocation || {};
@@ -58,6 +63,6 @@ export const useDashboardStats = (
       return { id: m.id, name: m.name, base, bonus, total: base + bonus };
     });
 
-    return { activeCategories, totalMonthlyBudget, totalSpent, currentHesokuri, spentByCategory, pocketMoneyDetails };
-  }, [settings, monthlyBudget, expenses, activeCategories]);
+    return { activeCategories, totalMonthlyBudget, totalSpent, currentHesokuri, spentByCategory, pocketMoneyDetails, guideline };
+  }, [settings, monthlyBudget, expenses, activeCategories, stats]); // stats を依存配列に追加
 };

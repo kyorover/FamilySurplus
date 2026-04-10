@@ -8,12 +8,13 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 // フロントエンドと共有する統計データの型定義
 export interface NationalStatistics {
-  month: string;          // 例: "2023-10"
-  cpi: number;            // 最新の消費者物価指数
+  month: string;           // 例: "2023-10"
+  cpi: number;             // 最新の消費者物価指数
   averageExpenses: {
     single: Record<string, number>; // 単身世帯の平均支出
     twoPerson: Record<string, number>; // 2人世帯の平均支出
     threePlus: Record<string, number>; // 3人以上世帯の平均支出
+    infant: number; // ▼ 追加: 乳幼児(0-3歳)特有の養育費ベースライン（内閣府調査等を反映）
   };
   updatedAt: string;
 }
@@ -31,6 +32,7 @@ async function fetchMockStatisticsData(targetMonth: string): Promise<NationalSta
       single: { food: 45000, utilities: 12000, daily: 5000 },
       twoPerson: { food: 70000, utilities: 18000, daily: 10000 },
       threePlus: { food: 95000, utilities: 25000, daily: 15000 },
+      infant: 30000, // ▼ 追加: 内閣府調査の第1子(0-3歳)養育費ベースラインを参考に設定
     },
     updatedAt: new Date().toISOString()
   };

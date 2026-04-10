@@ -123,7 +123,19 @@ export const apiService = {
     try {
       const res = await fetchWithAuth(`/statistics`);
       const data = await res.json();
-      return data.data || null;
+      const stats = data.data || null;
+      
+      // データが存在する場合、乳幼児コスト項目の存在を保証して返す
+      if (stats && stats.averageExpenses) {
+        return {
+          ...stats,
+          averageExpenses: {
+            ...stats.averageExpenses,
+            infant: stats.averageExpenses.infant ?? 0
+          }
+        };
+      }
+      return stats;
     } catch (error) {
       console.error("Failed to fetch national statistics:", error);
       return null;
