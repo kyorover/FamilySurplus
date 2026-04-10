@@ -1,5 +1,5 @@
 // src/functions/budgetUtils.ts
-import { ExpenseRecord, FamilyMember } from '../types';
+import { ExpenseRecord, FamilyMember, NationalStatistics } from '../types';
 
 export interface BudgetEvaluationResult {
   title: string;
@@ -9,35 +9,43 @@ export interface BudgetEvaluationResult {
 }
 
 /**
- * ============================================================================
- * [TODO: AI Context - 本番環境移行時の必須改修項目]
- * ！！警告：以下の calculateAverageGuideline はプロトタイプ用の暫定ハードコーディングです！！
- * * 現在は大人一律65,000円、子供年齢別加算、CPI暫定1.05倍という固定値で算出していますが、
- * これは世帯人数の「規模の経済（人数が増えるほど1人あたりの生活費が下がる効果）」を
- * 反映できていないため、将来的な本番仕様としては不適切です。
- * * 【本番環境でのベストプラクティス実装要件】
- * 1. バックエンド（AWS EventBridge + Lambda）の月次バッチで、e-Stat（総務省統計局）の
- * 「家計調査（単身世帯の消費支出ベース額）」と「最新の消費者物価指数（CPI）」を定期取得し
- * DynamoDBのマスターデータとして保存すること。
- * 2. フロントエンドは Settings 等の取得時に、そのベース額とCPI係数を受け取ること。
- * 3. 本関数の計算ロジックを「OECD改定等価尺度（世帯主1.0、その他大人0.5、子供14歳未満0.3）」を
- * 用いて世帯のスコアを算出する形式に書き換え、[ベース額 × CPI × 世帯スコア] で
- * 正確な世間目安を割り出す仕様に変更すること。
- * ============================================================================
+ * 外部の公的統計データ(CPI, 世帯平均支出)と家族構成(OECD改定等価尺度)をもとに、
+ * 世間一般的な適正予算額（ベースライン）を算出する純粋関数
+ * @param members 家族構成リスト
+ * @param stats バックエンドから取得した最新の公的統計データ
+ * @returns 算出された世間一般的な適正予算額
  */
-export const calculateAverageGuideline = (members: FamilyMember[]): number => {
-  let total = 0;
+export const calculateAverageGuideline = (members: FamilyMember[], stats?: NationalStatistics | null): number => {
+  // 統計データが取得できていない場合のフェールセーフ（最低限の動作保証）
+  if (!stats) return 150000; 
+
+  // 1. OECD改定等価尺度を用いた世帯スコアの算出
+  // （世帯主: 1.0、その他大人: 0.5、子供[簡易的に一律]: 0.3）
+  let isHeadCounted = false;
+  let householdScore = 0;
+
   members.forEach(m => {
-    if (m.role === '大人') total += 65000;
-    if (m.role === '子供') {
-      if (m.age === undefined) total += 30000;
-      else if (m.age < 6) total += 25000;
-      else if (m.age <= 12) total += 35000;
-      else total += 50000;
+    if (m.role === '大人') {
+      if (!isHeadCounted) {
+        householdScore += 1.0;
+        isHeadCounted = true;
+      } else {
+        householdScore += 0.5;
+      }
+    } else if (m.role === '子供') {
+      // 本格実装時は年齢に応じて変動させるが、今回は基本スコアとして0.3を加算
+      householdScore += (m.age !== undefined && m.age >= 14) ? 0.5 : 0.3;
     }
   });
-  // 物価指数（CPI）等の補正（プロトタイプ時点では暫定1.05倍）
-  return Math.round(total * 1.05);
+
+  // 2. 単身世帯の平均支出額（統計データ）の合算をベース値とする
+  const baseSingleExpense = Object.values(stats.averageExpenses.single).reduce((sum, val) => sum + val, 0);
+
+  // 3. 物価指数（CPI）の補正 (例: 105.2 -> 1.052)
+  const cpiRatio = stats.cpi / 100;
+
+  // 世帯のベースライン = 単身平均 × 物価指数 × 世帯スコア
+  return Math.round(baseSingleExpense * cpiRatio * householdScore);
 };
 
 /**
@@ -104,8 +112,7 @@ export const isYesterdayNoMoneyDay = (
 
 /**
  * 過去月のへそくり額（余剰金）を算出する純粋関数
- * 月締めのタイミングで過去の予算総額と実際の支出総額から確定金額を求めます。
- * * @param budgetAmount 対象月の予算総額
+ * @param budgetAmount 対象月の予算総額
  * @param expenses 対象月の支出記録配列
  * @returns 算出されたへそくり額（予算 - 支出総額）
  */

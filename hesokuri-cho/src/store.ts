@@ -1,6 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement, AccountInfo } from './types'; // ▼ 追記: AccountInfo
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement, AccountInfo, NationalStatistics } from './types'; // ▼ 追記: AccountInfo, NationalStatistics
 import { createSettingsSlice } from './stores/slices/settingsSlice';
 import { createExpenseSlice } from './stores/slices/expenseSlice';
 import { createGardenSlice } from './stores/slices/gardenSlice';
@@ -20,6 +20,7 @@ export interface HesokuriState {
   accountInfo: AccountInfo | null; // ▼ 新規追加: アカウント情報
   settings: HouseholdSettings | null; 
   pendingSettings: HouseholdSettings | null; 
+  nationalStatistics: NationalStatistics | null; // ▼ 新規追加: 公的統計データ（キャッシュ）
   expenses: ExpenseRecord[]; 
   monthlyBudget: MonthlyBudget | null; 
   isLoading: boolean; 
@@ -37,6 +38,7 @@ export interface HesokuriState {
   setPendingSettings: (settings: HouseholdSettings | null) => void; 
   
   fetchAccountInfo: () => Promise<void>; // ▼ 新規追加: アカウント情報取得
+  fetchNationalStatistics: () => Promise<void>; // ▼ 新規追加: 統計データ取得
   fetchSettings: () => Promise<void>; 
   updateSettings: (newSettings: HouseholdSettings) => Promise<void>; 
   fetchExpenses: (month: string) => Promise<void>; 

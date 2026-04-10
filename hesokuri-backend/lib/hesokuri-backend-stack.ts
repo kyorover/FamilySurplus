@@ -1,12 +1,14 @@
 // hesokuri-backend/lib/hesokuri-backend-stack.ts
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as events from 'aws-cdk-lib/aws-events'; // ▼ 新規追加: EventBridge
+import * as targets from 'aws-cdk-lib/aws-events-targets'; // ▼ 新規追加: EventBridge Targets
 import * as path from 'path';
+import { DatabaseConstruct } from './constructs/database'; // ▼ 新規追加: テーブル定義の分離
 
 export class HesokuriBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -31,63 +33,33 @@ export class HesokuriBackendStack extends cdk.Stack {
         userPassword: true,
       },
     });
-    // ============================================
 
-    const settingsTable = new dynamodb.Table(this, 'HouseholdSettingsTable', {
-      partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, 
-    });
+    // === データベース層の構築 (別ファイルに分離) ===
+    const db = new DatabaseConstruct(this, 'DatabaseLayer');
 
-    const expensesTable = new dynamodb.Table(this, 'ExpenseRecordsTable', {
-      partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'date_id', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    // === 新規追加：月次予算テーブル ===
-    const monthlyBudgetsTable = new dynamodb.Table(this, 'MonthlyBudgetsTable', {
-      partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'month_id', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    // === 新規追加：アカウント・課金情報テーブル ===
-    const accountsTable = new dynamodb.Table(this, 'AccountsTable', {
-      partitionKey: { name: 'accountId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    // === 新規追加：月次サマリー（へそくり確定履歴）テーブル ===
-    const summariesTable = new dynamodb.Table(this, 'MonthlySummariesTable', {
-      partitionKey: { name: 'householdId', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'month_id', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
+    // === APIハンドラー (Lambda) ===
     const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
       runtime: lambda.Runtime.NODEJS_22_X, // Node.js 22 LTSへ更新
       entry: path.join(__dirname, '../lambda/index.ts'),
       handler: 'handler',
       environment: {
-        SETTINGS_TABLE_NAME: settingsTable.tableName,
-        EXPENSES_TABLE_NAME: expensesTable.tableName,
-        MONTHLY_BUDGETS_TABLE_NAME: monthlyBudgetsTable.tableName,
-        ACCOUNTS_TABLE_NAME: accountsTable.tableName,
-        SUMMARIES_TABLE_NAME: summariesTable.tableName, // ▼ 環境変数に追加
+        SETTINGS_TABLE_NAME: db.settingsTable.tableName,
+        EXPENSES_TABLE_NAME: db.expensesTable.tableName,
+        MONTHLY_BUDGETS_TABLE_NAME: db.monthlyBudgetsTable.tableName,
+        ACCOUNTS_TABLE_NAME: db.accountsTable.tableName,
+        SUMMARIES_TABLE_NAME: db.summariesTable.tableName, // ▼ 環境変数に追加
+        SYSTEM_CONFIG_TABLE_NAME: db.systemConfigTable.tableName, // ▼ 環境変数に追加
       },
       timeout: cdk.Duration.seconds(10),
     });
 
-    settingsTable.grantReadWriteData(apiHandler);
-    expensesTable.grantReadWriteData(apiHandler);
-    monthlyBudgetsTable.grantReadWriteData(apiHandler);
-    accountsTable.grantReadWriteData(apiHandler);
-    summariesTable.grantReadWriteData(apiHandler); // ▼ サマリーテーブルへのアクセス権限を付与
+    // 権限の付与
+    db.settingsTable.grantReadWriteData(apiHandler);
+    db.expensesTable.grantReadWriteData(apiHandler);
+    db.monthlyBudgetsTable.grantReadWriteData(apiHandler);
+    db.accountsTable.grantReadWriteData(apiHandler);
+    db.summariesTable.grantReadWriteData(apiHandler);
+    db.systemConfigTable.grantReadWriteData(apiHandler); // 統計データ読み取り用
 
     // ▼ 新規追加: API Gateway用のCognito Authorizer
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'HesokuriAuthorizer', {
@@ -124,15 +96,37 @@ export class HesokuriBackendStack extends cdk.Stack {
       entry: path.join(__dirname, '../lambda/postConfirmation.ts'),
       handler: 'handler',
       environment: {
-        ACCOUNTS_TABLE_NAME: accountsTable.tableName,
+        ACCOUNTS_TABLE_NAME: db.accountsTable.tableName,
       },
       timeout: cdk.Duration.seconds(10),
     });
     
-    // Lambdaにテーブルへの書き込み権限を付与
-    accountsTable.grantReadWriteData(postConfirmationHandler);
-    
-    // UserPoolの定義順序を変えずに、後からトリガーを追加する
+    db.accountsTable.grantReadWriteData(postConfirmationHandler);
     userPool.addTrigger(cognito.UserPoolOperation.POST_CONFIRMATION, postConfirmationHandler);
+
+    // === 新規追加: 外部統計データ取得用バッチLambda ===
+    const fetchNationalStatisticsBatch = new NodejsFunction(this, 'FetchNationalStatisticsBatch', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      entry: path.join(__dirname, '../lambda/fetchNationalStatistics.ts'),
+      handler: 'handler',
+      environment: {
+        TABLE_NAME: db.systemConfigTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(30),
+    });
+
+    db.systemConfigTable.grantReadWriteData(fetchNationalStatisticsBatch);
+
+    // === 新規追加: バッチの定期実行スケジュール設定 (毎月1日 03:00 JST = 前月末日 18:00 UTC) ===
+    new events.Rule(this, 'MonthlyStatisticsFetchRule', {
+      schedule: events.Schedule.cron({
+        minute: '0',
+        hour: '18',
+        day: 'L', // 前月の末日
+        month: '*',
+        year: '*',
+      }),
+      targets: [new targets.LambdaFunction(fetchNationalStatisticsBatch)],
+    });
   }
 }

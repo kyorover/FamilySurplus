@@ -1,5 +1,5 @@
 // src/services/apiService.ts
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, AccountInfo, MonthlySummary } from '../types'; // ▼ 追記: AccountInfo, MonthlySummary
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, AccountInfo, MonthlySummary, NationalStatistics } from '../types'; // ▼ 追記: NationalStatistics
 import { useAuthStore } from '../stores/authStore';
 
 const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
@@ -116,5 +116,17 @@ export const apiService = {
 
   async deleteExpense(date_id: string): Promise<void> {
     await fetchWithAuth(`/expenses/${HOUSEHOLD_ID}?date_id=${date_id}`, { method: 'DELETE' });
+  },
+
+  // ▼ 新規追加: バックエンドでキャッシュされている公的統計データを取得
+  async fetchNationalStatistics(): Promise<NationalStatistics | null> {
+    try {
+      const res = await fetchWithAuth(`/statistics`);
+      const data = await res.json();
+      return data.data || null;
+    } catch (error) {
+      console.error("Failed to fetch national statistics:", error);
+      return null;
+    }
   }
 };

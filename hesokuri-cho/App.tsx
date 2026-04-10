@@ -19,8 +19,18 @@ export default function App() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isDataFetched, setIsDataFetched] = useState(false); // ▼ 新規追加: 初期データ取得完了フラグ
 
-  // ▼ 変更: fetchAccountInfo を呼び出しに追加
-  const { settings, isLoading, error, fetchAccountInfo, fetchSettings, fetchExpenses, fetchMonthlyBudget } = useHesokuriStore();
+  // ▼ 変更: fetchAccountInfo と fetchNationalStatistics を呼び出しに追加
+  const { 
+    settings, 
+    isLoading, 
+    error, 
+    fetchAccountInfo, 
+    fetchSettings, 
+    fetchExpenses, 
+    fetchMonthlyBudget,
+    fetchNationalStatistics // ▼ 追加: 統計データのフェッチ関数
+  } = useHesokuriStore();
+  
   const { activeTab, handleTabChange } = useTabNavigation();
 
   useEffect(() => {
@@ -41,7 +51,8 @@ export default function App() {
           fetchAccountInfo(), // ▼ 新規追加: 起動時にアカウント情報（isAdmin等）を取得
           fetchSettings(),
           fetchExpenses(currentMonth),
-          fetchMonthlyBudget(currentMonth)
+          fetchMonthlyBudget(currentMonth),
+          fetchNationalStatistics() // ▼ 新規追加: アプリ起動時に統計データをキャッシュ
         ]);
         setIsDataFetched(true);
       } else {

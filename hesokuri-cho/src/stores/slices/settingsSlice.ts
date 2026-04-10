@@ -8,6 +8,7 @@ export const createSettingsSlice: StateCreator<HesokuriState, [], [], any> = (se
   accountInfo: null, // ▼ 追加
   settings: null,
   pendingSettings: null,
+  nationalStatistics: null, // ▼ 新規追加: 公的統計データ
   isLoading: false,
   error: null,
   
@@ -20,6 +21,16 @@ export const createSettingsSlice: StateCreator<HesokuriState, [], [], any> = (se
       set({ accountInfo });
     } catch (e: any) {
       console.error('Failed to fetch account info:', e);
+    }
+  },
+
+  // ▼ 新規追加: 公的統計データを取得してストアに保存
+  fetchNationalStatistics: async () => {
+    try {
+      const nationalStatistics = await apiService.fetchNationalStatistics();
+      set({ nationalStatistics });
+    } catch (e: any) {
+      console.error('Failed to fetch national statistics:', e);
     }
   },
 
