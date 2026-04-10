@@ -58,10 +58,14 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
   let guideline = Math.round(baseSingleExpense * cpiRatio * householdScore);
 
   // 4. 乳幼児特有のコストを統計データから取得して加算
-  // stats.averageExpenses.infant が存在することを前提とし、未定義時は0で計算
-  const infantBaseCost = (stats.averageExpenses as any).infant || 0;
-  if (infantCount > 0) {
-    guideline += (infantCount * infantBaseCost);
+  // ▼ 修正：ハードコーディングを排除し、項目別差分(infantSpecific)の合計値を算出
+  if (infantCount > 0 && stats.averageExpenses.infantSpecific) {
+    // 統計上の差分実数（食費・日用品等の合計）を算出
+    const infantDeltaSum = Object.values(stats.averageExpenses.infantSpecific).reduce((sum, val) => sum + val, 0);
+    
+    // 乳幼児コストも最新の物価指数（CPI）で補正し、人数分を加算
+    const adjustedInfantCost = infantDeltaSum * cpiRatio;
+    guideline += Math.round(infantCount * adjustedInfantCost);
   }
 
   return guideline;

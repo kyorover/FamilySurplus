@@ -14,9 +14,32 @@ export interface NationalStatistics {
     single: Record<string, number>; // 単身世帯の平均支出
     twoPerson: Record<string, number>; // 2人世帯の平均支出
     threePlus: Record<string, number>; // 3人以上世帯の平均支出
-    infant: number; // ▼ 追加: 乳幼児(0-3歳)特有の養育費ベースライン（内閣府調査等を反映）
+    /**
+     * ▼ 修正：乳幼児(0-3歳)固有の加算コスト
+     * 政府統計の「夫婦のみ」と「夫婦＋子」の差分から項目別に機械的に抽出した値。
+     * ハードコーディング値を廃止し、バックエンドの演算結果を格納する構造。
+     */
+    infantSpecific: Record<string, number>; 
   };
   updatedAt: string;
+}
+
+/**
+ * 統計ソース（e-Stat等）からの生データを比較し、
+ * 乳幼児に起因する各項目の増分（差分）を動的に算出する純粋な演算ロジック
+ */
+function calculateInfantSpecificDelta(coupleWithChild: Record<string, number>, coupleOnly: Record<string, number>): Record<string, number> {
+  const categories = ['food', 'utilities', 'daily', 'clothing', 'medical', 'other'];
+  const delta: Record<string, number> = {};
+
+  categories.forEach(cat => {
+    // [夫婦＋子] - [夫婦のみ] の差分を計算。負の値にならないよう 0 で丸める
+    const valWithChild = coupleWithChild[cat] || 0;
+    const valOnly = coupleOnly[cat] || 0;
+    delta[cat] = Math.max(0, valWithChild - valOnly);
+  });
+
+  return delta;
 }
 
 // 外部API(e-Stat等)からのデータ取得をシミュレートするモック関数
@@ -25,14 +48,29 @@ async function fetchMockStatisticsData(targetMonth: string): Promise<NationalSta
   // const secretsClient = new SecretsManagerClient({ region: "ap-northeast-1" });
   // ...
   
+  // 統計ソースから取得される想定の生データ（例：家計調査年報より）
+  // これらの生データ自体も外部API連携時には動的に更新される
+  const rawStats = {
+    single: { food: 45000, utilities: 12000, daily: 5000 },
+    twoPersonOnly: { food: 70000, utilities: 18000, daily: 10000, clothing: 5000, medical: 4000, other: 10000 },
+    twoPersonWithInfant: { food: 82500, utilities: 19500, daily: 18400, clothing: 9100, medical: 7200, other: 12800 },
+    threePlus: { food: 95000, utilities: 25000, daily: 15000 },
+  };
+
+  // ▼ 修正：固定値 30000 を廃止し、プログラムによる差分演算を実行
+  const infantSpecific = calculateInfantSpecificDelta(
+    rawStats.twoPersonWithInfant, 
+    rawStats.twoPersonOnly
+  );
+
   return {
     month: targetMonth,
     cpi: 105.2,
     averageExpenses: {
-      single: { food: 45000, utilities: 12000, daily: 5000 },
-      twoPerson: { food: 70000, utilities: 18000, daily: 10000 },
-      threePlus: { food: 95000, utilities: 25000, daily: 15000 },
-      infant: 30000, // ▼ 追加: 内閣府調査の第1子(0-3歳)養育費ベースラインを参考に設定
+      single: rawStats.single,
+      twoPerson: rawStats.twoPersonOnly,
+      threePlus: rawStats.threePlus,
+      infantSpecific: infantSpecific // 演算結果を格納
     },
     updatedAt: new Date().toISOString()
   };

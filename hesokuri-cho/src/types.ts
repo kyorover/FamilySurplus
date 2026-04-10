@@ -101,10 +101,15 @@ export interface NationalStatistics {
   month: string;           // 例: "2026-04"
   cpi: number;             // 最新の消費者物価指数 (基準年=100)
   averageExpenses: {
-    single: Record<string, number>; // 単身世帯の平均固定支出
-    twoPerson: Record<string, number>; // 2人世帯の平均固定支出
-    threePlus: Record<string, number>; // 3人以上世帯の平均固定支出
-    infant?: number; // ▼ 追加：乳幼児(0-3歳)特有の養育費ベースライン統計値
+    single: Record<string, number>; // 単身世帯の平均支出
+    twoPerson: Record<string, number>; // 2人世帯の平均支出
+    threePlus: Record<string, number>; // 3人以上世帯の平均支出
+    /**
+     * ▼ 修正：乳幼児(0-3歳)固有の加算コスト
+     * 政府統計の「夫婦のみ」と「夫婦＋子」の差分から項目別に機械的に抽出した値。
+     * ハードコーディング値を廃止し、バックエンドの演算結果を格納する構造。
+     */
+    infantSpecific?: Record<string, number>; 
   };
   updatedAt: string;
 }
