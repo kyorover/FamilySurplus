@@ -2,20 +2,18 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { HouseholdSettings, FamilyMember, Category } from '../types';
-import { useHesokuriStore } from '../store';
 import { syncFixedCategories } from '../functions/categoryUtils';
 import { FamilyMemberList } from '../components/settings/FamilyMemberList';
 import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModal';
 import { CategoryBudgetList } from '../components/settings/CategoryBudgetList';
 import { BudgetEditModal } from '../components/settings/BudgetEditModal';
-import { DEFAULT_BUDGET_INITIAL_VALUE } from '../constants';
+import { useOnboardingSubmit } from '../hooks/useOnboardingSubmit';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
-  const { updateSettings, updateMonthlyBudget } = useHesokuriStore();
   const [step, setStep] = useState(1);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [isAddModalVisible, setAddModalVisible] = useState(false);
@@ -25,54 +23,23 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   );
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
+  // ▼ 新規作成したカスタムフックを呼び出し、保存ロジックを委譲
+  const { handleComplete } = useOnboardingSubmit({ categories, members, onComplete });
+
   const handleNext = () => {
     if (step === 1 && members.length === 0) {
       Alert.alert('確認', '家族メンバーが登録されていません。少なくとも1人登録してください。');
       return;
     }
+    
+    // 家族構成の変更（子供の追加・削除など）をカテゴリ一覧に同期させる
+    const syncedCategories = syncFixedCategories({ 
+      categories: categories, 
+      familyMembers: members 
+    } as HouseholdSettings);
+    
+    setCategories(syncedCategories);
     setStep(2);
-  };
-
-  const handleComplete = async () => {
-    const hasUnsetBudget = categories.some(c => c.budget === DEFAULT_BUDGET_INITIAL_VALUE);
-    if (hasUnsetBudget) {
-      Alert.alert('確認', '予算が「未設定」の項目があります。このまま始めてもよろしいですか？', [
-        { text: '見直す', style: 'cancel' },
-        { text: 'はじめる', style: 'default', onPress: executeComplete }
-      ]);
-      return;
-    }
-    executeComplete();
-  };
-
-  const executeComplete = async () => {
-    try {
-      const initialSettings: HouseholdSettings = {
-        householdId: `hh-${Date.now().toString(36)}`,
-        familyMembers: members,
-        categories: categories,
-        notificationsEnabled: false,
-        updatedAt: new Date().toISOString(),
-        gardenPoints: 0,
-        lastWateringDate: null,
-        ownedGardenItemIds: ['BG-01', 'PL-01'],
-        plantLevel: 1,
-        plantExp: 0,
-      };
-      
-      await updateSettings(initialSettings);
-
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const initialBudgets: Record<string, number> = {};
-      categories.forEach(c => {
-        initialBudgets[c.id] = c.budget;
-      });
-      await updateMonthlyBudget(initialBudgets, {}, 'みんなで折半', currentMonth);
-
-      onComplete(); 
-    } catch (e) {
-      Alert.alert('エラー', '初期設定の保存に失敗しました。');
-    }
   };
 
   return (
@@ -128,7 +95,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
           )}
         </View>
 
-        {/* 【修正】バグの原因であった Modal コンポーネントを ScrollView の外側（ルート階層）へ移動 */}
         <FamilyMemberAddModal
           visible={isAddModalVisible}
           onSave={(newMember) => setMembers([...members, newMember])}
