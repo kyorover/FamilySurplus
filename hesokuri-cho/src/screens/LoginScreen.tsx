@@ -5,12 +5,11 @@ import {
   KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard, Platform 
 } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
-import { getJapaneseErrorMessage } from '../functions/authErrorHandler';
 import { AuthInputForm } from '../components/auth/AuthInputForm';
 
 export const LoginScreen = () => {
   const { 
-    login, signUp, confirmSignUp, forgotPassword, confirmResetPassword, 
+    login, signUp, confirmSignUp, forgotPassword, confirmForgotPassword, 
     authMode, setAuthMode, unconfirmedEmail, isLoading 
   } = useAuthStore();
   
@@ -23,31 +22,46 @@ export const LoginScreen = () => {
     // 実行時にキーボードを確実に閉じる
     Keyboard.dismiss();
     
-    try {
-      if (authMode === 'LOGIN') {
-        if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
-        await login(email, password);
-      } else if (authMode === 'SIGNUP') {
-        if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
-        await signUp(email, password);
+    // authStoreのエラー状態を確認するヘルパー
+    const checkError = () => {
+      const err = useAuthStore.getState().error;
+      if (err) {
+        Alert.alert('エラー', err);
+        return true;
+      }
+      return false;
+    };
+
+    if (authMode === 'LOGIN') {
+      if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
+      await login(email, password);
+      checkError();
+    } else if (authMode === 'SIGNUP') {
+      if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
+      await signUp(email, password);
+      if (!checkError()) {
         Alert.alert('確認コード送信', 'ご入力いただいたメールアドレス宛に、6桁の確認コードを送信しました。');
-      } else if (authMode === 'CONFIRM') {
-        const targetEmail = unconfirmedEmail || email;
-        if (!targetEmail || !code) return Alert.alert('入力エラー', 'メールアドレスと確認コードを入力してください');
-        await confirmSignUp(targetEmail, code);
+      }
+    } else if (authMode === 'CONFIRM') {
+      const targetEmail = unconfirmedEmail || email;
+      if (!targetEmail || !code) return Alert.alert('入力エラー', 'メールアドレスと確認コードを入力してください');
+      await confirmSignUp(targetEmail, code);
+      if (!checkError()) {
         Alert.alert('登録完了', 'アカウントの認証が完了しました。ログインしてください。');
-      } else if (authMode === 'FORGOT_PASSWORD') {
-        if (!email) return Alert.alert('入力エラー', 'メールアドレスを入力してください');
-        await forgotPassword(email);
+      }
+    } else if (authMode === 'FORGOT_PASSWORD') {
+      if (!email) return Alert.alert('入力エラー', 'メールアドレスを入力してください');
+      await forgotPassword(email);
+      if (!checkError()) {
         Alert.alert('リセットコード送信', 'パスワード再設定用の確認コードをメールで送信しました。');
-      } else if (authMode === 'RESET_PASSWORD') {
-        const targetEmail = unconfirmedEmail || email;
-        if (!targetEmail || !code || !newPassword) return Alert.alert('入力エラー', 'すべての項目を入力してください');
-        await confirmResetPassword(targetEmail, code, newPassword);
+      }
+    } else if (authMode === 'RESET_PASSWORD') {
+      const targetEmail = unconfirmedEmail || email;
+      if (!targetEmail || !code || !newPassword) return Alert.alert('入力エラー', 'すべての項目を入力してください');
+      await confirmForgotPassword(targetEmail, code, newPassword);
+      if (!checkError()) {
         Alert.alert('再設定完了', 'パスワードの再設定が完了しました。新しいパスワードでログインしてください。');
       }
-    } catch (error: any) {
-      Alert.alert('エラー', getJapaneseErrorMessage(error));
     }
   };
 
