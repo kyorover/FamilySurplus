@@ -2,20 +2,19 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { BudgetEvaluationResult } from '../../functions/budgetUtils';
-import { DEFAULT_CATEGORY_NAMES } from '../../constants';
 
 interface BudgetEvaluationCardProps {
-  fixedMonthlyBudget: number; 
-  averageGuideline: number;
+  fixedMonthlyBudget: number; // 評価対象の予算合計額
+  averageGuideline: number;   // 年齢・CPIを考慮した世間目安
   evaluation: BudgetEvaluationResult;
   hasChild: boolean; 
 }
 
-export const BudgetEvaluationCard: React.FC<BudgetEvaluationCardProps> = ({ fixedMonthlyBudget, averageGuideline, evaluation, hasChild }) => {
-  // 定数から動的にカテゴリ名の文字列を組み立てる
-  const baseCategories = [DEFAULT_CATEGORY_NAMES.FOOD, DEFAULT_CATEGORY_NAMES.EATING_OUT, DEFAULT_CATEGORY_NAMES.DAILY_NECESSITIES].join('、');
-  const fixedCategoriesText = hasChild ? `${baseCategories}、${DEFAULT_CATEGORY_NAMES.CHILD_CARE}` : baseCategories;
-
+export const BudgetEvaluationCard: React.FC<BudgetEvaluationCardProps> = ({ 
+  fixedMonthlyBudget, 
+  averageGuideline, 
+  evaluation 
+}) => {
   return (
     <View style={[styles.evaluationContainer, { backgroundColor: evaluation.bgColor }]}>
       <View style={styles.evalHeader}>
@@ -24,10 +23,16 @@ export const BudgetEvaluationCard: React.FC<BudgetEvaluationCardProps> = ({ fixe
       <Text style={[styles.evaluationMessage, { color: evaluation.color }]}>{evaluation.message}</Text>
       
       <View style={styles.detailsBox}>
-        <Text style={[styles.detailText, { color: evaluation.color }]}>固定費の合計: ￥{fixedMonthlyBudget.toLocaleString()}</Text>
-        <Text style={[styles.detailText, { color: evaluation.color }]}>世間の目安: ￥{averageGuideline.toLocaleString()}</Text>
+        <Text style={[styles.detailText, { color: evaluation.color }]}>
+          評価対象の合計: ￥{fixedMonthlyBudget.toLocaleString()}
+        </Text>
+        <Text style={[styles.detailText, { color: evaluation.color }]}>
+          世間の目安: ￥{averageGuideline.toLocaleString()}
+        </Text>
       </View>
-      <Text style={[styles.guidelineNote, { color: evaluation.color }]}>※固定費（{fixedCategoriesText}）のみで算出しています</Text>
+      <Text style={[styles.guidelineNote, { color: evaluation.color }]}>
+        ※「計算対象」として設定されたカテゴリの合計値で評価しています。
+      </Text>
     </View>
   );
 };
