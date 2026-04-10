@@ -74,7 +74,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'PL-03': {
     sourceId: 'tree1', originalWidth: 760, originalHeight: 661, startX: 0, startY: 483,
-    frameWidth: 152, frameHeight: 179, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 86,
+    frameWidth: 152, frameHeight: 179, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 106,
     baseScale: 1.4, isAnimated: false, maxQuantity: 1,
   },
   'EF-01': { // じょうろ

@@ -68,7 +68,16 @@ export const GardenInventoryItem: React.FC<Props> = ({ itemId, ownedItems, isSel
   const spriteDef = SPRITE_CONFIG[itemId];
   const baseScale = spriteDef?.baseScale ?? 1.0;
   const baseSize = isPlant ? GARDEN_CONFIG.TILE_WIDTH * GLOBAL_GARDEN_SETTINGS.TREE_SCALE : GARDEN_CONFIG.TILE_WIDTH;
-  const displaySize = Math.min(baseSize * baseScale, 60);
+  
+  // ▼ 修正: 間延び防止のため、高さも考慮した厳密なサイズ計算（最大48pxの枠内に収める）
+  const MAX_BOUNDING_BOX = 48;
+  const aspectRatio = spriteDef ? (spriteDef.frameHeight / spriteDef.frameWidth) : 1;
+  
+  let displaySize = Math.min(baseSize * baseScale, MAX_BOUNDING_BOX);
+  // 高さが上限を超える場合は、高さが収まるように幅を逆算して縮小する
+  if (displaySize * aspectRatio > MAX_BOUNDING_BOX) {
+    displaySize = MAX_BOUNDING_BOX / aspectRatio;
+  }
 
   return (
     <TouchableOpacity
@@ -99,7 +108,18 @@ export const GardenInventoryItem: React.FC<Props> = ({ itemId, ownedItems, isSel
 };
 
 const styles = StyleSheet.create({
-  item: { padding: 8, borderRadius: 8, marginRight: 8, borderWidth: 2, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center', minWidth: 56, minHeight: 56, position: 'relative' },
+  // ▼ 修正: minWidth/minHeightを撤廃し、絶対値(64x64)でコンテナを固定してUIの拡張を防止
+  item: { 
+    borderRadius: 8, 
+    marginRight: 8, 
+    borderWidth: 2, 
+    borderColor: 'transparent', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    width: 64, 
+    height: 64, 
+    position: 'relative' 
+  },
   activeItem: { borderColor: '#4CAF50' },
   outOfStockItem: { borderColor: '#E0E0E0', backgroundColor: '#F5F5F5', opacity: 0.6 },
   noneText: { fontSize: 10, color: '#666', fontWeight: 'bold' },
