@@ -52,6 +52,7 @@ export const GardenBuilderScreen: React.FC = () => {
             await updateSettings({
               ...settings,
               ownedGardenItemIds: [],
+              itemCounts: {}, // ▼ 追加：アイテムの所持数データもリセットし、ショップ表示を完全に初期化
               gardenPlacements: defaultPlacements
             });
           }

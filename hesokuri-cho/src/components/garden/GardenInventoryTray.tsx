@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { GardenInventoryItem } from './GardenInventoryItem';
+import { useHesokuriStore } from '../../store'; // ▼ 追加: ストアの購読用
 
 interface Props {
   ownedItems: string[];
@@ -11,20 +12,25 @@ interface Props {
 
 type CategoryTab = 'ALL' | 'BG' | 'PL' | 'WP' | 'OTHER';
 
-export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemId, onSelectItem }) => {
+export const GardenInventoryTray: React.FC<Props> = ({ ownedItems: propOwnedItems, selectedItemId, onSelectItem }) => {
   const [activeTab, setActiveTab] = useState<CategoryTab>('ALL');
+
+  // ▼ 追加: ストアから直接最新状態を購読し、購入後の即時反映を保証する
+  const settings = useHesokuriStore(state => state.settings);
+  const latestOwnedItems = settings?.ownedGardenItemIds || propOwnedItems;
+  const itemCounts = settings?.itemCounts;
 
   const filteredItems = useMemo(() => {
     if (activeTab === 'WP') {
-      return ['WP-NONE', ...ownedItems.filter(id => id.startsWith('WP-'))];
+      return ['WP-NONE', ...latestOwnedItems.filter(id => id.startsWith('WP-'))];
     }
-    return ownedItems.filter(itemId => {
+    return latestOwnedItems.filter(itemId => {
       if (activeTab === 'ALL') return true;
       if (activeTab === 'BG') return itemId.startsWith('BG-');
       if (activeTab === 'PL') return itemId.startsWith('PL-');
       return !itemId.startsWith('BG-') && !itemId.startsWith('PL-') && !itemId.startsWith('WP-');
     });
-  }, [ownedItems, activeTab]);
+  }, [latestOwnedItems, activeTab, itemCounts]); // ▼ 追加: itemCounts の変化でも再計算させる
 
   return (
     <View style={styles.inventory}>
@@ -50,7 +56,7 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems, selectedItemI
           <GardenInventoryItem 
             key={itemId} 
             itemId={itemId} 
-            ownedItems={ownedItems}
+            ownedItems={latestOwnedItems} // ▼ 変更: 最新の配列を渡す
             isSelected={selectedItemId === itemId} 
             onSelect={onSelectItem} 
           />

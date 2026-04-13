@@ -74,7 +74,7 @@ export const GLOBAL_GARDEN_SETTINGS = {
 export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   'PL-01': {
     sourceId: 'tree1', originalWidth: 760, originalHeight: 661, startX: 0, startY: 5,
-    frameWidth: 152, frameHeight: 235, frameCount: 5, frameSpacingX: 0, offsetX:0, offsetY: 84,
+    frameWidth: 152, frameHeight: 235, frameCount: 5, frameSpacingX: 0, offsetX:0, offsetY: 88,
     baseScale: 1.4, isAnimated: false, maxQuantity: 1,
   },
   'PL-02': {
@@ -84,7 +84,7 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'PL-03': {
     sourceId: 'tree1', originalWidth: 760, originalHeight: 661, startX: 0, startY: 483,
-    frameWidth: 152, frameHeight: 179, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 106,
+    frameWidth: 152, frameHeight: 179, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 96,
     baseScale: 1.4, isAnimated: false, maxQuantity: 1,
   },
   'EF-01': { // じょうろ
@@ -159,12 +159,12 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'IT-01': { // レトロな街灯
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 0, startY: 265,
-    frameWidth: 84, frameHeight: 100, frameCount: 2, frameSpacingX: 0, offsetX: -5, offsetY: 40,
+    frameWidth: 84, frameHeight: 100, frameCount: 2, frameSpacingX: 0, offsetX: 2, offsetY: 44,
     baseScale: 1.0, isAnimated: true, animationSpeed: 3000,
   },
   'IT-02': { // 木のベンチ
     sourceId: 'item1', originalWidth: 342, originalHeight: 729, startX: 6, startY: 380,
-    frameWidth: 76, frameHeight: 83, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 46,
+    frameWidth: 76, frameHeight: 83, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 54,
     baseScale: 0.7, isAnimated: false,
   },
   'IT-03': { // 多肉植物
@@ -179,37 +179,37 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'IT-05': { // 花(黄)
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 94,
-    frameWidth: 68, frameHeight: 43, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    frameWidth: 68, frameHeight: 43, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 60,
     baseScale: 1.0, isAnimated: false,
   },
   'IT-06': { // 花(紫)
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 136,
-    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 60,
     baseScale: 1.0, isAnimated: false,
   },
   'IT-07': { // 花(赤)
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 174,
-    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 60,
     baseScale: 1.0, isAnimated: false,
   },
   'IT-08': { // 花(青)
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 214,
-    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 60,
     baseScale: 1.0, isAnimated: false,
   },
   'IT-09': { // 花(緑)
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 252,
-    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    frameWidth: 68, frameHeight: 40, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 60,
     baseScale: 1.0, isAnimated: false,
   },
   'IT-10': { // 観葉植物
     sourceId: 'item2', originalWidth: 68, originalHeight: 369, startX: 0, startY: 290,
-    frameWidth: 68, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 53,
+    frameWidth: 68, frameHeight: 80, frameCount: 1, frameSpacingX: 0, offsetX: -3, offsetY: 60,
     baseScale: 1.0, isAnimated: false,
   },
   'CR-01': { // 猫
     sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 0,
-    frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 36,
+    frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 52,
     baseScale: 0.8, isAnimated: true, animationSpeed: 300, maxQuantity: 1,
   },
   'CR-02': { // 犬
@@ -219,33 +219,33 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'CR-03': { // 狸
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 0,
-    frameWidth: 82, frameHeight: 73, frameCount: 6, frameSpacingX: 0, offsetX: 0, offsetY: 46,
+    frameWidth: 82, frameHeight: 73, frameCount: 6, frameSpacingX: 0, offsetX: 0, offsetY: 56,
     baseScale: 0.9, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
   },
   'CR-04': { // 狐
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 66,
-    frameWidth: 82, frameHeight: 72, frameCount: 7, frameSpacingX: 0, offsetX: 0, offsetY: 40,
+    frameWidth: 82, frameHeight: 72, frameCount: 7, frameSpacingX: 0, offsetX: 0, offsetY: 56,
     baseScale: 0.8, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
   },
   'CR-05': { // パンダ
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 129,
-    frameWidth: 82, frameHeight: 66, frameCount: 8, frameSpacingX: 0, offsetX: 0, offsetY: 50,
+    frameWidth: 82, frameHeight: 66, frameCount: 8, frameSpacingX: 0, offsetX: 0, offsetY: 56,
     baseScale: 1.0, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
   },
   'CR-06': { // 馬
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 196,
-    frameWidth: 80, frameHeight: 68, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 53,
+    frameWidth: 80, frameHeight: 68, frameCount: 4, frameSpacingX: 0, offsetX: 0, offsetY: 60,
     baseScale: 1.0, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
   },
   'CR-07': { // ブルドック
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 260,
-    frameWidth: 80, frameHeight: 56, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 42,
+    frameWidth: 80, frameHeight: 56, frameCount: 5, frameSpacingX: 0, offsetX: 0, offsetY: 50,
     baseScale: 0.8, isAnimated: true, animationSpeed: 350, maxQuantity: 1,
   },
   'CR-200': { // 子供(男の子)
-    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 157,
-    frameWidth: 58, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: -7, offsetY: 24,
-    baseScale: 0.5, isAnimated: true, animationSpeed: 2000, maxQuantity: 1,
+    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 16, startY: 157,
+    frameWidth: 50, frameHeight: 76, frameCount: 2, frameSpacingX: 0, offsetX: 2, offsetY: 50,
+    baseScale: 0.4, isAnimated: true, animationSpeed: 500, maxQuantity: 1,
   },
   'CR-201': { // 子供(女の子)
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 316,
