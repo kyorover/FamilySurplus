@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tile1' | 'tile2' | 'tile3' | 'tile4' | 'tile5' | 'tile6' | 'tile7' | 'tree1' | 'item1' | 'item2' | 'item3' | 'item4' | 'item5' | 'arrow' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4' | 'wp5'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tile1' | 'tile2' | 'tile3' | 'tile4' | 'tile5' | 'tile6' | 'tile7' | 'tree1' | 'item1' | 'item2' | 'item3' | 'item4' | 'item5' | 'arrow' | 'chara' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4' | 'wp5' | 'wp7' | 'wp8'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -44,6 +44,8 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   wp3: require('../../assets/images/garden/bg_3.png'),
   wp4: require('../../assets/images/garden/bg_4.png'),
   wp5: require('../../assets/images/garden/bg_5.png'),
+  wp7: require('../../assets/images/garden/bg_7.png'),
+  wp8: require('../../assets/images/garden/bg_8.png'),
 };
 
 export const GLOBAL_GARDEN_SETTINGS = {
@@ -282,6 +284,16 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
   },
   'WP-05': {
     sourceId: 'wp5', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
+    frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    baseScale: 1.0, isAnimated: false, maxQuantity: 1,
+  },
+  'WP-07': {
+    sourceId: 'wp7', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
+    frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
+    baseScale: 1.0, isAnimated: false, maxQuantity: 1,
+  },
+  'WP-08': {
+    sourceId: 'wp8', originalWidth: 976, originalHeight: 1056, startX: 0, startY: 0,
     frameWidth: 976, frameHeight: 1056, frameCount: 1, frameSpacingX: 0, offsetX: 0, offsetY: 0,
     baseScale: 1.0, isAnimated: false, maxQuantity: 1,
   },

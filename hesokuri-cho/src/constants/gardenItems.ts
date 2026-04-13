@@ -65,6 +65,8 @@ export const ALL_GARDEN_ITEMS: GardenItemMaster[] = [
   { id: 'WP-03', name: '壁紙(草むらとお花)', type: 'bg', cost: 100, isShoppable: true },
   { id: 'WP-04', name: '壁紙(花のみち)', type: 'bg', cost: 100, isShoppable: true },
   { id: 'WP-05', name: '壁紙(花と空)', type: 'bg', cost: 100, isShoppable: true },
+  { id: 'WP-07', name: '壁紙(花と空)', type: 'bg', cost: 100, isShoppable: true },
+  { id: 'WP-08', name: '壁紙(花と空)', type: 'bg', cost: 100, isShoppable: true },
 ];
 
 /**
