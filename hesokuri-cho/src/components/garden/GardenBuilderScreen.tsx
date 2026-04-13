@@ -39,7 +39,7 @@ export const GardenBuilderScreen: React.FC = () => {
   const handleResetPurchases = () => {
     Alert.alert(
       '購入状態リセット',
-      'すべての購入済みアイテムと配置をリセットしますか？（知恵の木は残ります）',
+      'すべての購入済みアイテムと配置をリセットしますか？\n（初期の木やタイル、知恵の木は残ります）',
       [
         { text: 'キャンセル', style: 'cancel' },
         {
@@ -47,12 +47,30 @@ export const GardenBuilderScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             if (!settings) return;
-            // 知恵の木 (WP- で始まるアイテム) のみを残す
-            const defaultPlacements = settings.gardenPlacements?.filter(p => p.itemId.startsWith('WP-')) || [];
+
+            // ▼ 追加: 保護すべき必須アイテムの判定
+            const isProtectedItem = (id: string) => id === 'PL-01' || id === 'BG-01' || id.startsWith('WP-');
+
+            // 1. 配置のうち、保護対象のみを残す
+            const defaultPlacements = settings.gardenPlacements?.filter(p => isProtectedItem(p.itemId)) || [];
+            
+            // 2. 所持アイテムリストのうち、保護対象のみを残す
+            const defaultOwnedItems = (settings.ownedGardenItemIds || []).filter(isProtectedItem);
+            
+            // （万が一消えていた場合のために必須アイテムを補完）
+            if (!defaultOwnedItems.includes('PL-01')) defaultOwnedItems.push('PL-01');
+            if (!defaultOwnedItems.includes('BG-01')) defaultOwnedItems.push('BG-01');
+
+            // 3. アイテムの所持数のうち、保護対象の個数のみを残す（未所持の場合は1とする）
+            const defaultItemCounts: Record<string, number> = {};
+            defaultOwnedItems.forEach(id => {
+              defaultItemCounts[id] = settings.itemCounts?.[id] || 1;
+            });
+
             await updateSettings({
               ...settings,
-              ownedGardenItemIds: [],
-              itemCounts: {}, // ▼ 追加：アイテムの所持数データもリセットし、ショップ表示を完全に初期化
+              ownedGardenItemIds: defaultOwnedItems,
+              itemCounts: defaultItemCounts,
               gardenPlacements: defaultPlacements
             });
           }
