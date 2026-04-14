@@ -1,7 +1,7 @@
 // src/config/spriteConfig.ts
 import { ImageSourcePropType } from 'react-native';
 
-export type SpriteSourceId = 'tile1' | 'tile2' | 'tile3' | 'tile4' | 'tile5' | 'tile6' | 'tile7' | 'tree1' | 'item1' | 'item2' | 'item3' | 'item4' | 'item5' | 'arrow' | 'chara1' | 'chara2' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4' | 'wp5' | 'wp7' | 'wp8'; // ▼ 追加: 壁紙のソースID
+export type SpriteSourceId = 'tile1' | 'tile2' | 'tile3' | 'tile4' | 'tile5' | 'tile6' | 'tile7' | 'tree1' | 'item1' | 'item2' | 'item3' | 'item4' | 'item5' | 'arrow' | 'chara1' | 'chara2' | 'chara3' | 'levelup' | 'wp1' | 'wp2' | 'wp3' | 'wp4' | 'wp5' | 'wp7' | 'wp8'; // ▼ 追加: 壁紙のソースID
 
 export interface SpriteDefinition {
   sourceId: SpriteSourceId;
@@ -39,6 +39,7 @@ export const IMAGE_SOURCES: Record<SpriteSourceId, ImageSourcePropType> = {
   arrow: require('../../assets/images/garden/arrow.png'),
   chara1: require('../../assets/images/garden/chara1.png'),
   chara2: require('../../assets/images/garden/chara2.png'),
+  chara3: require('../../assets/images/garden/chara3.png'),
   levelup: require('../../assets/images/garden/levelup.png'),
   wp1: require('../../assets/images/garden/bg_1.png'),
   wp2: require('../../assets/images/garden/bg_2.png'),
@@ -209,14 +210,14 @@ export const SPRITE_CONFIG: Record<string, SpriteDefinition> = {
     baseScale: 1.0, isAnimated: false,
   },
   'CR-01': { // 猫
-    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 0,
-    frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 52,
-    baseScale: 0.8, isAnimated: true, animationSpeed: 300, maxQuantity: 1,
+    sourceId: 'chara3', originalWidth: 459, originalHeight: 223, startX: 0, startY: 6,
+    frameWidth: 153, frameHeight: 108, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 48,
+    baseScale: 0.6, isAnimated: true, animationSpeed: 300, maxQuantity: 1,
   },
   'CR-02': { // 犬
-    sourceId: 'chara', originalWidth: 455, originalHeight: 384, startX: 0, startY: 88,
-    frameWidth: 114, frameHeight: 76, frameCount: 4, frameSpacingX: 0, offsetX: -3, offsetY: 52,
-    baseScale: 0.8, isAnimated: true, animationSpeed: 300, maxQuantity: 1,
+    sourceId: 'chara3', originalWidth: 459, originalHeight: 223, startX: 0, startY: 119,
+    frameWidth: 153, frameHeight: 108, frameCount: 3, frameSpacingX: 0, offsetX: 0, offsetY: 48,
+    baseScale: 0.6, isAnimated: true, animationSpeed: 300, maxQuantity: 1,
   },
   'CR-03': { // 狸
     sourceId: 'item5', originalWidth: 648, originalHeight: 385, startX: 0, startY: 0,
