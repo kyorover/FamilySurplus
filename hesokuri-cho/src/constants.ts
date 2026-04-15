@@ -18,3 +18,10 @@ export const GARDEN_CONSTANTS = {
   // 庭画面のタイトル
   GARDEN_TITLE: 'ガーデニング',
 } as const;
+
+// 法的文書の公開URL
+export const LEGAL_URLS = {
+  // TODO: 正式なWebページ公開後に以下のURLを本番用に差し替えること
+  TERMS: 'https://example.com/terms',
+  PRIVACY: 'https://example.com/privacy',
+} as const;

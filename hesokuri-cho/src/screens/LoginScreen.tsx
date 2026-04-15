@@ -17,6 +17,8 @@ export const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [code, setCode] = useState('');
+  // 規約同意の状態管理
+  const [isAgreed, setIsAgreed] = useState(false);
 
   const handleSubmit = async () => {
     // 実行時にキーボードを確実に閉じる
@@ -38,6 +40,8 @@ export const LoginScreen = () => {
       checkError();
     } else if (authMode === 'SIGNUP') {
       if (!email || !password) return Alert.alert('入力エラー', 'メールアドレスとパスワードを入力してください');
+      // 新規登録時は同意チェックを最終確認
+      if (!isAgreed) return Alert.alert('確認', '利用規約およびプライバシーポリシーへの同意が必要です');
       await signUp(email, password);
       if (!checkError()) {
         Alert.alert('確認コード送信', 'ご入力いただいたメールアドレス宛に、6桁の確認コードを送信しました。');
@@ -76,6 +80,9 @@ export const LoginScreen = () => {
     }
   };
 
+  // 登録ボタンの活性・非活性判定
+  const isSubmitDisabled = isLoading || (authMode === 'SIGNUP' && !isAgreed);
+
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -97,9 +104,14 @@ export const LoginScreen = () => {
                 password={password} setPassword={setPassword}
                 newPassword={newPassword} setNewPassword={setNewPassword}
                 code={code} setCode={setCode} unconfirmedEmail={unconfirmedEmail}
+                isAgreed={isAgreed} setIsAgreed={setIsAgreed}
               />
               
-              <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={isLoading}>
+              <TouchableOpacity 
+                style={[styles.primaryButton, isSubmitDisabled && styles.disabledButton]} 
+                onPress={handleSubmit} 
+                disabled={isSubmitDisabled}
+              >
                 {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{getButtonText()}</Text>}
               </TouchableOpacity>
 
@@ -113,13 +125,9 @@ export const LoginScreen = () => {
                       <Text style={styles.toggleText}>パスワードを忘れた場合はこちら</Text>
                     </TouchableOpacity>
                   </>
-                ) : authMode === 'SIGNUP' ? (
-                  <TouchableOpacity onPress={() => setAuthMode('LOGIN')} disabled={isLoading}>
-                    <Text style={styles.toggleText}>既にアカウントをお持ちの方はこちら</Text>
-                  </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={() => setAuthMode('LOGIN')} disabled={isLoading}>
-                    <Text style={styles.toggleText}>ログイン画面に戻る</Text>
+                    <Text style={styles.toggleText}>{authMode === 'SIGNUP' ? '既にアカウントをお持ちの方はこちら' : 'ログイン画面に戻る'}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -139,6 +147,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#8E8E93', marginBottom: 40 },
   formContainer: { width: '100%', maxWidth: 400, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
   primaryButton: { backgroundColor: '#007AFF', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  disabledButton: { backgroundColor: '#A2A2A7', opacity: 0.6 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   toggleContainer: { marginTop: 24, alignItems: 'center' },
   toggleText: { color: '#007AFF', fontSize: 14, fontWeight: '500' },

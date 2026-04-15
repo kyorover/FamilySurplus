@@ -1,6 +1,6 @@
 // src/screens/SettingsScreen.tsx
 import React from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView } from 'react-native';
+import { StyleSheet, ScrollView, View, TouchableOpacity, Text, SafeAreaView, Linking } from 'react-native';
 import { useSettingsManager } from '../hooks/useSettingsManager';
 import { useHesokuriStore } from '../store';
 import { CategoryList } from '../components/settings/CategoryList';
@@ -11,6 +11,7 @@ import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditMo
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen';
 import { AdvancedSettingsSection } from '../components/settings/AdvancedSettingsSection';
+import { LEGAL_URLS } from '../constants';
 
 export const SettingsScreen: React.FC = () => {
   const { 
@@ -22,6 +23,10 @@ export const SettingsScreen: React.FC = () => {
     actions 
   } = useSettingsManager();
   const { accountInfo } = useHesokuriStore();
+
+  const openLink = (url: string) => {
+    Linking.openURL(url).catch((err) => console.error("URLを開けませんでした", err));
+  };
 
   if (modals.garden) {
     return (
@@ -68,7 +73,6 @@ export const SettingsScreen: React.FC = () => {
         </View>
         <Text style={styles.hintText}>「≡」をタップしたままスライドして並び替えます。</Text>
         
-        {/* 内部マージン 16px を活用 */}
         <FamilyMemberList 
           members={pendingSettings.familyMembers} 
           isReorderMode={modes.familyEdit}
@@ -84,7 +88,6 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🏷️ カテゴリ管理</Text>
         </View>
-        {/* 自前マージンなし。Viewで包んで 16px を強制 */}
         <View style={styles.marginWrapper}>
           <CategoryList 
             categories={activeCategories} 
@@ -94,9 +97,18 @@ export const SettingsScreen: React.FC = () => {
           />
         </View>
 
-        {/* 自前マージンなし。Viewで包んで 16px を強制 */}
         <View style={styles.marginWrapper}>
           <AdvancedSettingsSection modals={modals} accountInfo={accountInfo} />
+        </View>
+
+        {/* 規約リンクセクション：定数LEGAL_URLSを参照するように修正 */}
+        <View style={styles.legalSection}>
+          <TouchableOpacity onPress={() => openLink(LEGAL_URLS.TERMS)} style={styles.legalButton}>
+            <Text style={styles.legalText}>利用規約</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => openLink(LEGAL_URLS.PRIVACY)} style={styles.legalButton}>
+            <Text style={styles.legalText}>プライバシーポリシー</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 100 }} />
@@ -118,9 +130,7 @@ const styles = StyleSheet.create({
   headerActionBtn: { paddingVertical: 4 },
   headerTitleText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   headerSubmitText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF', textAlign: 'right' },
-  
   marginWrapper: { marginHorizontal: 16 },
-
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
@@ -128,8 +138,10 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
   actionBtnTextActive: { color: '#FFFFFF' },
   hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 16, marginBottom: 12, lineHeight: 18 },
-  
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
   modalTitle: { fontSize: 16, fontWeight: 'bold' },
   modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
+  legalSection: { marginTop: 32, paddingHorizontal: 16, alignItems: 'center' },
+  legalButton: { paddingVertical: 12, width: '100%', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 8, marginBottom: 8 },
+  legalText: { fontSize: 14, color: '#007AFF', fontWeight: '500' },
 });

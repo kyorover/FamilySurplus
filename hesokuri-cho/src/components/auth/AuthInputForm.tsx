@@ -1,6 +1,7 @@
 // src/components/auth/AuthInputForm.tsx
 import React from 'react';
 import { TextInput, StyleSheet } from 'react-native';
+import { TermsAgreementUI } from './TermsAgreementUI';
 
 interface AuthInputFormProps {
   authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
@@ -13,12 +14,16 @@ interface AuthInputFormProps {
   code: string;
   setCode: (val: string) => void;
   unconfirmedEmail: string | null;
+  // 追加項目: 規約同意の状態と更新関数（SIGNUP時のみ使用）
+  isAgreed?: boolean;
+  setIsAgreed?: (val: boolean) => void;
 }
 
 export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
   const {
     authMode, email, setEmail, password, setPassword,
-    newPassword, setNewPassword, code, setCode, unconfirmedEmail
+    newPassword, setNewPassword, code, setCode, unconfirmedEmail,
+    isAgreed, setIsAgreed
   } = props;
 
   if (authMode === 'CONFIRM') {
@@ -104,6 +109,10 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
         onChangeText={setPassword}
         secureTextEntry
       />
+      {/* 新規登録時のみ規約同意UIを表示 */}
+      {authMode === 'SIGNUP' && isAgreed !== undefined && setIsAgreed !== undefined && (
+        <TermsAgreementUI isAgreed={isAgreed} onValueChange={setIsAgreed} />
+      )}
     </>
   );
 };
