@@ -21,7 +21,6 @@ export const GARDEN_CONSTANTS = {
 
 // 法的文書の公開URL
 export const LEGAL_URLS = {
-  // TODO: 正式なWebページ公開後に以下のURLを本番用に差し替えること
-  TERMS: 'https://example.com/terms',
-  PRIVACY: 'https://example.com/privacy',
+  TERMS: 'https://bitter-tadpole-6f2.notion.site/3496c0a2da83806f9326eabe3f872ef3?pvs=74',
+  PRIVACY: 'https://bitter-tadpole-6f2.notion.site/3496c0a2da838001bc3dc0b457a7fea0?pvs=73',
 } as const;
