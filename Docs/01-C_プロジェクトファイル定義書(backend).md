@@ -16,4 +16,5 @@ AWS CDKを用いたサーバーレスアーキテクチャ（TypeScript）。外
 | lambda/postConfirmation.ts | Cognito等のユーザー登録後のトリガー（Post Confirmation）を担当するLambda関数。初期ユーザーデータのセットアップ等を担当。 |
 | lambda/fetchNationalStatistics.ts | EventBridgeで月次定期実行され、e-Stat等の外部統計(物価指数・平均生活費)を取得・キャッシュするバッチ処理。 |
 | test/hesokuri-backend.test.ts | CDKスタックのユニットテスト（Jest）。リソースが正しく生成されるかを検証する。 |
+| test/fetchNationalStatistics.test.ts | 外部統計取得バッチのユニットテスト（Jest）。APIモックやデータ変換ロジックの動作検証を行う。 |
 | cdk.json / package.json / tsconfig.json 等 | CDKおよびNode.jsの設定ファイル。依存関係の管理。 |
