@@ -13,11 +13,15 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { useTabNavigation } from './src/hooks/useTabNavigation';
 import { BottomTabBar } from './src/components/navigation/BottomTabBar';
+import { useTrackingPermission } from './src/hooks/useTrackingPermission';
 
 export default function App() {
   const { authToken, initAuth } = useAuthStore();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isDataFetched, setIsDataFetched] = useState(false); // ▼ 新規追加: 初期データ取得完了フラグ
+
+  // iOS14以降必須のATT許諾要求を実行
+  useTrackingPermission();
 
   // ▼ 変更: fetchAccountInfo と fetchNationalStatistics を呼び出しに追加
   const { 
