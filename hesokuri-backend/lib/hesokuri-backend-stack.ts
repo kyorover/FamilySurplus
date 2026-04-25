@@ -7,6 +7,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as events from 'aws-cdk-lib/aws-events'; // ▼ 新規追加: EventBridge
 import * as targets from 'aws-cdk-lib/aws-events-targets'; // ▼ 新規追加: EventBridge Targets
+import * as iam from 'aws-cdk-lib/aws-iam'; // ▼ 追記: Cognito操作権限付与のため追加
 import * as path from 'path';
 import { DatabaseConstruct } from './constructs/database'; // ▼ 新規追加: テーブル定義の分離
 
@@ -49,6 +50,7 @@ export class HesokuriBackendStack extends cdk.Stack {
         ACCOUNTS_TABLE_NAME: db.accountsTable.tableName,
         SUMMARIES_TABLE_NAME: db.summariesTable.tableName, // ▼ 環境変数に追加
         SYSTEM_CONFIG_TABLE_NAME: db.systemConfigTable.tableName, // ▼ 環境変数に追加
+        USER_POOL_ID: userPool.userPoolId, // ▼ 追記: 退会処理(Cognito削除用)の環境変数
       },
       timeout: cdk.Duration.seconds(10),
     });
@@ -60,6 +62,12 @@ export class HesokuriBackendStack extends cdk.Stack {
     db.accountsTable.grantReadWriteData(apiHandler);
     db.summariesTable.grantReadWriteData(apiHandler);
     db.systemConfigTable.grantReadWriteData(apiHandler); // 統計データ読み取り用
+
+    // ▼ 追記: 退会処理のため、Cognitoユーザー削除権限をLambdaに付与
+    apiHandler.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminDeleteUser'],
+      resources: [userPool.userPoolArn],
+    }));
 
     // ▼ 新規追加: API Gateway用のCognito Authorizer
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'HesokuriAuthorizer', {

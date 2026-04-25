@@ -49,6 +49,11 @@ export const apiService = {
     }
   },
 
+  // ▼ 新規追加: アカウント削除（退会処理）
+  async deleteAccount(): Promise<void> {
+    await fetchWithAuth('/account', { method: 'DELETE' });
+  },
+
   async fetchSettings(): Promise<HouseholdSettings | null> {
     // インターセプターにより、401等のエラー時は例外が投げられここで処理が止まる（サイレント上書きを防止）
     const res = await fetchWithAuth(`/settings/${HOUSEHOLD_ID}`);

@@ -16,6 +16,7 @@ const MONTHLY_BUDGETS_TABLE = process.env.MONTHLY_BUDGETS_TABLE_NAME || '';
 const ACCOUNTS_TABLE = process.env.ACCOUNTS_TABLE_NAME || ''; // ▼ 追記: AccountsTableの環境変数
 const SUMMARIES_TABLE = process.env.SUMMARIES_TABLE_NAME || ''; // ▼ 新規追加: 月次サマリー用テーブルの環境変数
 const SYSTEM_CONFIG_TABLE = process.env.SYSTEM_CONFIG_TABLE_NAME || ''; // ▼ 新規追加: システム設定用テーブルの環境変数
+const USER_POOL_ID = process.env.USER_POOL_ID || ''; // ▼ 新規追加: 退会処理(Cognito削除用)の環境変数
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   // ▼ 変更: requestContext を展開に追加
@@ -42,7 +43,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       path.startsWith('/settings/') ||
       normalizedPath === '/statistics'
     ) {
-      return await handleSettingsRequests(event, docClient, ACCOUNTS_TABLE, SETTINGS_TABLE, SYSTEM_CONFIG_TABLE, householdId);
+      // ▼ 変更: settingsController側の引数（全10個）と完全に同期させる
+      return await handleSettingsRequests(
+        event,
+        docClient,
+        ACCOUNTS_TABLE,
+        SETTINGS_TABLE,
+        SYSTEM_CONFIG_TABLE,
+        EXPENSES_TABLE,
+        MONTHLY_BUDGETS_TABLE,
+        SUMMARIES_TABLE,
+        USER_POOL_ID,
+        householdId
+      );
     }
 
     // ルーティング: 予算・サマリー関連

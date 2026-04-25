@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useAuthStore } from '../../stores/authStore';
 import { AccountInfo } from '../../types';
 import { DebugControlPanel } from './DebugControlPanel';
+import { apiService } from '../../services/apiService'; // ▼ 追加
 
 interface AdvancedSettingsSectionProps {
   modals: any; // useSettingsManagerから渡されるモーダル制御オブジェクト
@@ -25,6 +26,29 @@ export const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = (
           onPress: async () => {
             await logout();
           } 
+        }
+      ]
+    );
+  };
+
+  // ▼ 新規追加: 退会処理（アカウント削除）
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '退会の確認',
+      '退会すると、これまでの支出データ、予算設定、お庭のデータを含むすべての情報が完全に削除され、元に戻すことはできません。本当に退会しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '退会する',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiService.deleteAccount();
+              await logout(); // 成功したらセッションを破棄して初期画面へ
+            } catch (error: any) {
+              Alert.alert('エラー', '退会処理に失敗しました。しばらく経ってから再度お試しください。');
+            }
+          }
         }
       ]
     );
@@ -69,6 +93,11 @@ export const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = (
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
         <Text style={styles.logoutBtnText}>ログアウト</Text>
       </TouchableOpacity>
+
+      {/* ▼ 新規追加: 退会（アカウント削除）ボタン */}
+      <TouchableOpacity style={styles.deleteAccountBtn} onPress={handleDeleteAccount} activeOpacity={0.8}>
+        <Text style={styles.deleteAccountBtnText}>退会する（全データを削除）</Text>
+      </TouchableOpacity>
     </>
   );
 };
@@ -82,6 +111,8 @@ const styles = StyleSheet.create({
   historyManageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 2 },
   historyManageDesc: { fontSize: 10, color: '#8E8E93' },
   chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold' },
-  logoutBtn: { backgroundColor: '#FF3B30', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 16, marginHorizontal: 8 },
+  logoutBtn: { backgroundColor: '#FF3B30', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12, marginHorizontal: 8 },
   logoutBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  deleteAccountBtn: { paddingVertical: 12, alignItems: 'center', marginBottom: 24 },
+  deleteAccountBtnText: { color: '#FF3B30', fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
 });
