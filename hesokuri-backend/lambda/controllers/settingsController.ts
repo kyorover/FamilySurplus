@@ -75,6 +75,17 @@ export const handleSettingsRequests = async (
     return buildResponse(200, accountData);
   }
 
+  // PUT: アカウント情報の更新
+  if (httpMethod === 'PUT' && normalizedPath === '/account') {
+    if (!body) return buildResponse(400, { message: 'Invalid request' });
+    const updateData = removeEmptyStrings(JSON.parse(body));
+    updateData.accountId = householdId;
+    // 作成日時がない場合は現在時刻を付与
+    if (!updateData.createdAt) { updateData.createdAt = new Date().toISOString(); }
+    await docClient.send(new PutCommand({ TableName: accountsTable, Item: updateData }));
+    return buildResponse(200, { message: 'Account updated', data: updateData });
+  }
+
   // GET: 世帯設定の取得
   if (httpMethod === 'GET' && path.startsWith('/settings/')) {
     const result = await docClient.send(new GetCommand({ TableName: settingsTable, Key: { householdId } }));
