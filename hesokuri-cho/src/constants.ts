@@ -1,4 +1,5 @@
 // src/constants.ts
+import Constants from 'expo-constants'; // ▼ 新規追加: 構成値の取得用
 
 export const DEFAULT_CATEGORY_NAMES = {
   CHILD_CARE: '子育て費',
@@ -24,3 +25,7 @@ export const LEGAL_URLS = {
   TERMS: 'https://bitter-tadpole-6f2.notion.site/3496c0a2da83806f9326eabe3f872ef3?pvs=74',
   PRIVACY: 'https://bitter-tadpole-6f2.notion.site/3496c0a2da838001bc3dc0b457a7fea0?pvs=73',
 } as const;
+
+// ▼ 新規追加: ビルド環境に応じたAPIエンドポイントの動的取得
+// app.config.ts の extra.apiUrl に設定された値を取得。取得できない場合のセーフティーネットを設ける。
+export const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000/prod/';

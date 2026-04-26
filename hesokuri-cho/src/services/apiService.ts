@@ -1,8 +1,8 @@
 // src/services/apiService.ts
 import { HouseholdSettings, ExpenseRecord, MonthlyBudget, AccountInfo, MonthlySummary, NationalStatistics } from '../types'; // ▼ 追記: NationalStatistics
 import { useAuthStore } from '../stores/authStore';
+import { API_BASE_URL } from '../constants'; // ▼ 修正: ハードコードを廃止し定数からインポート
 
-const API_BASE_URL = 'https://ocidhutos0.execute-api.ap-northeast-1.amazonaws.com/prod';
 const HOUSEHOLD_ID = 'default-household-001'; // 元の定義を維持
 
 const getAuthHeaders = () => {
