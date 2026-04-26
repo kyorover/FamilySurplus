@@ -15,9 +15,12 @@ export class HesokuriBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // CDKコンテキストから環境名を取得（デフォルトは 'dev'）
+    const envName = this.node.tryGetContext('env') || 'dev';
+
     // === Cognito User Pool (認証基盤) ===
     const userPool = new cognito.UserPool(this, 'HesokuriUserPool', {
-      userPoolName: 'hesokuri-users',
+      userPoolName: `hesokuri-users-${envName}`,
       signInAliases: { email: true },
       selfSignUpEnabled: true,
       autoVerify: { email: true },
@@ -75,6 +78,7 @@ export class HesokuriBackendStack extends cdk.Stack {
     });
 
     const api = new apigateway.LambdaRestApi(this, 'HesokuriApi', {
+      restApiName: `HesokuriApi-${envName}`,
       handler: apiHandler,
       proxy: true,
       defaultCorsPreflightOptions: {

@@ -3,7 +3,15 @@ import * as cdk from 'aws-cdk-lib';
 import { HesokuriBackendStack } from '../lib/hesokuri-backend-stack';
 
 const app = new cdk.App();
-new HesokuriBackendStack(app, 'HesokuriBackendStack', {
+
+// CDKコンテキストから環境名を取得（デフォルトは 'dev'）
+// デプロイ実行例: npx cdk deploy -c env=prod
+const envName = app.node.tryGetContext('env') || 'dev';
+
+// 環境名をサフィックスとして付与し、AWS上のスタックを物理的に分離する
+const stackName = `HesokuriBackendStack-${envName}`;
+
+new HesokuriBackendStack(app, stackName, {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */
