@@ -12,6 +12,7 @@ import { MonthCheckoutModal } from '../components/dashboard/MonthCheckoutModal';
 import { BudgetEvaluationCard } from '../components/settings/BudgetEvaluationCard';
 import { useDashboardScreen } from '../hooks/useDashboardScreen';
 import { DashboardSettingsMenu } from '../components/dashboard/DashboardSettingsMenu';
+import { DashboardAdBanner } from '../components/dashboard/DashboardAdBanner';
 import { styles } from '../styles/DashboardStyles';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -64,6 +65,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
 
   const safeExpenses = expenses || [];
   const [year, month] = monthlyBudget.month_id.split('-');
+
+  // 課金プラン判定
+  const isFreePlan = !settings.accountInfo?.subscriptionPlan || settings.accountInfo.subscriptionPlan === 'free';
 
   return (
     <View style={styles.container}>
@@ -125,6 +129,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           <Text style={styles.fabText}>＋</Text>
         </TouchableOpacity>
       )}
+
+      {/* 広告エリア（無課金ユーザーのみ表示） */}
+      <DashboardAdBanner isFreePlan={isFreePlan} />
 
       {/* メニュー：日常の操作はリスト内ボタンに移動したため、低頻度アクションのみを残す */}
       <DashboardSettingsMenu 
