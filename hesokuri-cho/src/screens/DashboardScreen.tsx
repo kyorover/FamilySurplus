@@ -124,8 +124,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
         />
       </ScrollView>
 
+      {/* FAB位置を動的に調整（広告表示時は上にずらす） */}
       {!isEditMode && (
-        <TouchableOpacity onPress={onNavigateToInput} style={styles.fab}>
+        <TouchableOpacity 
+          onPress={onNavigateToInput} 
+          style={[styles.fab, isFreePlan && { bottom: 80 }]}
+        >
           <Text style={styles.fabText}>＋</Text>
         </TouchableOpacity>
       )}
