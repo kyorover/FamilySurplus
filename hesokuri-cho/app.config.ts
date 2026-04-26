@@ -33,7 +33,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     backgroundColor: "#ffffff"
   },
   ios: {
-    supportsTablet: true
+    supportsTablet: true,
+    // ストア申請のたびにインクリメント（1, 2, 3...）が必要
+    buildNumber: "1"
   },
   android: {
     adaptiveIcon: {
@@ -42,7 +44,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundImage: "./assets/android-icon-background.png",
       monochromeImage: "./assets/android-icon-monochrome.png"
     },
-    predictiveBackGestureEnabled: false
+    predictiveBackGestureEnabled: false,
+    // ストア申請のたびにインクリメント（1, 2, 3...）が必要
+    versionCode: 1
   },
   web: {
     favicon: "./assets/favicon.png"
