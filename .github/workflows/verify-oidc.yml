@@ -1,10 +1,14 @@
 name: Verify AWS OIDC Connection
 
 on:
-  workflow_dispatch: # 手動でトリガーできるように設定
+  workflow_dispatch:
+
+# Node.js 20非推奨の警告を解消し、Node 24での実行を強制する
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
-  id-token: write # OIDCを利用してAWSからJWTトークンを取得するために必須
+  id-token: write
   contents: read
 
 jobs:
