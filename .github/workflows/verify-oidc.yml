@@ -1,0 +1,41 @@
+name: Verify AWS OIDC Connection
+
+on:
+  workflow_dispatch: # 手動でトリガーできるように設定
+
+permissions:
+  id-token: write # OIDCを利用してAWSからJWTトークンを取得するために必須
+  contents: read
+
+jobs:
+  verify-dev:
+    name: Verify DEV Role
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials for DEV
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: ap-northeast-3
+
+      - name: Check Caller Identity
+        run: aws sts get-caller-identity
+
+  verify-prod:
+    name: Verify PROD Role
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials for PROD
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: ap-northeast-3
+
+      - name: Check Caller Identity
+        run: aws sts get-caller-identity
