@@ -3,6 +3,11 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 
+// ▼ 新規追加: Propsインターフェースを定義
+export interface DatabaseConstructProps {
+  envName: string;
+}
+
 export class DatabaseConstruct extends Construct {
   public readonly settingsTable: dynamodb.Table;
   public readonly expensesTable: dynamodb.Table;
@@ -11,11 +16,12 @@ export class DatabaseConstruct extends Construct {
   public readonly summariesTable: dynamodb.Table;
   public readonly systemConfigTable: dynamodb.Table;
 
-  constructor(scope: Construct, id: string) {
+  // ▼ 変更: props を引数に追加
+  constructor(scope: Construct, id: string, props: DatabaseConstructProps) {
     super(scope, id);
 
-    // コンテキストから環境名を取得（デフォルトは 'dev'）
-    const envName = this.node.tryGetContext('env') || 'dev';
+    // ▼ 変更: コンテキストからではなく、props から環境名を取得
+    const envName = props.envName;
 
     this.settingsTable = new dynamodb.Table(this, 'HouseholdSettingsTable', {
       tableName: `HouseholdSettings-${envName}`, // ▼ 新規追加：環境名を付与

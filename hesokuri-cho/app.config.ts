@@ -10,18 +10,18 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 const ADMOB_TEST_APP_ID_ANDROID = 'ca-app-pub-3940256099942544~3347511713';
 const ADMOB_TEST_APP_ID_IOS = 'ca-app-pub-3940256099942544~1458002511';
 
-// ビルド環境の判定（デフォルトは development）
-const APP_VARIANT = process.env.APP_VARIANT || 'development';
+// ビルド環境の判定（デフォルトは dev）
+const APP_ENV = process.env.APP_ENV || 'dev';
 
-// 環境ごとのAPIエンドポイント（CDKデプロイ時に出力されたURLを設定してください）
+// 環境ごとのAPIエンドポイント（後ほどCDKデプロイ時に出力されたURLを設定してください）
 const API_URLS = {
-  development: 'https://your-dev-api-id.execute-api.ap-northeast-1.amazonaws.com/prod/',
-  production: 'https://your-prod-api-id.execute-api.ap-northeast-1.amazonaws.com/prod/',
+  dev: 'https://j3q7xnmuzg.execute-api.ap-northeast-1.amazonaws.com/prod/',
+  prod: 'https://jae08bfogi.execute-api.ap-northeast-1.amazonaws.com/prod/',
 };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "hesokuri-cho",
+  name: APP_ENV === 'dev' ? "hesokuri-cho (Dev)" : "hesokuri-cho",
   slug: "hesokuri-cho",
   version: "1.0.0",
   orientation: "portrait",
@@ -70,7 +70,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   // アプリ内から Constants.expoConfig.extra で参照可能にする設定
   extra: {
-    apiUrl: API_URLS[APP_VARIANT as keyof typeof API_URLS],
-    variant: APP_VARIANT,
+    apiUrl: API_URLS[APP_ENV as keyof typeof API_URLS],
+    variant: APP_ENV,
   }
 });
