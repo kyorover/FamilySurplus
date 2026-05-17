@@ -9,6 +9,8 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 const ADMOB_TEST_APP_ID_ANDROID = 'ca-app-pub-3940256099942544~3347511713';
 const ADMOB_TEST_APP_ID_IOS = 'ca-app-pub-3940256099942544~1458002511';
+// 今回取得した本番用App ID
+const ADMOB_PROD_APP_ID = 'ca-app-pub-9263017157860225~7118508505';
 
 // ビルド環境の判定（デフォルトは dev）
 const APP_ENV = process.env.APP_ENV || 'dev';
@@ -62,9 +64,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       "react-native-google-mobile-ads",
       {
-        // TODO: リリース時に本番用App IDへ差し替えること
-        androidAppId: ADMOB_TEST_APP_ID_ANDROID,
-        iosAppId: ADMOB_TEST_APP_ID_IOS
+        // APP_ENVが'prod'の時は本番ID、それ以外はテスト用IDを自動適用
+        androidAppId: APP_ENV === 'prod' ? ADMOB_PROD_APP_ID : ADMOB_TEST_APP_ID_ANDROID,
+        iosAppId: APP_ENV === 'prod' ? ADMOB_PROD_APP_ID : ADMOB_TEST_APP_ID_IOS
       }
     ]
   ],

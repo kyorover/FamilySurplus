@@ -3,8 +3,11 @@ import React from 'react';
 import { View, Platform } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 
-// TODO: 【リリース必須】本番用のバナー広告ユニットIDに確実に差し替えること
-const adUnitId = __DEV__ ? TestIds.BANNER : TestIds.BANNER;
+// 本番用バナー広告ユニットID
+const ADMOB_PROD_BANNER_ID = 'ca-app-pub-9263017157860225/1428409571';
+
+// 開発環境ではテスト用ID、本番環境では本番用IDを使用する
+const adUnitId = __DEV__ ? TestIds.BANNER : ADMOB_PROD_BANNER_ID;
 
 interface DashboardAdBannerProps {
   isFreePlan: boolean;
