@@ -16,6 +16,7 @@ import { LEGAL_URLS } from '../constants';
 export const SettingsScreen: React.FC = () => {
   const { 
     pendingSettings, 
+    setPendingSettings, // ← 追加: 状態更新関数を受け取る
     activeCategories, 
     hasChanges,
     modals, 
@@ -117,7 +118,14 @@ export const SettingsScreen: React.FC = () => {
       <CategoryAddModal visible={modals.category} onSave={actions.addCategory} onClose={() => modals.setCategory(false)} />
       <FamilyMemberAddModal visible={modals.familyAdd} onSave={actions.addFamily} onClose={() => modals.setFamilyAdd(false)} />
       <FamilyMemberEditModal member={modals.familyEdit} onSave={actions.updateFamily} onClose={() => modals.setFamilyEdit(null)} />
-      <InputHistoryManagerModal visible={modals.history} settings={pendingSettings} onUpdate={() => {}} onClose={() => modals.setHistory(false)} />
+      
+      {/* ▼ 修正: onUpdate に空関数ではなく、setPendingSettings を渡す */}
+      <InputHistoryManagerModal 
+        visible={modals.history} 
+        settings={pendingSettings} 
+        onUpdate={setPendingSettings} 
+        onClose={() => modals.setHistory(false)} 
+      />
     </View>
   );
 };
