@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Platform } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { useHesokuriStore } from '../../store';
 
 // 本番用バナー広告ユニットID
 const ADMOB_PROD_BANNER_ID = 'ca-app-pub-9263017157860225/1428409571';
@@ -10,12 +11,17 @@ const ADMOB_PROD_BANNER_ID = 'ca-app-pub-9263017157860225/1428409571';
 const adUnitId = __DEV__ ? TestIds.BANNER : ADMOB_PROD_BANNER_ID;
 
 interface DashboardAdBannerProps {
-  isFreePlan: boolean;
+  // 親からのProps渡し漏れによるバグを防ぐため、互換性用としてOptionalに残すが内部判定には使用しない
+  isFreePlan?: boolean;
 }
 
-export const DashboardAdBanner: React.FC<DashboardAdBannerProps> = ({ isFreePlan }) => {
+export const DashboardAdBanner: React.FC<DashboardAdBannerProps> = () => {
+  // ▼ 修正: 親からのPropsに依存せず、ストアから直接アカウント情報を購読して自己判定する
+  const { accountInfo } = useHesokuriStore();
+  const isPremium = accountInfo?.subscriptionPlan === 'PREMIUM';
+
   // 課金ユーザーの場合は何も表示しない
-  if (!isFreePlan) return null;
+  if (isPremium) return null;
 
   return (
     <View style={{ 
