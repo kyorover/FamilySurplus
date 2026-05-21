@@ -120,7 +120,8 @@ export const apiService = {
   },
 
   async deleteExpense(date_id: string): Promise<void> {
-    await fetchWithAuth(`/expenses/${HOUSEHOLD_ID}?date_id=${date_id}`, { method: 'DELETE' });
+    // ▼ 修正: date_id に含まれる '#' 記号がURLを分断しないようにエンコードする
+    await fetchWithAuth(`/expenses/${HOUSEHOLD_ID}?date_id=${encodeURIComponent(date_id)}`, { method: 'DELETE' });
   },
 
   // ▼ 新規追加: バックエンドでキャッシュされている公的統計データを取得
