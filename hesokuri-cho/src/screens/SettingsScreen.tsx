@@ -104,6 +104,9 @@ export const SettingsScreen: React.FC = () => {
 
         {/* 規約リンクセクション：定数LEGAL_URLSを参照するように修正 */}
         <View style={styles.legalSection}>
+          <TouchableOpacity onPress={() => openLink(LEGAL_URLS.SUPPORT)} style={styles.legalButton}>
+            <Text style={styles.legalText}>サポート・お問い合わせ</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => openLink(LEGAL_URLS.TERMS)} style={styles.legalButton}>
             <Text style={styles.legalText}>利用規約</Text>
           </TouchableOpacity>
