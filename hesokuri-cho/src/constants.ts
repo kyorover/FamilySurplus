@@ -24,6 +24,7 @@ export const GARDEN_CONSTANTS = {
 export const LEGAL_URLS = {
   TERMS: 'https://bitter-tadpole-6f2.notion.site/3496c0a2da83806f9326eabe3f872ef3?pvs=74',
   PRIVACY: 'https://bitter-tadpole-6f2.notion.site/3496c0a2da838001bc3dc0b457a7fea0?pvs=73',
+  SUPPORT: 'https://bitter-tadpole-6f2.notion.site/3686c0a2da83802b943ffe68c9dbde23?pvs=73',
 } as const;
 
 // ▼ 新規追加: ビルド環境に応じたAPIエンドポイントの動的取得
