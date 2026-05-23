@@ -106,11 +106,15 @@ export interface NationalStatistics {
     twoPerson: Record<string, number>; // 2人世帯の平均支出
     threePlus: Record<string, number>; // 3人以上世帯の平均支出
     /**
-     * ▼ 修正：乳幼児(0-3歳)固有の加算コスト
-     * 政府統計の「夫婦のみ」と「夫婦＋子」の差分から項目別に機械的に抽出した値。
-     * ハードコーディング値を廃止し、バックエンドの演算結果を格納する構造。
+     * ▼ 修正：学齢別の固有加算コスト
+     * 政府統計の世帯構成別データ差分から項目別に機械的に抽出した値。
+     * バックエンドの演算結果を格納する構造。
      */
-     infantSpecific?: Record<string, number>; 
+    additions?: {
+      infant: Record<string, number>;    // 0-3歳(乳幼児)加算
+      primary: Record<string, number>;   // 4-12歳(小学生)加算
+      secondary: Record<string, number>; // 13-18歳(中高生)加算
+    };
   };
   updatedAt: string;
 }

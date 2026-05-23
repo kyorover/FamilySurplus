@@ -19,11 +19,15 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
   // 統計データが取得できていない場合のフェールセーフ（最低限の動作保証）
   if (!stats) return 150000; 
 
-  // 1. OECD改定等価尺度を用いた世帯スコアの算出
-  // （世帯主: 1.0、その他大人: 0.5、子供[簡易的に一律]: 0.3）
+  // 1. OECD改定等価尺度等を用いた基本世帯スコアの算出
   let isHeadCounted = false;
   let householdScore = 0;
-  let infantCount = 0; // 0〜3歳の乳幼児の数
+  
+  // 学齢別の人数カウント
+  let infantCount = 0;    // 0〜3歳
+  let primaryCount = 0;   // 4〜12歳
+  let secondaryCount = 0; // 13歳以上
+  let unknownChildScore = 0; // 年齢未入力の子供用フォールバックスコア
 
   members.forEach(m => {
     if (m.role === '大人') {
@@ -34,16 +38,18 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
         householdScore += 0.5;
       }
     } else if (m.role === '子供') {
-      // 本格実装時は年齢に応じて変動させる
-      if (m.age !== undefined && m.age <= 3) {
-        // 0〜3歳：おむつやミルク等、特殊な固定消耗品がかかるため係数計算の対象外とする
-        infantCount += 1;
-      } else if (m.age !== undefined && m.age >= 14) {
-        // 14歳以上：大人と同等の食費・生活費スケールになるため 0.5
-        householdScore += 0.5;
+      if (m.age !== undefined) {
+        // 年齢に応じて学齢別カウントを増やす（加算コスト計算の対象とする）
+        if (m.age <= 3) {
+          infantCount += 1;
+        } else if (m.age <= 12) {
+          primaryCount += 1;
+        } else {
+          secondaryCount += 1;
+        }
       } else {
-        // 4歳〜13歳、または年齢未入力(フォールバック)：基本スコアとして0.3を加算
-        householdScore += 0.3;
+        // 年齢未入力(フォールバック)：従来の基本スコアとして0.3を加算
+        unknownChildScore += 0.3;
       }
     }
   });
@@ -54,18 +60,29 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
   // 3. 物価指数（CPI）の補正 (例: 105.2 -> 1.052)
   const cpiRatio = stats.cpi / 100;
 
-  // 世帯のベースライン = 単身平均 × 物価指数 × 世帯スコア
-  let guideline = Math.round(baseSingleExpense * cpiRatio * householdScore);
+  // 世帯のベースライン = 単身平均 × 物価指数 × (大人のスコア + 年齢不明な子供のスコア)
+  let guideline = Math.round(baseSingleExpense * cpiRatio * (householdScore + unknownChildScore));
 
-  // 4. 乳幼児特有のコストを統計データから取得して加算
-  // ▼ 修正：ハードコーディングを排除し、項目別差分(infantSpecific)の合計値を算出
-  if (infantCount > 0 && stats.averageExpenses.infantSpecific) {
-    // 統計上の差分実数（食費・日用品等の合計）を算出
+  // 4. 学齢別の特有コストを統計データ(additions)から取得して加算
+  const additions = stats.averageExpenses.additions;
+  
+  if (additions) {
+    if (infantCount > 0 && additions.infant) {
+      const infantDeltaSum = Object.values(additions.infant).reduce((sum, val) => sum + val, 0);
+      guideline += Math.round(infantCount * infantDeltaSum * cpiRatio);
+    }
+    if (primaryCount > 0 && additions.primary) {
+      const primaryDeltaSum = Object.values(additions.primary).reduce((sum, val) => sum + val, 0);
+      guideline += Math.round(primaryCount * primaryDeltaSum * cpiRatio);
+    }
+    if (secondaryCount > 0 && additions.secondary) {
+      const secondaryDeltaSum = Object.values(additions.secondary).reduce((sum, val) => sum + val, 0);
+      guideline += Math.round(secondaryCount * secondaryDeltaSum * cpiRatio);
+    }
+  } else if (infantCount > 0 && stats.averageExpenses.infantSpecific) {
+    // ※後方互換性：新しいバッチが走る前に古いキャッシュデータ(infantSpecific)が残っている場合のフェールセーフ
     const infantDeltaSum = Object.values(stats.averageExpenses.infantSpecific).reduce((sum, val) => sum + val, 0);
-    
-    // 乳幼児コストも最新の物価指数（CPI）で補正し、人数分を加算
-    const adjustedInfantCost = infantDeltaSum * cpiRatio;
-    guideline += Math.round(infantCount * adjustedInfantCost);
+    guideline += Math.round(infantCount * infantDeltaSum * cpiRatio);
   }
 
   return guideline;

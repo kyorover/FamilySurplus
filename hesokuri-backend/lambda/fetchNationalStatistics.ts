@@ -8,35 +8,39 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 // フロントエンドと共有する統計データの型定義
 export interface NationalStatistics {
-  month: string;           // 例: "2023-10"
+  month: string;           // 例: "2026-04"
   cpi: number;             // 最新の消費者物価指数
   averageExpenses: {
     single: Record<string, number>; // 単身世帯の平均支出
     twoPerson: Record<string, number>; // 2人世帯の平均支出
     threePlus: Record<string, number>; // 3人以上世帯の平均支出
     /**
-     * ▼ 修正：乳幼児(0-3歳)固有の加算コスト
-     * 政府統計の「夫婦のみ」と「夫婦＋子」の差分から項目別に機械的に抽出した値。
-     * ハードコーディング値を廃止し、バックエンドの演算結果を格納する構造。
+     * ▼ 修正：学齢別の固有加算コスト
+     * 政府統計の世帯構成別データ差分から項目別に機械的に抽出した値。
+     * バックエンドの演算結果を格納する構造。
      */
-    infantSpecific: Record<string, number>; 
+    additions?: {
+      infant: Record<string, number>;    // 0-3歳(乳幼児)加算
+      primary: Record<string, number>;   // 4-12歳(小学生)加算
+      secondary: Record<string, number>; // 13-18歳(中高生)加算
+    };
   };
   updatedAt: string;
 }
 
 /**
  * 統計ソース（e-Stat等）からの生データを比較し、
- * 乳幼児に起因する各項目の増分（差分）を動的に算出する純粋な演算ロジック
+ * 特定の世帯構成に起因する各項目の増分（差分）を動的に算出する純粋な演算ロジック
  */
-function calculateInfantSpecificDelta(coupleWithChild: Record<string, number>, coupleOnly: Record<string, number>): Record<string, number> {
+function calculateCostDelta(targetStats: Record<string, number>, baseStats: Record<string, number>): Record<string, number> {
   const categories = ['food', 'utilities', 'daily', 'clothing', 'medical', 'other'];
   const delta: Record<string, number> = {};
 
   categories.forEach(cat => {
-    // [夫婦＋子] - [夫婦のみ] の差分を計算。負の値にならないよう 0 で丸める
-    const valWithChild = coupleWithChild[cat] || 0;
-    const valOnly = coupleOnly[cat] || 0;
-    delta[cat] = Math.max(0, valWithChild - valOnly);
+    // [ターゲット世帯] - [ベース世帯] の差分を計算。負の値にならないよう 0 で丸める
+    const targetVal = targetStats[cat] || 0;
+    const baseVal = baseStats[cat] || 0;
+    delta[cat] = Math.max(0, targetVal - baseVal);
   });
 
   return delta;
@@ -54,14 +58,15 @@ async function fetchMockStatisticsData(targetMonth: string): Promise<NationalSta
     single: { food: 45000, utilities: 12000, daily: 5000 },
     twoPersonOnly: { food: 70000, utilities: 18000, daily: 10000, clothing: 5000, medical: 4000, other: 10000 },
     twoPersonWithInfant: { food: 82500, utilities: 19500, daily: 18400, clothing: 9100, medical: 7200, other: 12800 },
+    twoPersonWithPrimary: { food: 95000, utilities: 21000, daily: 12000, clothing: 8000, medical: 5000, other: 15000 }, // ▼追加: 小学生モデル
+    twoPersonWithSecondary: { food: 110000, utilities: 23000, daily: 14000, clothing: 12000, medical: 6000, other: 20000 }, // ▼追加: 中高生モデル
     threePlus: { food: 95000, utilities: 25000, daily: 15000 },
   };
 
-  // ▼ 修正：固定値 30000 を廃止し、プログラムによる差分演算を実行
-  const infantSpecific = calculateInfantSpecificDelta(
-    rawStats.twoPersonWithInfant, 
-    rawStats.twoPersonOnly
-  );
+  // ▼ 修正：汎用関数を用いて各学齢の差分（加算コスト）を算出
+  const infantAdditions = calculateCostDelta(rawStats.twoPersonWithInfant, rawStats.twoPersonOnly);
+  const primaryAdditions = calculateCostDelta(rawStats.twoPersonWithPrimary, rawStats.twoPersonOnly);
+  const secondaryAdditions = calculateCostDelta(rawStats.twoPersonWithSecondary, rawStats.twoPersonOnly);
 
   return {
     month: targetMonth,
@@ -70,7 +75,11 @@ async function fetchMockStatisticsData(targetMonth: string): Promise<NationalSta
       single: rawStats.single,
       twoPerson: rawStats.twoPersonOnly,
       threePlus: rawStats.threePlus,
-      infantSpecific: infantSpecific // 演算結果を格納
+      additions: {
+        infant: infantAdditions,
+        primary: primaryAdditions,
+        secondary: secondaryAdditions
+      } // 演算結果を格納
     },
     updatedAt: new Date().toISOString()
   };
