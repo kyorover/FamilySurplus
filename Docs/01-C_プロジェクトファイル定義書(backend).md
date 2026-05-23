@@ -6,8 +6,10 @@ AWS CDKを用いたサーバーレスアーキテクチャ（TypeScript）。外
 | ファイルパス | AI向け責務・制約（コーディング時の前提知識） |
 | :--- | :--- |
 | bin/hesokuri-backend.ts | CDKアプリのエントリポイント。スタックのインスタンス化のみを行う。 |
+| bin/oidc-setup.ts | CI/CD連携用（GitHub Actions）のOIDCセットアップスタックのエントリポイント。 |
 | lib/hesokuri-backend-stack.ts | AWSリソース（API Gateway, Lambda, DynamoDB, EventBridge等）のインフラ定義（IaC）。**【重要】退会機能等でCognitoユーザーを操作する場合、Lambda関数に `AdminDeleteUser` 等のIAMポリシー権限付与と、環境変数（`USER_POOL_ID`等）の注入をここで行う必要がある。** |
 | lib/constructs/database.ts | DynamoDBテーブル群の定義を切り出したConstruct。スタックの行数肥大化を防ぐ単一責務ファイル。 |
+| lib/constructs/oidc-stack.ts | GitHub Actionsからのセキュアなデプロイを可能にするためのOIDCプロバイダおよびIAMロール（dev/prod環境用）を定義するConstruct。 |
 | lambda/index.ts | API Gatewayからの全リクエストを受け付け、認証ID(sub)を取得後、各ドメインのコントローラーへ処理を委譲するルーター。**【重要】コントローラーの引数（テーブル名や環境変数の追加など）を変更した場合は、必ずこのルーティング呼び出し部分も同期して修正すること。** |
 | lambda/utils.ts | APIのCORSレスポンス生成や、DynamoDB保存時の空文字削除などを担当する共通純粋関数群。 |
 | lambda/controllers/expenseController.ts | 支出データの登録・取得・更新・削除（CRUD）を担当するAPIコントローラー。 |
