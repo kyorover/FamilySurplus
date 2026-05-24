@@ -10,6 +10,7 @@ import * as targets from 'aws-cdk-lib/aws-events-targets'; // ▼ 新規追加: 
 import * as iam from 'aws-cdk-lib/aws-iam'; // ▼ 追記: Cognito操作権限付与のため追加
 import * as path from 'path';
 import { DatabaseConstruct } from './constructs/database'; // ▼ 新規追加: テーブル定義の分離
+import { InitialDataSeedConstruct } from './constructs/initial-data-seed'; // ▼ 新規追加: 初期データ投入用Construct
 
 // ▼ 新規追加: スタックのプロパティとして envName を受け取るためのインターフェース
 export interface HesokuriBackendStackProps extends cdk.StackProps {
@@ -152,6 +153,11 @@ export class HesokuriBackendStack extends cdk.Stack {
         year: '*',
       }),
       targets: [new targets.LambdaFunction(fetchNationalStatisticsBatch)],
+    });
+
+    // === 新規追加: デプロイ直後のDB初期化（データシード） ===
+    new InitialDataSeedConstruct(this, 'InitialDataSeed', {
+      targetFunction: fetchNationalStatisticsBatch,
     });
   }
 }
