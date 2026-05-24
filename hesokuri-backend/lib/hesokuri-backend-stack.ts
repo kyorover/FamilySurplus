@@ -49,6 +49,7 @@ export class HesokuriBackendStack extends cdk.Stack {
 
     // === APIハンドラー (Lambda) ===
     const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
+      functionName: `HesokuriApiHandler-${envName}`, // ▼ 新規追加: 固定の関数名を設定
       runtime: lambda.Runtime.NODEJS_22_X, // Node.js 22 LTSへ更新
       entry: path.join(__dirname, '../lambda/index.ts'),
       handler: 'handler',
@@ -110,6 +111,7 @@ export class HesokuriBackendStack extends cdk.Stack {
 
     // ▼ 新規追加: サインアップ完了時の DynamoDB 初期レコード作成トリガー
     const postConfirmationHandler = new NodejsFunction(this, 'PostConfirmationHandler', {
+      functionName: `PostConfirmationHandler-${envName}`, // ▼ 新規追加: 固定の関数名を設定
       runtime: lambda.Runtime.NODEJS_22_X,
       entry: path.join(__dirname, '../lambda/postConfirmation.ts'),
       handler: 'handler',
@@ -124,6 +126,7 @@ export class HesokuriBackendStack extends cdk.Stack {
 
     // === 新規追加: 外部統計データ取得用バッチLambda ===
     const fetchNationalStatisticsBatch = new NodejsFunction(this, 'FetchNationalStatisticsBatch', {
+      functionName: `FetchNationalStatistics-${envName}`, // ▼ 新規追加: 固定の関数名を設定
       runtime: lambda.Runtime.NODEJS_22_X,
       entry: path.join(__dirname, '../lambda/fetchNationalStatistics.ts'),
       handler: 'handler',
