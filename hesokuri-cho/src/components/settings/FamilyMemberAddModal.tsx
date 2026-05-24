@@ -18,11 +18,14 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
 
   const handleSave = () => {
     if (!name.trim()) return;
+    // ▼ 変更: 子供の場合は年齢入力を必須とし、未入力なら保存させない
+    if (role === '子供' && !age.trim()) return;
+
     onSave({
       id: `m_${Date.now()}`,
       name: name.trim(),
       role,
-      age: role === '子供' && age ? parseInt(age, 10) : undefined,
+      age: role === '子供' ? parseInt(age, 10) : undefined,
       hasPocketMoney,
       pocketMoneyAmount: hasPocketMoney && pocketMoneyAmount ? parseInt(pocketMoneyAmount, 10) : 0
     });
@@ -50,7 +53,8 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
 
           <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="名前" />
           {role === '子供' && (
-            <TextInput style={styles.input} value={age} onChangeText={setAge} placeholder="年齢（任意）" keyboardType="numeric" />
+            {/* ▼ 変更: プレースホルダーを必須に変更 */}
+            <TextInput style={styles.input} value={age} onChangeText={setAge} placeholder="年齢（必須）" keyboardType="numeric" />
           )}
 
           {/* 役割(role)に関係なく小遣い設定スイッチを表示する */}
