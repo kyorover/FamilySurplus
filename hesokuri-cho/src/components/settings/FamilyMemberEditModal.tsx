@@ -27,11 +27,14 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
 
   const handleSave = () => {
     if (member && name.trim()) {
+      // ▼ 追加: 子供の場合は年齢入力を必須とし、未入力なら保存させない
+      if (member.role === '子供' && !age.trim()) return;
+
       onSave({ 
         ...member, 
         name: name.trim(),
-        // 子供の場合のみ年齢を保存し、大人の場合は undefined にする（AddModalと同期）
-        age: member.role === '子供' && age.trim() !== '' ? parseInt(age, 10) : undefined,
+        // ▼ 変更: 子供の場合は必ず年齢をパースして保存し、大人の場合は undefined にする
+        age: member.role === '子供' ? parseInt(age, 10) : undefined,
         hasPocketMoney,
         pocketMoneyAmount: hasPocketMoney && pocketMoneyAmount ? parseInt(pocketMoneyAmount, 10) : 0
       });
@@ -52,13 +55,13 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
             placeholder="名前"
           />
 
-          {/* 子供の場合のみ年齢入力フィールドを表示（AddModalの仕様に準拠） */}
+          {/* ▼ 変更: プレースホルダーを必須に変更 */}
           {member?.role === '子供' && (
             <TextInput 
               style={styles.input} 
               value={age} 
               onChangeText={setAge} 
-              placeholder="年齢（任意）"
+              placeholder="年齢（必須）"
               keyboardType="numeric"
             />
           )}
