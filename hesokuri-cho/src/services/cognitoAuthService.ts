@@ -7,19 +7,17 @@ import {
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import Constants from "expo-constants"; // ▼ 新規追加: Expoの環境変数を読み込むため
+import Constants from "expo-constants";
 
-const COGNITO_REGION = "ap-northeast-1"; 
+// ▼ 変更: app.config.ts の extra.cognito から設定を動的に取得する
+const cognitoConfig = Constants.expoConfig?.extra?.cognito || {};
+const COGNITO_REGION = cognitoConfig.region || "ap-northeast-1"; 
+const COGNITO_CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID || cognitoConfig.webClientId;
 
-// ▼ 新規追加: 先ほど取得した新しい環境ごとのClientId
-const CLIENT_IDS = {
-  dev: "5ohbjeq3uko9bgp6a6et7beueq",
-  prod: "5j04b0h1vi77cf9s460q5taskt",
-};
-
-// ▼ 変更: app.config.ts の extra.variant (dev または prod) を元にIDを切り替え
-const appEnv = Constants.expoConfig?.extra?.variant || "dev";
-const COGNITO_CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID || CLIENT_IDS[appEnv as keyof typeof CLIENT_IDS];
+// 万が一読み込めなかった場合のエラーログ
+if (!COGNITO_CLIENT_ID) {
+  console.error("Critical Error: Cognito Client ID is missing. Check app.config.ts");
+}
 
 // Cognitoクライアントの初期化
 const cognitoClient = new CognitoIdentityProviderClient({ region: COGNITO_REGION });
@@ -85,7 +83,7 @@ export const cognitoAuthService = {
     const command = new ForgotPasswordCommand({
       ClientId: COGNITO_CLIENT_ID,
       Username: email.trim(),
-      });
+    });
     await cognitoClient.send(command);
   },
 

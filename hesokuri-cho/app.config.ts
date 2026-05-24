@@ -17,8 +17,22 @@ const APP_ENV = process.env.APP_ENV || 'dev';
 
 // 環境ごとのAPIエンドポイント（後ほどCDKデプロイ時に出力されたURLを設定してください）
 const API_URLS = {
-  dev: 'https://j3q7xnmuzg.execute-api.ap-northeast-1.amazonaws.com/prod/',
-  prod: 'https://jae08bfogi.execute-api.ap-northeast-1.amazonaws.com/prod/',
+  dev: 'https://78rv6h4q6i.execute-api.ap-northeast-1.amazonaws.com/dev/',
+  prod: 'https://ducgzystqh.execute-api.ap-northeast-1.amazonaws.com/prod/',
+};
+
+// 環境ごとのCognito設定
+const COGNITO_CONFIGS = {
+  dev: {
+    region: 'ap-northeast-1',
+    userPoolId: 'ap-northeast-1_sT3RqDVAW',
+    webClientId: '676lk1m0iuteokke9ef5ghjk08'
+  },
+  prod: {
+    region: 'ap-northeast-1',
+    userPoolId: 'ap-northeast-1_4t8IC7CsS',
+    webClientId: '5prssoltpblp7kcntc25o00f27'
+  }
 };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
@@ -73,6 +87,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   // アプリ内から Constants.expoConfig.extra で参照可能にする設定
   extra: {
     apiUrl: API_URLS[APP_ENV as keyof typeof API_URLS],
+    cognito: COGNITO_CONFIGS[APP_ENV as keyof typeof COGNITO_CONFIGS],
     variant: APP_ENV,
   }
 });

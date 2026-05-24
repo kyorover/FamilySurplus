@@ -88,6 +88,10 @@ export class HesokuriBackendStack extends cdk.Stack {
       restApiName: `HesokuriApi-${envName}`,
       handler: apiHandler,
       proxy: true,
+      // ▼ 新規追加: API Gatewayのステージ名を環境(dev/prod)に合わせる
+      deployOptions: {
+        stageName: envName,
+      },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
