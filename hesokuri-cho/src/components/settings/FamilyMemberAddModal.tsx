@@ -52,8 +52,9 @@ export const FamilyMemberAddModal: React.FC<FamilyMemberAddModalProps> = ({ visi
           </View>
 
           <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="名前" />
+          
+          {/* ▼ 変更: プレースホルダーを必須に変更（コメント位置を外に移動） */}
           {role === '子供' && (
-            {/* ▼ 変更: プレースホルダーを必須に変更 */}
             <TextInput style={styles.input} value={age} onChangeText={setAge} placeholder="年齢（必須）" keyboardType="numeric" />
           )}
 
