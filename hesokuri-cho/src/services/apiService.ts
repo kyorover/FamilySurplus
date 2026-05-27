@@ -38,6 +38,18 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
 };
 
 export const apiService = {
+  async fetchSystemStatus(): Promise<{ minAppVersion: string; latestAppVersion: string; isMaintenance: boolean } | null> {
+    try {
+      const url = `${API_BASE_URL}/system/status`;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.error("Failed to fetch system status:", error);
+      return null;
+    }
+  },
+
   // ▼ 追記: アカウント情報の取得 (既存ロジックには干渉させない)
   async fetchAccountInfo(): Promise<AccountInfo | null> {
     try {

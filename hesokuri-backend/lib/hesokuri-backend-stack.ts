@@ -5,15 +5,16 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
-import * as events from 'aws-cdk-lib/aws-events'; // ▼ 新規追加: EventBridge
-import * as targets from 'aws-cdk-lib/aws-events-targets'; // ▼ 新規追加: EventBridge Targets
-import * as iam from 'aws-cdk-lib/aws-iam'; // ▼ 追記: Cognito操作権限付与のため追加
+import * as events from 'aws-cdk-lib/aws-events'; // EventBridge
+import * as targets from 'aws-cdk-lib/aws-events-targets'; // EventBridge Targets
+import * as iam from 'aws-cdk-lib/aws-iam'; // Cognito操作権限付与のため追加
 import * as path from 'path';
-import { DatabaseConstruct } from './constructs/database'; // ▼ 新規追加: テーブル定義の分離
-import { InitialDataSeedConstruct } from './constructs/initial-data-seed'; // ▼ 新規追加: 初期データ投入用Construct
-import { WebhookConstruct } from './constructs/webhook'; // ▼ 新規追加: Webhook定義の分離
+import { DatabaseConstruct } from './constructs/database'; // テーブル定義の分離
+import { InitialDataSeedConstruct } from './constructs/initial-data-seed'; // 初期データ投入用Construct
+import { WebhookConstruct } from './constructs/webhook'; // Webhook定義の分離
+import { SystemStatusConstruct } from './constructs/system-status';
 
-// ▼ 新規追加: スタックのプロパティとして envName を受け取るためのインターフェース
+// スタックのプロパティとして envName を受け取るためのインターフェース
 export interface HesokuriBackendStackProps extends cdk.StackProps {
   envName: string;
 }
@@ -22,7 +23,7 @@ export class HesokuriBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: HesokuriBackendStackProps) {
     super(scope, id, props);
 
-    // ▼ 変更: プロパティから環境名を取得
+    // プロパティから環境名を取得
     const envName = props.envName;
 
     // === Cognito User Pool (認証基盤) ===
@@ -31,7 +32,7 @@ export class HesokuriBackendStack extends cdk.Stack {
       signInAliases: { email: true },
       selfSignUpEnabled: true,
       autoVerify: { email: true },
-      // ▼ 新規追加: パスワードリセットをユーザーセルフで行えるように明示的に設定
+      // パスワードリセットをユーザーセルフで行えるように明示的に設定
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
@@ -39,19 +40,19 @@ export class HesokuriBackendStack extends cdk.Stack {
     const userPoolClient = new cognito.UserPoolClient(this, 'HesokuriUserPoolClient', {
       userPool,
       generateSecret: false,
-      // ▼ 新規追加: パスワード認証フローを許可する
+      // パスワード認証フローを許可する
       authFlows: {
         userPassword: true,
       },
     });
 
     // === データベース層の構築 (別ファイルに分離) ===
-    // ▼ 変更: テーブル名を分離するため、DatabaseConstructにもenvNameを渡す
+    // テーブル名を分離するため、DatabaseConstructにもenvNameを渡す
     const db = new DatabaseConstruct(this, 'DatabaseLayer', { envName });
 
     // === APIハンドラー (Lambda) ===
     const apiHandler = new NodejsFunction(this, 'HesokuriApiHandler', {
-      functionName: `HesokuriApiHandler-${envName}`, // ▼ 新規追加: 固定の関数名を設定
+      functionName: `HesokuriApiHandler-${envName}`, // 固定の関数名を設定
       runtime: lambda.Runtime.NODEJS_22_X, // Node.js 22 LTSへ更新
       entry: path.join(__dirname, '../lambda/index.ts'),
       handler: 'handler',
@@ -62,7 +63,7 @@ export class HesokuriBackendStack extends cdk.Stack {
         ACCOUNTS_TABLE_NAME: db.accountsTable.tableName,
         SUMMARIES_TABLE_NAME: db.summariesTable.tableName, // ▼ 環境変数に追加
         SYSTEM_CONFIG_TABLE_NAME: db.systemConfigTable.tableName, // ▼ 環境変数に追加
-        USER_POOL_ID: userPool.userPoolId, // ▼ 追記: 退会処理(Cognito削除用)の環境変数
+        USER_POOL_ID: userPool.userPoolId, // 退会処理(Cognito削除用)の環境変数
       },
       timeout: cdk.Duration.seconds(10),
     });
@@ -75,13 +76,13 @@ export class HesokuriBackendStack extends cdk.Stack {
     db.summariesTable.grantReadWriteData(apiHandler);
     db.systemConfigTable.grantReadWriteData(apiHandler); // 統計データ読み取り用
 
-    // ▼ 追記: 退会処理のため、Cognitoユーザー削除権限をLambdaに付与
+    // 退会処理のため、Cognitoユーザー削除権限をLambdaに付与
     apiHandler.addToRolePolicy(new iam.PolicyStatement({
       actions: ['cognito-idp:AdminDeleteUser'],
       resources: [userPool.userPoolArn],
     }));
 
-    // ▼ 新規追加: API Gateway用のCognito Authorizer
+    // API Gateway用のCognito Authorizer
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'HesokuriAuthorizer', {
       cognitoUserPools: [userPool],
     });
@@ -89,8 +90,8 @@ export class HesokuriBackendStack extends cdk.Stack {
     const api = new apigateway.LambdaRestApi(this, 'HesokuriApi', {
       restApiName: `HesokuriApi-${envName}`,
       handler: apiHandler,
-      proxy: false, // ▼ 変更: 個別ルート追加を許可するため、自動プロキシをオフに設定
-      // ▼ 新規追加: API Gatewayのステージ名を環境(dev/prod)に合わせる
+      proxy: false, // 個別ルート追加を許可するため、自動プロキシをオフに設定
+      // API Gatewayのステージ名を環境(dev/prod)に合わせる
       deployOptions: {
         stageName: envName,
       },
@@ -99,17 +100,19 @@ export class HesokuriBackendStack extends cdk.Stack {
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: ['Content-Type', 'Authorization'],
       },
-      // ▼ 新規追加: API全体にCognito Authorizerを適用し、未認証リクエストをブロック
+      // API全体にCognito Authorizerを適用し、未認証リクエストをブロック
       defaultMethodOptions: {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     });
 
-    // ▼ 新規追加: proxy: falseに伴い、既存アプリの全通信をメインLambdaに逃がすプロキシを手動定義
+    // proxy: falseに伴い、既存アプリの全通信をメインLambdaに逃がすプロキシを手動定義
     api.root.addResource('{proxy+}').addMethod('ANY', new apigateway.LambdaIntegration(apiHandler));
 
-    // === 新規追加: RevenueCat Webhook エンドポイントの統合構築 ===
+    new SystemStatusConstruct(this, 'SystemStatusLayer', { api, envName });
+
+    // === RevenueCat Webhook エンドポイントの統合構築 ===
     new WebhookConstruct(this, 'WebhookLayer', { api, accountsTable: db.accountsTable, envName });
 
     new cdk.CfnOutput(this, 'ApiEndpointUrl', {
@@ -117,13 +120,13 @@ export class HesokuriBackendStack extends cdk.Stack {
       description: 'The endpoint URL for the Hesokuri API',
     });
 
-    // === 新規追加: Cognito 出力 ===
+    // === Cognito 出力 ===
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new cdk.CfnOutput(this, 'ClientId', { value: userPoolClient.userPoolClientId });
 
-    // ▼ 新規追加: サインアップ完了時の DynamoDB 初期レコード作成トリガー
+    // サインアップ完了時の DynamoDB 初期レコード作成トリガー
     const postConfirmationHandler = new NodejsFunction(this, 'PostConfirmationHandler', {
-      functionName: `PostConfirmationHandler-${envName}`, // ▼ 新規追加: 固定の関数名を設定
+      functionName: `PostConfirmationHandler-${envName}`, // 固定の関数名を設定
       runtime: lambda.Runtime.NODEJS_22_X,
       entry: path.join(__dirname, '../lambda/postConfirmation.ts'),
       handler: 'handler',
@@ -136,9 +139,9 @@ export class HesokuriBackendStack extends cdk.Stack {
     db.accountsTable.grantReadWriteData(postConfirmationHandler);
     userPool.addTrigger(cognito.UserPoolOperation.POST_CONFIRMATION, postConfirmationHandler);
 
-    // === 新規追加: 外部統計データ取得用バッチLambda ===
+    // === 外部統計データ取得用バッチLambda ===
     const fetchNationalStatisticsBatch = new NodejsFunction(this, 'FetchNationalStatisticsBatch', {
-      functionName: `FetchNationalStatistics-${envName}`, // ▼ 新規追加: 固定の関数名を設定
+      functionName: `FetchNationalStatistics-${envName}`, // 固定の関数名を設定
       runtime: lambda.Runtime.NODEJS_22_X,
       entry: path.join(__dirname, '../lambda/fetchNationalStatistics.ts'),
       handler: 'handler',
@@ -150,7 +153,7 @@ export class HesokuriBackendStack extends cdk.Stack {
 
     db.systemConfigTable.grantReadWriteData(fetchNationalStatisticsBatch);
 
-    // === 新規追加: バッチの定期実行スケジュール設定 (毎月1日 03:00 JST = 前月末日 18:00 UTC) ===
+    // === バッチの定期実行スケジュール設定 (毎月1日 03:00 JST = 前月末日 18:00 UTC) ===
     new events.Rule(this, 'MonthlyStatisticsFetchRule', {
       schedule: events.Schedule.cron({
         minute: '0',
@@ -162,7 +165,7 @@ export class HesokuriBackendStack extends cdk.Stack {
       targets: [new targets.LambdaFunction(fetchNationalStatisticsBatch)],
     });
 
-    // === 新規追加: デプロイ直後のDB初期化（データシード） ===
+    // === デプロイ直後のDB初期化（データシード） ===
     new InitialDataSeedConstruct(this, 'InitialDataSeed', {
       targetFunction: fetchNationalStatisticsBatch,
     });

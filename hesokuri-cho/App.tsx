@@ -18,8 +18,12 @@ import { BottomTabBar } from './src/components/navigation/BottomTabBar';
 import { useTrackingPermission } from './src/hooks/useTrackingPermission';
 import { useTheme } from './src/hooks/useTheme'; // ▼ 新規追加: テーマ用フック
 import { Colors } from './src/constants/colors';
+import { useAppStatus } from './src/hooks/useAppStatus';
+import { ForceUpdateScreen } from './src/screens/ForceUpdateScreen';
+import { MaintenanceScreen } from './src/screens/MaintenanceScreen';
 
 export default function App() {
+  const systemStatus = useAppStatus();
   const { authToken, initAuth } = useAuthStore();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isDataFetched, setIsDataFetched] = useState(false); // ▼ 新規追加: 初期データ取得完了フラグ
@@ -111,6 +115,14 @@ export default function App() {
     };
     fetchInitialData();
   }, [authToken]);
+
+  if (systemStatus === 'checking') {
+    return <View style={styles.centerContainer}><ActivityIndicator size="large" color={colors.primary} /></View>;
+  }
+
+  if (systemStatus === 'maintenance') return <MaintenanceScreen />;
+
+  if (systemStatus === 'forceUpdate') return <ForceUpdateScreen />;
 
   if (isAuthChecking) {
     return <View style={styles.centerContainer}><ActivityIndicator size="large" color={colors.primary} /></View>;

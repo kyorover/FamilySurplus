@@ -10,6 +10,7 @@ AWS CDKを用いたサーバーレスアーキテクチャ（TypeScript）。外
 | lib/hesokuri-backend-stack.ts | AWSリソース（API Gateway, Lambda, DynamoDB, EventBridge等）のインフラ定義（IaC）。データベースやWebhook等の各Constructを呼び出して全体を構成する。**【重要】退会機能等でCognitoユーザーを操作する場合、Lambda関数に `AdminDeleteUser` 等のIAMポリシー権限付与と、環境変数（`USER_POOL_ID`等）の注入をここで行う必要がある。** |
 | lib/constructs/database.ts | DynamoDBテーブル群の定義を切り出したConstruct。スタックの行数肥大化を防ぐ単一責務ファイル。 |
 | lib/constructs/webhook.ts | Webhookの受け口となるAPI Gatewayエンドポイントや、関連するLambda関数などのインフラストラクチャを定義するAWS CDKコンストラクト。 |
+| lib/constructs/system-status.ts | アプリ起動時のバージョン・稼働状況検証用エンドポイント（/system/status）のインフラ定義を切り出したConstruct。アプリ起動時の未認証アクセスを許可するため、Cognito認可をバイパス（NONE）する設定を含む。 |
 | lib/constructs/oidc-stack.ts | GitHub Actionsからのセキュアなデプロイを可能にするためのOIDCプロバイダおよびIAMロール（dev/prod環境用）を定義するConstruct。 |
 | lambda/index.ts | API Gatewayからの全リクエストを受け付け、認証ID(sub)を取得後、各ドメイン（支出、設定、Webhook等）のコントローラーへ処理を委譲するルーター。**【重要】コントローラーの引数（テーブル名や環境変数の追加など）を変更した場合は、必ずこのルーティング呼び出し部分も同期して修正すること。** |
 | lambda/utils.ts | APIのCORSレスポンス生成や、DynamoDB保存時の空文字削除などを担当する共通純粋関数群。 |
@@ -17,6 +18,7 @@ AWS CDKを用いたサーバーレスアーキテクチャ（TypeScript）。外
 | lambda/controllers/settingsController.ts | アカウント情報、世帯設定、外部統計の取得・更新を担当。**【重要：退会処理（DELETE /account）の責務】DynamoDBの仕様上、ソートキーを持つテーブル（支出、予算、サマリー）のデータはパーティションキーのみでは削除不可（クラッシュする）。必ず `QueryCommand` で対象のSKを取得してから個別に削除し、最後にCognitoからユーザーを削除する手順を厳守すること。** |
 | lambda/controllers/budgetController.ts | 月次予算および月次サマリー（へそくり確定履歴）の保存・取得を担当するAPIコントローラー。 |
 | lambda/controllers/webhookController.ts | 外部サービス（RevenueCat等のサブスクリプション管理基盤）からのWebhook通知を受け取り、課金ステータスの更新などのビジネスロジックを実行するコントローラー。 |
+| lambda/controllers/systemController.ts | アプリ起動時に呼び出されるステータス取得APIコントローラー。環境変数から要求バージョンやメンテナンス状態を取得し返却する。未認証でアクセスされるため、メインルーター(index.ts)を経由せずAPI Gatewayから直接統合される独立したLambdaとして機能する。 |
 | lambda/postConfirmation.ts | Cognito等のユーザー登録後のトリガー（Post Confirmation）を担当するLambda関数。初期ユーザーデータのセットアップ等を担当。 |
 | lambda/fetchNationalStatistics.ts | EventBridgeで月次定期実行され、e-Stat等の外部統計(物価指数・平均生活費)を取得・キャッシュするバッチ処理。 |
 | test/hesokuri-backend.test.ts | CDKスタックのユニットテスト（Jest）。リソースが正しく生成されるかを検証する。 |
