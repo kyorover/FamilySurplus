@@ -1,6 +1,8 @@
 // src/components/input/DatePickerModal.tsx
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Modal, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 // 確実な require 構文を使用
 const JapaneseHolidays = require('japanese-holidays');
@@ -13,6 +15,9 @@ interface DatePickerModalProps {
 }
 
 export const DatePickerModal: React.FC<DatePickerModalProps> = ({ visible, initialDate, onSelect, onClose }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const [viewDate, setViewDate] = useState(new Date());
 
   useEffect(() => {
@@ -53,7 +58,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({ visible, initi
 
           <View style={styles.calendarGrid}>
             {['日','月','火','水','木','金','土'].map((d, i) => (
-              <Text key={d} style={[styles.weekday, i === 0 && { color: '#FF3B30' }, i === 6 && { color: '#007AFF' }]}>{d}</Text>
+              <Text key={d} style={[styles.weekday, i === 0 && { color: colors.error }, i === 6 && { color: colors.primary }]}>{d}</Text>
             ))}
             {calendarDays.map((dateStr, idx) => {
               if (!dateStr) return <View key={idx} style={styles.dayCell} />;
@@ -70,8 +75,8 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({ visible, initi
                 <TouchableOpacity key={dateStr} style={[styles.dayCell, isSelected && styles.selectedDayCell]} onPress={() => { onSelect(dateStr); onClose(); }}>
                   <Text style={[
                     styles.dayText, 
-                    isSundayOrHoliday && { color: '#FF3B30' },
-                    isSaturday && !isHoliday && { color: '#007AFF' },
+                    isSundayOrHoliday && { color: colors.error },
+                    isSaturday && !isHoliday && { color: colors.primary },
                     isSelected && styles.selectedDayText
                   ]}>
                     {parseInt(dateStr.split('-')[2], 10)}
@@ -86,18 +91,19 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({ visible, initi
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: { width: '90%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
-  monthControl: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', alignItems: 'center' },
+  modalCard: { width: '90%', backgroundColor: colors.surface, borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+  monthControl: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: colors.background, borderRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
   controlGroup: { flexDirection: 'row', alignItems: 'center' },
   monthBtn: { paddingHorizontal: 12, paddingVertical: 8 },
-  monthBtnText: { fontSize: 14, color: '#007AFF', fontWeight: 'bold' },
-  currentMonthText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  monthBtnText: { fontSize: 14, color: colors.primary, fontWeight: 'bold' },
+  currentMonthText: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  weekday: { width: '14.28%', textAlign: 'center', fontSize: 12, color: '#8E8E93', fontWeight: 'bold', marginBottom: 8 },
+  weekday: { width: '14.28%', textAlign: 'center', fontSize: 12, color: colors.textSecondary, fontWeight: 'bold', marginBottom: 8 },
   dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: 2 },
-  selectedDayCell: { backgroundColor: '#007AFF', borderRadius: 20 },
-  dayText: { fontSize: 14, color: '#1C1C1E', fontWeight: '500' },
-  selectedDayText: { color: '#FFFFFF', fontWeight: 'bold' }, 
+  selectedDayCell: { backgroundColor: colors.primary, borderRadius: 20 },
+  dayText: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' },
+  selectedDayText: { color: '#FFFFFF', fontWeight: 'bold' }, // ※プライマリカラー上のテキストは白固定
 });

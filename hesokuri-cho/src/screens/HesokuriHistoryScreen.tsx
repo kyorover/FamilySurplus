@@ -5,12 +5,17 @@ import { useHesokuriStore } from '../store';
 import { apiService } from '../services/apiService';
 import { HesokuriHistoryYearSelector } from '../components/history/HesokuriHistoryYearSelector';
 import { HesokuriHistoryList } from '../components/history/HesokuriHistoryList';
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface HesokuriHistoryScreenProps {
   onBack: () => void;
 }
 
 export const HesokuriHistoryScreen: React.FC<HesokuriHistoryScreenProps> = ({ onBack }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const { settings } = useHesokuriStore();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [historyData, setHistoryData] = useState<Record<number, number | null>>({});
@@ -84,10 +89,11 @@ export const HesokuriHistoryScreen: React.FC<HesokuriHistoryScreenProps> = ({ on
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
-  subHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  subHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 50 },
-  backBtnText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
-  subHeaderTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  backBtnText: { fontSize: 16, color: colors.primary, fontWeight: 'bold' },
+  subHeaderTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
 });

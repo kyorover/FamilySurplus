@@ -5,6 +5,8 @@ import { GardenItemMaster } from '../../constants/gardenItems';
 import { UniversalSprite } from './UniversalSprite';
 import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
 import { GARDEN_CONFIG } from '../../functions/gardenUtils';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface GardenShopListItemProps {
   item: GardenItemMaster;
@@ -13,6 +15,9 @@ interface GardenShopListItemProps {
 }
 
 export const GardenShopListItem: React.FC<GardenShopListItemProps> = ({ item, currentCount, onPurchase }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const maxAllowed = SPRITE_CONFIG[item.id]?.maxQuantity ?? 99;
   const isMax = currentCount >= maxAllowed;
 
@@ -50,15 +55,16 @@ export const GardenShopListItem: React.FC<GardenShopListItemProps> = ({ item, cu
   );
 };
 
-const styles = StyleSheet.create({
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#EEE' },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   itemIconWrap: { width: 60, alignItems: 'center' }, // ▼ アイコンの最大幅に合わせてコンテナも調整
   itemInfo: { flex: 1, paddingHorizontal: 12 },
-  itemName: { fontSize: 16, fontWeight: 'bold' },
+  itemName: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary }, // ▼ 変更
   metaInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  itemCost: { fontSize: 14, color: '#666', marginRight: 12 },
-  itemCountBadge: { fontSize: 12, color: '#1976D2', fontWeight: 'bold' },
-  buyBtn: { backgroundColor: '#FF9800', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  buyBtnDisabled: { backgroundColor: '#CCC' },
-  buyBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+  itemCost: { fontSize: 14, color: colors.textSecondary, marginRight: 12 }, // ▼ 変更
+  itemCountBadge: { fontSize: 12, color: isDark ? '#42A5F5' : '#1976D2', fontWeight: 'bold' }, // ▼ 変更: ダークモードで視認性を調整
+  buyBtn: { backgroundColor: isDark ? '#FFB74D' : '#FF9800', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }, // ▼ 変更: ダークモードで視認性を調整
+  buyBtnDisabled: { backgroundColor: isDark ? '#555555' : '#CCC' }, // ▼ 変更: ダークモード対応
+  buyBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 }, // ※色付き背景上の文字は白固定
 });

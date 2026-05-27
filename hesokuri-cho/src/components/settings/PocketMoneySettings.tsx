@@ -2,6 +2,8 @@
 import React from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { FamilyMember, HouseholdSettings } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface PocketMoneySettingsProps {
   settings: HouseholdSettings;
@@ -10,6 +12,9 @@ interface PocketMoneySettingsProps {
 }
 
 export const PocketMoneySettings: React.FC<PocketMoneySettingsProps> = ({ settings, onChangeMember, onChangeDeficitRule }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   // 変更点: '大人'フィルタを撤廃し、全メンバーを対象とする
   const targetMembers = settings.familyMembers;
 
@@ -69,24 +74,25 @@ export const PocketMoneySettings: React.FC<PocketMoneySettingsProps> = ({ settin
   );
 };
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  card: { backgroundColor: colors.surface, borderRadius: 12, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   memberRow: { padding: 16 },
-  borderTop: { borderTopWidth: 1, borderTopColor: '#E5E5EA' },
-  memberName: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 12 },
-  childBadge: { fontSize: 12, color: '#8E8E93', fontWeight: 'normal' },
+  borderTop: { borderTopWidth: 1, borderTopColor: colors.border },
+  memberName: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 12 },
+  childBadge: { fontSize: 12, color: colors.textSecondary, fontWeight: 'normal' },
   inputGroup: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  inputLabel: { fontSize: 13, color: '#8E8E93', fontWeight: '600' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, width: 120 },
-  currency: { color: '#8E8E93', marginRight: 4 },
-  percent: { color: '#8E8E93', marginLeft: 4 },
-  textInput: { flex: 1, fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', textAlign: 'right' },
-  ruleSection: { backgroundColor: '#FFF0F0', padding: 16, borderTopWidth: 1, borderTopColor: '#FFE5E5' },
-  ruleTitle: { fontSize: 13, fontWeight: 'bold', color: '#FF3B30', marginBottom: 4 },
-  ruleDesc: { fontSize: 11, color: '#FF3B30', opacity: 0.8, marginBottom: 12 },
+  inputLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, width: 120 },
+  currency: { color: colors.textSecondary, marginRight: 4 },
+  percent: { color: colors.textSecondary, marginLeft: 4 },
+  textInput: { flex: 1, fontSize: 16, fontWeight: 'bold', color: colors.textPrimary, textAlign: 'right' },
+  ruleSection: { backgroundColor: isDark ? 'rgba(255, 69, 58, 0.1)' : '#FFF0F0', padding: 16, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255, 69, 58, 0.2)' : '#FFE5E5' }, // ▼ 変更: ダークモードで背景とボーダーを調整
+  ruleTitle: { fontSize: 13, fontWeight: 'bold', color: colors.error, marginBottom: 4 },
+  ruleDesc: { fontSize: 11, color: colors.error, opacity: 0.8, marginBottom: 12 },
   ruleSelectors: { flexDirection: 'row', justifyContent: 'space-between' },
-  ruleBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#FFFFFF', borderRadius: 6, marginHorizontal: 4, borderWidth: 1, borderColor: '#FFE5E5' },
-  ruleBtnActive: { backgroundColor: '#FF3B30', borderColor: '#FF3B30' },
-  ruleBtnText: { fontSize: 11, fontWeight: 'bold', color: '#FF3B30' },
-  ruleBtnTextActive: { color: '#FFFFFF' },
+  ruleBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: colors.surface, borderRadius: 6, marginHorizontal: 4, borderWidth: 1, borderColor: isDark ? 'rgba(255, 69, 58, 0.2)' : '#FFE5E5' },
+  ruleBtnActive: { backgroundColor: colors.error, borderColor: colors.error },
+  ruleBtnText: { fontSize: 11, fontWeight: 'bold', color: colors.error },
+  ruleBtnTextActive: { color: '#FFFFFF' }, // ※エラー色背景上の文字は白固定
 });

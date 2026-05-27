@@ -6,6 +6,8 @@ import { ALL_GARDEN_ITEMS } from '../../constants/gardenItems';
 import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig'; 
 import { GARDEN_CONFIG } from '../../functions/gardenUtils';
 import { useHesokuriStore } from '../../store';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface Props {
   itemId: string;
@@ -15,19 +17,22 @@ interface Props {
 }
 
 export const GardenInventoryItem: React.FC<Props> = ({ itemId, ownedItems, isSelected, onSelect }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const { settings } = useHesokuriStore();
 
   const getItemBackgroundColor = (id: string) => {
-    if (id === 'WP-NONE') return '#E0F7FA';
+    if (id === 'WP-NONE') return isDark ? 'rgba(0, 188, 212, 0.2)' : '#E0F7FA';
     const master = ALL_GARDEN_ITEMS.find(i => i.id === id);
-    if (!master) return '#E0E0E0';
+    if (!master) return isDark ? 'rgba(158, 158, 158, 0.2)' : '#E0E0E0';
     switch (master.type) {
-      case 'bg': return '#E3F2FD';
-      case 'plant': return '#E8F5E9';
-      case 'ornament': return '#FFF3E0';
-      case 'flower': return '#FCE4EC';
-      case 'pot': return '#EFEBE9';
-      default: return '#E0E0E0';
+      case 'bg': return isDark ? 'rgba(33, 150, 243, 0.2)' : '#E3F2FD';
+      case 'plant': return isDark ? 'rgba(76, 175, 80, 0.2)' : '#E8F5E9';
+      case 'ornament': return isDark ? 'rgba(255, 152, 0, 0.2)' : '#FFF3E0';
+      case 'flower': return isDark ? 'rgba(233, 30, 99, 0.2)' : '#FCE4EC';
+      case 'pot': return isDark ? 'rgba(121, 85, 72, 0.2)' : '#EFEBE9';
+      default: return isDark ? 'rgba(158, 158, 158, 0.2)' : '#E0E0E0';
     }
   };
 
@@ -107,7 +112,8 @@ export const GardenInventoryItem: React.FC<Props> = ({ itemId, ownedItems, isSel
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   // ▼ 修正: minWidth/minHeightを撤廃し、絶対値(64x64)でコンテナを固定してUIの拡張を防止
   item: { 
     borderRadius: 8, 
@@ -120,12 +126,12 @@ const styles = StyleSheet.create({
     height: 64, 
     position: 'relative' 
   },
-  activeItem: { borderColor: '#4CAF50' },
-  outOfStockItem: { borderColor: '#E0E0E0', backgroundColor: '#F5F5F5', opacity: 0.6 },
-  noneText: { fontSize: 10, color: '#666', fontWeight: 'bold' },
-  levelBadge: { position: 'absolute', top: -4, left: -4, backgroundColor: '#FF9800', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#FFF' },
-  levelBadgeText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
-  stockBadge: { position: 'absolute', bottom: -4, right: -4, backgroundColor: '#1976D2', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#FFF' },
+  activeItem: { borderColor: isDark ? '#66BB6A' : '#4CAF50' }, // ▼ 変更: ダークモードで明るい緑に
+  outOfStockItem: { borderColor: colors.border, backgroundColor: colors.background, opacity: 0.6 },
+  noneText: { fontSize: 10, color: colors.textSecondary, fontWeight: 'bold' },
+  levelBadge: { position: 'absolute', top: -4, left: -4, backgroundColor: isDark ? '#FFB74D' : '#FF9800', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: isDark ? '#000' : '#FFF' },
+  levelBadgeText: { color: isDark ? '#000' : '#FFF', fontSize: 8, fontWeight: 'bold' },
+  stockBadge: { position: 'absolute', bottom: -4, right: -4, backgroundColor: isDark ? '#42A5F5' : '#1976D2', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: isDark ? '#000' : '#FFF' },
   stockBadgeZero: { backgroundColor: '#9E9E9E' },
-  stockBadgeText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' }
+  stockBadgeText: { color: isDark ? '#000' : '#FFF', fontSize: 8, fontWeight: 'bold' }
 });

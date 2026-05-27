@@ -6,6 +6,7 @@ import { useMonthCheckout } from '../hooks/useMonthCheckout';
 import { evaluateBudget } from '../functions/budgetUtils';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
 import { Category } from '../types';
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フックをインポート
 
 export const useDashboardScreen = () => {
   const { 
@@ -23,6 +24,8 @@ export const useDashboardScreen = () => {
     waterGarden, 
     saveMonthlySummary 
   } = useHesokuriStore();
+
+  const { isDark } = useTheme(); // ▼ 新規追加: 現在のダークモード状態を取得
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isAllCalendarVisible, setAllCalendarVisible] = useState(false);
@@ -52,7 +55,8 @@ export const useDashboardScreen = () => {
     nationalStatistics
   );
 
-  const evaluation = evaluateBudget(totalMonthlyBudget, guideline);
+  // ▼ 変更: 第3引数に isDark を渡し、評価結果の色をテーマに合わせる
+  const evaluation = evaluateBudget(totalMonthlyBudget, guideline, isDark);
   const hasChild = (settings?.categories || []).some(cat => cat.name === DEFAULT_CATEGORY_NAMES.CHILD_CARE);
 
   const { 

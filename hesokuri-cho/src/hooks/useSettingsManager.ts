@@ -16,6 +16,7 @@ export const useSettingsManager = () => {
   const [editingFamilyMember, setEditingFamilyMember] = useState<FamilyMember | null>(null);
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false);
   const [isGardenTestVisible, setGardenTestVisible] = useState(false);
+  const [isSubscriptionPaywallVisible, setSubscriptionPaywallVisible] = useState(false); // ▼ 新規追加: サブスク課金モーダル表示状態
   
   const [isFamilyEditMode, setIsFamilyEditMode] = useState(false);
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
@@ -72,6 +73,7 @@ export const useSettingsManager = () => {
       familyEdit: editingFamilyMember, setFamilyEdit: setEditingFamilyMember,
       history: isHistoryModalVisible, setHistory: setHistoryModalVisible,
       garden: isGardenTestVisible, setGarden: setGardenTestVisible,
+      subscription: isSubscriptionPaywallVisible, setSubscription: setSubscriptionPaywallVisible, // ▼ 新規追加
     },
     modes: {
       familyEdit: isFamilyEditMode, setFamilyEdit: setIsFamilyEditMode,

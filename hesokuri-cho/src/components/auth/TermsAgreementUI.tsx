@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, Switch, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { LEGAL_URLS } from '../../constants';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface TermsAgreementUIProps {
   isAgreed: boolean;
@@ -16,6 +18,9 @@ export const TermsAgreementUI: React.FC<TermsAgreementUIProps> = ({
   isAgreed, 
   onValueChange 
 }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   // 外部リンクを開く処理
   const openLink = (url: string) => {
     Linking.openURL(url).catch((err) => 
@@ -28,8 +33,8 @@ export const TermsAgreementUI: React.FC<TermsAgreementUIProps> = ({
       <Switch
         value={isAgreed}
         onValueChange={onValueChange}
-        trackColor={{ false: "#767577", true: "#81b0ff" }}
-        thumbColor={isAgreed ? "#2196F3" : "#f4f3f4"}
+        trackColor={{ false: colors.border, true: colors.primary }} // ▼ 変更: テーマカラーに連動
+        thumbColor={isAgreed ? colors.primary : "#f4f3f4"} // ▼ 変更: テーマカラーに連動
       />
       <View style={styles.textContainer}>
         <View style={styles.linkRow}>
@@ -47,7 +52,8 @@ export const TermsAgreementUI: React.FC<TermsAgreementUIProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -66,11 +72,11 @@ const styles = StyleSheet.create({
   },
   plainText: {
     fontSize: 13,
-    color: '#333',
+    color: colors.textPrimary, // ▼ 変更: ダークモード対応
   },
   linkText: {
     fontSize: 13,
-    color: '#007AFF',
+    color: colors.primary, // ▼ 変更: テーマのプライマリカラーを適用
     textDecorationLine: 'underline',
   },
 });

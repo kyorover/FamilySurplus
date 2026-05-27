@@ -1,6 +1,8 @@
 // src/components/dashboard/HesokuriPocketMoneyArea.tsx
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface HesokuriPocketMoneyAreaProps {
   currentHesokuri?: number; // 未設定時の余剰金表示用
@@ -9,6 +11,8 @@ interface HesokuriPocketMoneyAreaProps {
 }
 
 export const HesokuriPocketMoneyArea: React.FC<HesokuriPocketMoneyAreaProps> = ({ currentHesokuri = 0, pocketMoneyDetails, onPressPocketMoney }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
   
   // 小遣い制対象者がいない場合（未設定時）のフォールバックUI
   if (pocketMoneyDetails.length === 0) {
@@ -60,23 +64,24 @@ export const HesokuriPocketMoneyArea: React.FC<HesokuriPocketMoneyAreaProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  pocketMoneyArea: { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginTop: 16, marginBottom: 16, padding: 20, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  pocketMoneyArea: { backgroundColor: colors.surface, marginHorizontal: 16, marginTop: 16, marginBottom: 16, padding: 20, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
   pmHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  pocketMoneyTitle: { fontSize: 13, fontWeight: 'bold', color: '#1C1C1E' },
-  pmHintText: { fontSize: 11, color: '#007AFF', fontWeight: 'bold' },
+  pocketMoneyTitle: { fontSize: 13, fontWeight: 'bold', color: colors.textPrimary },
+  pmHintText: { fontSize: 11, color: colors.primary, fontWeight: 'bold' },
   pmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  pmName: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', width: 60 },
+  pmName: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, width: 60 },
   pmCalc: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 16 },
-  pmBase: { fontSize: 12, color: '#8E8E93' },
-  pmPlus: { fontSize: 12, color: '#8E8E93', marginHorizontal: 4 },
-  pmBonus: { fontSize: 12, color: '#FF3B30', fontWeight: 'bold' },
-  pmTotal: { fontSize: 14, fontWeight: 'bold', color: '#1C1C1E', width: 60, textAlign: 'right' },
-  summaryFooter: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E5EA', alignItems: 'flex-end' },
-  summaryText: { fontSize: 11, color: '#8E8E93' },
+  pmBase: { fontSize: 12, color: colors.textSecondary },
+  pmPlus: { fontSize: 12, color: colors.textSecondary, marginHorizontal: 4 },
+  pmBonus: { fontSize: 12, color: colors.error, fontWeight: 'bold' },
+  pmTotal: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, width: 60, textAlign: 'right' },
+  summaryFooter: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'flex-end' },
+  summaryText: { fontSize: 11, color: colors.textSecondary },
   noPocketMoneyContainer: { alignItems: 'center', marginVertical: 16 },
-  noPocketMoneyLabel: { fontSize: 14, color: '#8E8E93', marginBottom: 4 },
-  noPocketMoneyValue: { fontSize: 32, fontWeight: 'bold', color: '#34C759' },
-  negativeValue: { color: '#FF3B30' },
-  noPocketMoneyDesc: { fontSize: 12, color: '#8E8E93', textAlign: 'center', lineHeight: 18 },
+  noPocketMoneyLabel: { fontSize: 14, color: colors.textSecondary, marginBottom: 4 },
+  noPocketMoneyValue: { fontSize: 32, fontWeight: 'bold', color: isDark ? '#32D74B' : '#34C759' }, // ▼ 変更: ダークモード時は少し明るい緑にして視認性を確保
+  negativeValue: { color: colors.error },
+  noPocketMoneyDesc: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', lineHeight: 18 },
 });

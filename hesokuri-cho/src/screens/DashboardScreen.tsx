@@ -9,7 +9,8 @@ import { DashboardSettingsMenu } from '../components/dashboard/DashboardSettings
 import { DashboardAdBanner } from '../components/dashboard/DashboardAdBanner';
 import { HesokuriPocketMoneyArea } from '../components/dashboard/HesokuriPocketMoneyArea';
 import { DashboardModals } from '../components/dashboard/DashboardModals';
-import { styles } from '../styles/DashboardStyles';
+import { createDashboardStyles } from '../styles/DashboardStyles'; // ▼ 変更: 動的スタイル生成関数をインポート
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -21,6 +22,9 @@ interface DashboardScreenProps {
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHesokuriHistory, onNavigateToInput }) => {
+  const { colors } = useTheme(); // ▼ 新規追加: 現在のテーマカラーを取得
+  const styles = createDashboardStyles(colors); // ▼ 新規追加: 動的スタイルを生成
+
   const {
     settings,
     expenses,
@@ -82,7 +86,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateToHe
           totalSpent={totalSpent} 
           totalMonthlyBudget={totalMonthlyBudget} 
           progressRatio={totalMonthlyBudget > 0 ? Math.min(1, totalSpent / totalMonthlyBudget) : 0} 
-          progressColor={currentHesokuri >= 0 ? '#34C759' : '#FF3B30'} 
+          progressColor={currentHesokuri >= 0 ? '#34C759' : colors.error} // ▼ 変更: エラー色をテーマに追従（赤系）
           onWaterGarden={waterGarden} 
           onPressCard={() => setAllCalendarVisible(true)} 
         />

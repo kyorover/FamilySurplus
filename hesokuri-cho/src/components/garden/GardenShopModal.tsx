@@ -5,6 +5,8 @@ import { useHesokuriStore } from '../../store';
 import { GARDEN_ITEMS, GardenItemMaster } from '../../constants/gardenItems';
 import { SPRITE_CONFIG } from '../../config/spriteConfig'; // 追加: 設定ファイルのインポート
 import { GardenShopListItem } from './GardenShopListItem';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface GardenShopModalProps {
   visible: boolean;
@@ -12,6 +14,9 @@ interface GardenShopModalProps {
 }
 
 export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClose }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const { settings, updateSettings } = useHesokuriStore();
 
   if (!settings) return null;
@@ -97,15 +102,16 @@ export const GardenShopModal: React.FC<GardenShopModalProps> = ({ visible, onClo
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   overlay: { 
     flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.5)', 
+    backgroundColor: colors.overlay, // ▼ 変更
     justifyContent: 'center',
     paddingTop: Platform.OS === 'ios' ? 40 : 20 
   },
   modalContainer: { 
-    backgroundColor: '#FFF', 
+    backgroundColor: colors.surface, // ▼ 変更
     margin: 20, 
     borderRadius: 16, 
     flex: 1, 
@@ -116,7 +122,8 @@ const styles = StyleSheet.create({
     fontSize: 18, 
     fontWeight: 'bold', 
     textAlign: 'center', 
-    marginVertical: 16 
+    marginVertical: 16,
+    color: colors.textPrimary // ▼ 新規追加
   },
   pointContainer: { 
     alignItems: 'center', 
@@ -124,25 +131,25 @@ const styles = StyleSheet.create({
   },
   pointLabel: { 
     fontSize: 12, 
-    color: '#666' 
+    color: colors.textSecondary // ▼ 変更
   },
   pointValue: { 
     fontSize: 24, 
     fontWeight: 'bold', 
-    color: '#4CAF50' 
+    color: isDark ? '#66BB6A' : '#4CAF50' // ▼ 変更: ダークモードで視認性を調整
   },
   listContent: { 
     paddingHorizontal: 16 
   },
   closeBtn: { 
     margin: 16, 
-    backgroundColor: '#9E9E9E', 
+    backgroundColor: isDark ? '#555555' : '#9E9E9E', // ▼ 変更: ダークモード対応
     padding: 12, 
     borderRadius: 8, 
     alignItems: 'center' 
   },
   closeBtnText: { 
-    color: '#FFF', 
+    color: '#FFF', // ※グレー背景上の文字は白固定
     fontWeight: 'bold' 
   }
 });

@@ -1,6 +1,8 @@
 // src/components/input/InputScreenHeader.tsx
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface InputScreenHeaderProps {
   isEditing: boolean;
@@ -10,6 +12,9 @@ interface InputScreenHeaderProps {
 }
 
 export const InputScreenHeader: React.FC<InputScreenHeaderProps> = ({ isEditing, hasReturnTarget, onCancel, onSubmit }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   return (
     <View style={styles.headerContainer}>
       <View style={styles.sideColumn}>
@@ -32,22 +37,23 @@ export const InputScreenHeader: React.FC<InputScreenHeaderProps> = ({ isEditing,
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
   headerContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingVertical: 12, 
     paddingHorizontal: 16, 
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: colors.surface, 
     borderBottomWidth: 1, 
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.border,
     zIndex: 100 // プルダウン等より上に表示
   },
   sideColumn: { flex: 1, justifyContent: 'center' },
   centerColumn: { flex: 2, alignItems: 'center', justifyContent: 'center' },
   actionBtn: { paddingVertical: 4 },
-  titleText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  cancelText: { fontSize: 15, color: '#8E8E93' },
-  submitText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF', textAlign: 'right' }
+  titleText: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  cancelText: { fontSize: 15, color: colors.textSecondary },
+  submitText: { fontSize: 16, fontWeight: 'bold', color: colors.primary, textAlign: 'right' }
 });

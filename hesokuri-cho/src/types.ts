@@ -1,5 +1,8 @@
 // src/types.ts
 
+// === 新規追加：テーマモード ===
+export type ThemeMode = 'light' | 'dark'; // ▼ 修正: 'system' を削除し、アプリ内保持の2択に厳格化
+
 export interface FamilyMember {
   id: string;
   name: string;
@@ -92,7 +95,8 @@ export interface AccountInfo {
   accountId: string; // Cognitoのsubと一致させる (= householdId)
   email: string;
   subscriptionPlan: 'FREE' | 'PREMIUM'; // 広告表示等の制御に使用
-  subscriptionExpiry?: string; // 追加: サブスクリプションの有効期限 (ISO 8601形式)
+  subscriptionStatus?: 'active' | 'expired' | 'none'; // 現在の課金状態 (RevenueCat等と同期)
+  premiumExpiresAt?: string | null; // サブスクリプションの有効期限 (ISO 8601形式)
   createdAt: string;
   isAdmin?: boolean; // ▼ 追加: デバッグ機能等の制御に使用する管理者フラグ
 }

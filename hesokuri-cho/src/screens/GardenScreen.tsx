@@ -12,8 +12,13 @@ import { useGardenCamera } from '../hooks/useGardenCamera';
 import { useGardenPlacements } from '../hooks/useGardenPlacements';
 import { useHesokuriStore } from '../store';
 import { GardenPlacementBlocker } from '../components/garden/GardenPlacementBlocker';
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 export const GardenScreen: React.FC = () => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const [isShopVisible, setShopVisible] = useState(false);
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
 
@@ -69,9 +74,10 @@ export const GardenScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5', position: 'relative' },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background, position: 'relative' },
   contentWrapper: { zIndex: 1 },
-  canvasWrapper: { flex: 1, position: 'relative', backgroundColor: '#E8F5E9' },
+  canvasWrapper: { flex: 1, position: 'relative', backgroundColor: isDark ? '#1B2A1E' : '#E8F5E9' }, // ▼ お庭の地面色は世界観維持のため固定色（ダークモード時は暗い緑）
   inventoryWrapper: { zIndex: 1 },
 });

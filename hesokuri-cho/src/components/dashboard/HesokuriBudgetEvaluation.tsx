@@ -2,6 +2,8 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { BudgetEvaluationResult } from '../../functions/budgetUtils';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface HesokuriBudgetEvaluationProps {
   totalMonthlyBudget: number;
@@ -13,6 +15,9 @@ interface HesokuriBudgetEvaluationProps {
 export const HesokuriBudgetEvaluation: React.FC<HesokuriBudgetEvaluationProps> = ({ 
   totalMonthlyBudget, evaluation, averageGuideline, fixedCategoriesText 
 }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   return (
     <View style={styles.budgetArea}>
       <Text style={styles.budgetLabel}>今月の総予算： ￥{totalMonthlyBudget.toLocaleString()}</Text>
@@ -28,9 +33,10 @@ export const HesokuriBudgetEvaluation: React.FC<HesokuriBudgetEvaluationProps> =
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
   budgetArea: { marginBottom: 16 },
-  budgetLabel: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 12, textAlign: 'center' },
+  budgetLabel: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 12, textAlign: 'center' },
   evaluationContainer: { padding: 16, borderRadius: 12 },
   evalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   evaluationTitle: { fontSize: 14, fontWeight: 'bold' },

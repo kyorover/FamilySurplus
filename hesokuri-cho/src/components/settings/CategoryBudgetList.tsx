@@ -3,6 +3,8 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Category } from '../../types';
 import { DEFAULT_BUDGET_INITIAL_VALUE } from '../../constants';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface CategoryBudgetListProps {
   categories: Category[];
@@ -10,6 +12,9 @@ interface CategoryBudgetListProps {
 }
 
 export const CategoryBudgetList: React.FC<CategoryBudgetListProps> = ({ categories, onCategoryPress }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   return (
     <View>
       <View style={styles.card}>
@@ -49,17 +54,18 @@ export const CategoryBudgetList: React.FC<CategoryBudgetListProps> = ({ categori
   );
 };
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  divider: { height: 1, backgroundColor: '#E5E5EA', marginLeft: 16 },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  card: { backgroundColor: colors.surface, borderRadius: 12, overflow: 'hidden', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  divider: { height: 1, backgroundColor: colors.border, marginLeft: 16 },
   categoryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   categoryInfo: { flexDirection: 'row', alignItems: 'center' },
-  categoryName: { fontSize: 16, fontWeight: '600', color: '#1C1C1E', marginRight: 8 },
-  fixedBadge: { fontSize: 10, backgroundColor: '#007AFF', color: '#FFFFFF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, fontWeight: 'bold', overflow: 'hidden' },
+  categoryName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginRight: 8 },
+  fixedBadge: { fontSize: 10, backgroundColor: colors.primary, color: '#FFFFFF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, fontWeight: 'bold', overflow: 'hidden' }, // ※色付き背景上の文字は白固定
   budgetActionWrap: { flexDirection: 'row', alignItems: 'center' },
-  categoryBudgetText: { fontSize: 16, fontWeight: '600', color: '#1C1C1E', marginRight: 8 },
-  categoryBudgetTextAlert: { color: '#FF3B30', fontSize: 14, fontWeight: 'bold' }, // 警告用の赤文字スタイル
-  chevron: { fontSize: 20, color: '#C7C7CC', fontWeight: 'bold', paddingBottom: 2 },
+  categoryBudgetText: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginRight: 8 },
+  categoryBudgetTextAlert: { color: colors.error, fontSize: 14, fontWeight: 'bold' }, // 警告用の赤文字スタイル
+  chevron: { fontSize: 20, color: colors.textSecondary, fontWeight: 'bold', paddingBottom: 2 },
   guideContainer: { paddingHorizontal: 12, paddingBottom: 16 },
-  guideText: { fontSize: 12, color: '#8E8E93', lineHeight: 18 },
+  guideText: { fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
 });

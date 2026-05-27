@@ -6,6 +6,8 @@ import { BudgetEvaluationCard } from '../settings/BudgetEvaluationCard';
 import { CategoryBudgetList } from '../settings/CategoryBudgetList';
 import { evaluateBudget } from '../../functions/budgetUtils';
 import { DEFAULT_CATEGORY_NAMES } from '../../constants';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface BudgetFrameProps {
   categories: Category[];           // 表示・集計対象のカテゴリ（最新の予算額を含むもの）
@@ -14,6 +16,9 @@ interface BudgetFrameProps {
 }
 
 export const BudgetFrame: React.FC<BudgetFrameProps> = ({ categories, guideline, onCategoryPress }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   /**
    * 【集計ロジックの一本化】
    * 設定画面でもダッシュボードでも、このロジック以外での集計を禁止する。
@@ -48,7 +53,8 @@ export const BudgetFrame: React.FC<BudgetFrameProps> = ({ categories, guideline,
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: { flex: 1 },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93', marginLeft: 8, marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textSecondary, marginLeft: 8, marginBottom: 8 },
 });

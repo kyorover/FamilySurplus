@@ -8,12 +8,17 @@ import { InputDisplayHeader } from '../components/input/InputDisplayHeader';
 import { InputScreenHeader } from '../components/input/InputScreenHeader';
 import { useExpenseSubmit } from '../hooks/useExpenseSubmit';
 import { DEFAULT_CATEGORY_NAMES } from '../constants';
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface InputScreenProps {
   onComplete: () => void;
 }
 
 export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const { settings, expenseInput, setExpenseInput } = useHesokuriStore();
   const paymentMethods = ['現金', 'コード決済', 'クレジット'];
   const [isAmountFocused, setIsAmountFocused] = useState(false);
@@ -113,18 +118,19 @@ export const InputScreen: React.FC<InputScreenProps> = ({ onComplete }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' }, 
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background }, 
   scrollArea: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
   hiddenInput: { height: 0, width: 0, opacity: 0, position: 'absolute' },
-  chipScroll: { maxHeight: 54, minHeight: 54, borderBottomWidth: 1, borderBottomColor: '#E5E5EA', backgroundColor: '#FAFAFC' }, 
+  chipScroll: { maxHeight: 54, minHeight: 54, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#FAFAFC' }, 
   chipContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5E5EA', marginRight: 8 }, 
-  chipSelected: { backgroundColor: '#007AFF' }, 
-  chipDisabled: { backgroundColor: '#F2F2F7', opacity: 0.5 },
-  chipText: { fontSize: 13, color: '#1C1C1E', fontWeight: '600' }, 
-  chipTextSelected: { color: '#FFFFFF' }, 
-  chipTextDisabled: { color: '#C7C7CC' },
-  optionalInputArea: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 10 },
+  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.border, marginRight: 8 }, 
+  chipSelected: { backgroundColor: colors.primary }, 
+  chipDisabled: { backgroundColor: colors.background, opacity: 0.5 },
+  chipText: { fontSize: 13, color: colors.textPrimary, fontWeight: '600' }, 
+  chipTextSelected: { color: '#FFFFFF' }, // ※プライマリカラー上のテキストは白固定
+  chipTextDisabled: { color: colors.textSecondary },
+  optionalInputArea: { padding: 16, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, zIndex: 10 },
 });

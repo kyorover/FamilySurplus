@@ -1,6 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
-import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement, AccountInfo, NationalStatistics } from './types'; // ▼ 追記: AccountInfo, NationalStatistics
+import { HouseholdSettings, ExpenseRecord, MonthlyBudget, GardenPlacement, AccountInfo, NationalStatistics, ThemeMode } from './types'; // ▼ 追記: AccountInfo, NationalStatistics, ThemeMode
 import { createSettingsSlice } from './stores/slices/settingsSlice';
 import { createExpenseSlice } from './stores/slices/expenseSlice';
 import { createGardenSlice } from './stores/slices/gardenSlice';
@@ -18,6 +18,7 @@ export interface ExpenseInputState {
 
 export interface HesokuriState {
   accountInfo: AccountInfo | null; // ▼ 新規追加: アカウント情報
+  themeMode: ThemeMode; // ▼ 新規追加: テーマモード状態
   settings: HouseholdSettings | null; 
   pendingSettings: HouseholdSettings | null; 
   nationalStatistics: NationalStatistics | null; // ▼ 新規追加: 公的統計データ（キャッシュ）
@@ -36,6 +37,7 @@ export interface HesokuriState {
   saveExpenseInput: () => Promise<void>; 
   setReturnToCategoryDetail: (categoryId: string | null, date?: string | null) => void;
   setPendingSettings: (settings: HouseholdSettings | null) => void; 
+  setThemeMode: (themeMode: ThemeMode) => void; // ▼ 新規追加: テーマモードの更新
   
   fetchAccountInfo: () => Promise<void>; // ▼ 新規追加: アカウント情報取得
   fetchNationalStatistics: () => Promise<void>; // ▼ 新規追加: 統計データ取得

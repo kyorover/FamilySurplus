@@ -4,6 +4,8 @@ import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, SafeAreaVi
 import { Category, MonthlyBudget } from '../../types';
 import { BudgetFrame } from '../budget/BudgetFrame'; // ▼ 新設した共通フレーム
 import { BudgetEditModal } from '../settings/BudgetEditModal';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface MonthlyBudgetEditModalProps {
   visible: boolean;
@@ -17,6 +19,9 @@ interface MonthlyBudgetEditModalProps {
 export const MonthlyBudgetEditModal: React.FC<MonthlyBudgetEditModalProps> = ({ 
   visible, categories, monthlyBudget, guideline, onSave, onClose 
 }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const [localBudgets, setLocalBudgets] = useState<Record<string, number>>({});
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
@@ -68,12 +73,13 @@ export const MonthlyBudgetEditModal: React.FC<MonthlyBudgetEditModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   headerBtn: { padding: 4 },
-  headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  cancelText: { fontSize: 16, color: '#007AFF' },
-  saveText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF' },
+  headerTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  cancelText: { fontSize: 16, color: colors.primary },
+  saveText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   scrollContent: { padding: 16 },
 });

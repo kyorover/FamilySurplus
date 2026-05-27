@@ -50,10 +50,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: true,
+    bundleIdentifier: "com.tlitt.hesokuricho",
     // ストア申請のたびにインクリメント（1, 2, 3...）が必要
     buildNumber: "1"
   },
   android: {
+    package: "com.tlitt.hesokuricho",
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./assets/android-icon-foreground.png",
@@ -89,5 +91,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     apiUrl: API_URLS[APP_ENV as keyof typeof API_URLS],
     cognito: COGNITO_CONFIGS[APP_ENV as keyof typeof COGNITO_CONFIGS],
     variant: APP_ENV,
+    revenueCatApiKeyAndroid: process.env.REVENUECAT_API_KEY_ANDROID || '',
+    revenueCatApiKeyIos: process.env.REVENUECAT_API_KEY_IOS || '',
   }
 });

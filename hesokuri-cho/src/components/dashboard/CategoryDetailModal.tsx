@@ -6,6 +6,8 @@ import { useHesokuriStore } from '../../store';
 import { MonthCalendar } from './MonthCalendar';
 import { DailyExpenseList } from './DailyExpenseList';
 import { CategoryMonthlyRecordList } from './CategoryMonthlyRecordList';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface CategoryDetailModalProps {
   visible: boolean;
@@ -22,6 +24,9 @@ interface CategoryDetailModalProps {
 export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
   visible, category, currentMonth, initialDate, onClose, onEditExpense, onAddExpense, onDelete,
 }) => {
+  const { colors } = useTheme(); // ▼ 新規追加: 現在のテーマカラーを取得
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイルを生成
+
   // 単一情報源（Store）から状態とメソッドを取得
   const { expenses: globalExpenses, fetchExpenses, isLoading } = useHesokuriStore();
   const [viewMonth, setViewMonth] = useState<string>(currentMonth);
@@ -113,10 +118,11 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { flex: 0.95, backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  closeText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  modalCard: { flex: 0.95, backgroundColor: colors.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  title: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  closeText: { fontSize: 16, color: colors.primary, fontWeight: 'bold' },
 });

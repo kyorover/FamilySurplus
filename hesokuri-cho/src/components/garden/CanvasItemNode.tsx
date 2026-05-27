@@ -7,6 +7,8 @@ import { EffectSprite } from './EffectSprite';
 import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
 import { GARDEN_CONFIG } from '../../functions/gardenUtils';
 import { RenderNode } from '../../hooks/useGardenEngine';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface Props {
   node: RenderNode;
@@ -23,6 +25,9 @@ interface Props {
 export const CanvasItemNode: React.FC<Props> = ({
   node, finalLeft, finalTop, isSelected, itemLevel, activeEffectId, onPress, onLoad, clearActiveEffect
 }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const isLarge = node.type === 'large_item';
   const spriteDef = SPRITE_CONFIG[node.placementData!.itemId];
   const baseScale = spriteDef?.baseScale ?? 1.0;
@@ -100,7 +105,9 @@ export const CanvasItemNode: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   itemContent: { borderRadius: 16 },
-  selectedHighlight: { backgroundColor: 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
+  // ハイライト色はアイテム選択時の目印（光の輪）であるため固定色（ゴールド）をベースとし、ダークモードで少し明るさを調整
+  selectedHighlight: { backgroundColor: isDark ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 215, 0, 0.4)', borderWidth: 2, borderColor: '#FFD700' },
 });

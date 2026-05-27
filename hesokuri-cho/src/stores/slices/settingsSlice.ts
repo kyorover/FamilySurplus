@@ -3,16 +3,21 @@ import { StateCreator } from 'zustand';
 import { HesokuriState } from '../../store';
 import { apiService } from '../../services/apiService';
 import { syncFixedCategories } from '../../functions/categoryUtils';
+import { ThemeMode } from '../../types';
 
 export const createSettingsSlice: StateCreator<HesokuriState, [], [], any> = (set, get) => ({
-  accountInfo: null, // ▼ 追加
+  accountInfo: null,
+  themeMode: 'light', // ▼ 変更: 初期値は明示的にライトモード（システム追従を完全廃止）
   settings: null,
   pendingSettings: null,
-  nationalStatistics: null, // ▼ 新規追加: 公的統計データ
+  nationalStatistics: null,
   isLoading: false,
   error: null,
   
   setPendingSettings: (settings) => set({ pendingSettings: settings }),
+
+  // ▼ 新規追加: テーマモードの更新アクション
+  setThemeMode: (themeMode: ThemeMode) => set({ themeMode }),
 
   // ▼ 新規追加: アカウント情報を取得してストアに保存
   fetchAccountInfo: async () => {

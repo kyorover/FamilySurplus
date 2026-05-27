@@ -4,6 +4,8 @@ import { Modal, View, StyleSheet } from 'react-native';
 import { ExpenseRecord } from '../../types';
 import { calculateConfirmedHesokuri } from '../../functions/budgetUtils';
 import { MonthCheckoutContent } from './MonthCheckoutContent';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface MonthCheckoutModalProps {
   visible: boolean;
@@ -25,6 +27,9 @@ export const MonthCheckoutModal: React.FC<MonthCheckoutModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   // 純粋関数を用いて確定へそくり額を算出（マイナスの場合は0にクランプする等のビジネス要件があればここで調整）
   const hesokuriAmount = useMemo(() => {
     const rawAmount = calculateConfirmedHesokuri(budgetAmount, expenses);
@@ -48,10 +53,11 @@ export const MonthCheckoutModal: React.FC<MonthCheckoutModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay, // ▼ 変更: テーマのオーバーレイ色を適用
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,

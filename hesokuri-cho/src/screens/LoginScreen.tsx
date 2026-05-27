@@ -6,8 +6,13 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
 import { AuthInputForm } from '../components/auth/AuthInputForm';
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 export const LoginScreen = () => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const { 
     login, signUp, confirmSignUp, forgotPassword, confirmForgotPassword, 
     authMode, setAuthMode, unconfirmedEmail, isLoading 
@@ -139,17 +144,18 @@ export const LoginScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   scrollContent: { flexGrow: 1 },
   innerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#8E8E93', marginBottom: 40 },
-  formContainer: { width: '100%', maxWidth: 400, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  primaryButton: { backgroundColor: '#007AFF', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  disabledButton: { backgroundColor: '#A2A2A7', opacity: 0.6 },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  title: { fontSize: 32, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 8 },
+  subtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 40 },
+  formContainer: { width: '100%', maxWidth: 400, backgroundColor: colors.surface, padding: 24, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  primaryButton: { backgroundColor: colors.primary, padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  disabledButton: { backgroundColor: colors.textSecondary, opacity: 0.6 },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }, // ※色付き背景上の文字は白固定
   toggleContainer: { marginTop: 24, alignItems: 'center' },
-  toggleText: { color: '#007AFF', fontSize: 14, fontWeight: '500' },
+  toggleText: { color: colors.primary, fontSize: 14, fontWeight: '500' },
   linkMargin: { marginBottom: 16 }
 });

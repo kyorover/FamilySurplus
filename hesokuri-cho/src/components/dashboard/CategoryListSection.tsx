@@ -4,6 +4,8 @@ import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation } from 'react
 import DragList, { DragListRenderItemInfo } from 'react-native-draglist';
 import { BudgetProgressBar } from './BudgetProgressBar';
 import { Category, MonthlyBudget } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface CategoryListSectionProps {
   categories: Category[];
@@ -29,6 +31,9 @@ export const CategoryListSection: React.FC<CategoryListSectionProps> = ({
   onSelectCategory,
   onPressBudgetEdit
 }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加: 現在のテーマ状態を取得
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   // 並び替え用のローカルステート
   const [localCategories, setLocalCategories] = useState<Category[]>(categories);
 
@@ -70,7 +75,7 @@ export const CategoryListSection: React.FC<CategoryListSectionProps> = ({
   const renderItem = ({ item: cat, onDragStart, onDragEnd, isActive }: DragListRenderItemInfo<Category>) => (
     <View style={[styles.dragRow, isActive && styles.dragRowActive]}>
       <TouchableOpacity activeOpacity={0.6} onPressIn={onDragStart} onPressOut={onDragEnd} style={styles.dragHandle}>
-        <Text style={[styles.dragIcon, isActive && { color: '#007AFF' }]}>≡</Text>
+        <Text style={[styles.dragIcon, isActive && { color: colors.primary }]}>≡</Text>
       </TouchableOpacity>
       <View style={styles.progressWrap} pointerEvents="none">
         <BudgetProgressBar categoryId={cat.id} categoryName={cat.name} budget={monthlyBudget.budgets[cat.id] || 0} spent={spentByCategory[cat.id] || 0} isCalculationTarget={cat.isCalculationTarget} onPressDetail={() => {}} />
@@ -131,27 +136,28 @@ export const CategoryListSection: React.FC<CategoryListSectionProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', marginHorizontal: 16, borderRadius: 24, paddingVertical: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  card: { backgroundColor: colors.surface, marginHorizontal: 16, borderRadius: 24, paddingVertical: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
   
   // 通常時のヘッダー：アクションボタンを横並びに
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 20 },
-  title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  title: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
   headerActions: { flexDirection: 'row' },
-  actionBtn: { backgroundColor: '#F2F2F7', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginLeft: 8 },
-  actionBtnText: { color: '#007AFF', fontSize: 12, fontWeight: 'bold' },
+  actionBtn: { backgroundColor: colors.background, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginLeft: 8 },
+  actionBtnText: { color: colors.primary, fontSize: 12, fontWeight: 'bold' },
   
   // 編集モード時のヘッダー
-  editHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 16, backgroundColor: '#E3F2FD', paddingVertical: 8, borderRadius: 8, marginHorizontal: 16 },
+  editHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 16, backgroundColor: isDark ? 'rgba(10, 132, 255, 0.15)' : '#E3F2FD', paddingVertical: 8, borderRadius: 8, marginHorizontal: 16 },
   headerActionBtn: { paddingVertical: 6, paddingHorizontal: 12 },
-  cancelText: { fontSize: 15, color: '#8E8E93', fontWeight: 'bold' },
-  saveText: { fontSize: 15, color: '#007AFF', fontWeight: 'bold' },
-  editTitle: { fontSize: 15, fontWeight: 'bold', color: '#1C1C1E' },
+  cancelText: { fontSize: 15, color: colors.textSecondary, fontWeight: 'bold' },
+  saveText: { fontSize: 15, color: colors.primary, fontWeight: 'bold' },
+  editTitle: { fontSize: 15, fontWeight: 'bold', color: colors.textPrimary },
 
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
-  dragRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingVertical: 4 },
-  dragRowActive: { backgroundColor: '#F0F8FF', zIndex: 999, elevation: 5 },
+  dragRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingVertical: 4 },
+  dragRowActive: { backgroundColor: isDark ? 'rgba(10, 132, 255, 0.15)' : '#F0F8FF', zIndex: 999, elevation: 5 },
   dragHandle: { paddingLeft: 20, paddingRight: 8, paddingVertical: 16, justifyContent: 'center' },
-  dragIcon: { fontSize: 24, color: '#C7C7CC', fontWeight: '300' },
+  dragIcon: { fontSize: 24, color: colors.textSecondary, fontWeight: '300' },
   progressWrap: { flex: 1, paddingHorizontal: 16 },
 });

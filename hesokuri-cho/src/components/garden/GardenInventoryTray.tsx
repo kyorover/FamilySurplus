@@ -3,6 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { GardenInventoryItem } from './GardenInventoryItem';
 import { useHesokuriStore } from '../../store'; // ▼ 追加: ストアの購読用
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface Props {
   ownedItems: string[];
@@ -13,6 +15,9 @@ interface Props {
 type CategoryTab = 'ALL' | 'BG' | 'PL' | 'WP' | 'OTHER';
 
 export const GardenInventoryTray: React.FC<Props> = ({ ownedItems: propOwnedItems, selectedItemId, onSelectItem }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const [activeTab, setActiveTab] = useState<CategoryTab>('ALL');
 
   // ▼ 追加: ストアから直接最新状態を購読し、購入後の即時反映を保証する
@@ -69,14 +74,15 @@ export const GardenInventoryTray: React.FC<Props> = ({ ownedItems: propOwnedItem
   );
 };
 
-const styles = StyleSheet.create({
-  inventory: { padding: 16, backgroundColor: '#FFF', borderTopWidth: 1, borderColor: '#EEE' },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  inventory: { padding: 16, backgroundColor: colors.surface, borderTopWidth: 1, borderColor: colors.border },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  inventoryTitle: { fontSize: 12, color: '#666' },
+  inventoryTitle: { fontSize: 12, color: colors.textSecondary },
   tabContainer: { flexDirection: 'row' },
-  tabBtn: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#F0F0F0', marginLeft: 4 },
-  tabBtnActive: { backgroundColor: '#4CAF50' },
-  tabText: { fontSize: 10, color: '#666' },
-  tabTextActive: { color: '#FFF', fontWeight: 'bold' },
-  emptyText: { color: '#999', paddingVertical: 8 }
+  tabBtn: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, backgroundColor: colors.background, marginLeft: 4 },
+  tabBtnActive: { backgroundColor: isDark ? '#66BB6A' : '#4CAF50' }, // ▼ 変更: ダークモードで視認性を調整
+  tabText: { fontSize: 10, color: colors.textSecondary },
+  tabTextActive: { color: '#FFF', fontWeight: 'bold' }, // ※色付き背景上の文字は白固定
+  emptyText: { color: colors.textSecondary, paddingVertical: 8 }
 });

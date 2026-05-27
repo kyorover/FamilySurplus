@@ -8,12 +8,17 @@ import { FamilyMemberAddModal } from '../components/settings/FamilyMemberAddModa
 import { CategoryBudgetList } from '../components/settings/CategoryBudgetList';
 import { BudgetEditModal } from '../components/settings/BudgetEditModal';
 import { useOnboardingSubmit } from '../hooks/useOnboardingSubmit';
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface OnboardingScreenProps {
   onComplete: () => void;
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const [step, setStep] = useState(1);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [isAddModalVisible, setAddModalVisible] = useState(false);
@@ -114,18 +119,19 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F2F2F7' },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1 },
   header: { padding: 24, paddingBottom: 16, alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 8 },
-  stepIndicator: { fontSize: 14, color: '#007AFF', fontWeight: '600' },
-  desc: { textAlign: 'center', color: '#8E8E93', fontSize: 14, paddingHorizontal: 24, marginBottom: 16 },
+  title: { fontSize: 22, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 8 },
+  stepIndicator: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+  desc: { textAlign: 'center', color: colors.textSecondary, fontSize: 14, paddingHorizontal: 24, marginBottom: 16 },
   content: { flex: 1 },
-  footer: { padding: 24, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderColor: '#E5E5EA' },
+  footer: { padding: 24, backgroundColor: colors.surface, borderTopWidth: 1, borderColor: colors.border },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  primaryButton: { backgroundColor: '#007AFF', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
-  secondaryButton: { backgroundColor: '#E5E5EA', paddingVertical: 16, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center' },
-  secondaryButtonText: { color: '#8E8E93', fontSize: 16, fontWeight: 'bold' },
+  primaryButton: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }, // ※色付き背景上の文字は白固定
+  secondaryButton: { backgroundColor: isDark ? '#3A3A3C' : '#E5E5EA', paddingVertical: 16, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center' }, // ▼ 変更: ダークモードで視認性を調整
+  secondaryButtonText: { color: colors.textSecondary, fontSize: 16, fontWeight: 'bold' },
 });

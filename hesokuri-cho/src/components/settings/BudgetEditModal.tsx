@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Category } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface BudgetEditModalProps {
   visible: boolean;
@@ -11,6 +13,9 @@ interface BudgetEditModalProps {
 }
 
 export const BudgetEditModal: React.FC<BudgetEditModalProps> = ({ visible, category, onSave, onClose }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
@@ -67,16 +72,17 @@ export const BudgetEditModal: React.FC<BudgetEditModalProps> = ({ visible, categ
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: { width: '85%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 20, textAlign: 'center' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 24 },
-  currencyMark: { fontSize: 18, color: '#8E8E93', marginRight: 8 },
-  textInput: { flex: 1, fontSize: 24, fontWeight: 'bold', color: '#1C1C1E' },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', alignItems: 'center' },
+  modalCard: { width: '85%', backgroundColor: colors.surface, borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 20, textAlign: 'center' },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 24 },
+  currencyMark: { fontSize: 18, color: colors.textSecondary, marginRight: 8 },
+  textInput: { flex: 1, fontSize: 24, fontWeight: 'bold', color: colors.textPrimary },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#E5E5EA', borderRadius: 8, marginRight: 8 },
-  cancelButtonText: { fontSize: 16, fontWeight: 'bold', color: '#8E8E93' },
-  saveButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#007AFF', borderRadius: 8, marginLeft: 8 },
-  saveButtonText: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
+  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: isDark ? '#3A3A3C' : '#E5E5EA', borderRadius: 8, marginRight: 8 }, // ▼ 変更: ダークモードで視認性を調整
+  cancelButtonText: { fontSize: 16, fontWeight: 'bold', color: colors.textSecondary },
+  saveButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: colors.primary, borderRadius: 8, marginLeft: 8 },
+  saveButtonText: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' }, // ※色付き背景上の文字は白固定
 });

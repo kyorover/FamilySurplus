@@ -90,29 +90,30 @@ export const calculateAverageGuideline = (members: FamilyMember[], stats?: Natio
 
 /**
  * 予算総額と世間目安を比較し、客観的評価（バッジ情報）を返す関数
+ * ▼ 変更: ダークモード時は視認性の高い色味に調整するため isDark 引数を追加
  */
-export const evaluateBudget = (budget: number, guideline: number): BudgetEvaluationResult => {
+export const evaluateBudget = (budget: number, guideline: number, isDark: boolean = false): BudgetEvaluationResult => {
   const ratio = budget / guideline;
   if (ratio <= 0.85) {
     return {
       title: '堅実な貯蓄特化モデル 🚀', 
       message: '世間平均よりかなり抑えられています！高い投資余剰金を生み出せる素晴らしい設定です。', 
-      color: '#34C759', 
-      bgColor: '#E5F9EA' 
+      color: isDark ? '#32D74B' : '#34C759', 
+      bgColor: isDark ? 'rgba(50, 215, 75, 0.15)' : '#E5F9EA' 
     };
   } else if (ratio <= 1.05) {
     return {
       title: '理想的な適正バランス ⚖️', 
       message: '世間平均に近く、無理なく長期的に続けられる非常にバランスの良い理想的な設定です。', 
-      color: '#007AFF', 
-      bgColor: '#E5F1FF' 
+      color: isDark ? '#0A84FF' : '#007AFF', 
+      bgColor: isDark ? 'rgba(10, 132, 255, 0.15)' : '#E5F1FF' 
     };
   } else {
     return {
       title: 'ゆとり重視・充実モデル ☕️', 
       message: '生活の質と家族の充実を重視したゆとりのある設定です。残った分を投資に回しましょう！', 
-      color: '#FF9500', 
-      bgColor: '#FFF4E5' 
+      color: isDark ? '#FF9F0A' : '#FF9500', 
+      bgColor: isDark ? 'rgba(255, 159, 10, 0.15)' : '#FFF4E5' 
     };
   }
 };

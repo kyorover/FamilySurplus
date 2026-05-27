@@ -2,6 +2,8 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ExpenseRecord } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 const JapaneseHolidays = require('japanese-holidays');
 
@@ -16,6 +18,9 @@ interface MonthCalendarProps {
 }
 
 export const MonthCalendar: React.FC<MonthCalendarProps> = ({ viewMonth, expensesByDate, selectedDate, isLoading, onMonthChange, onYearChange, onSelectDate }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const [yearStr, monthStr] = viewMonth.split('-');
   const year = parseInt(yearStr, 10);
   const month = parseInt(monthStr, 10);
@@ -42,11 +47,11 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({ viewMonth, expense
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingArea}><ActivityIndicator size="large" color="#007AFF" /></View>
+        <View style={styles.loadingArea}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : (
         <View style={styles.calendarGrid}>
           {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
-            <Text key={d} style={[styles.weekday, i === 0 && { color: '#FF3B30' }, i === 6 && { color: '#007AFF' }]}>{d}</Text>
+            <Text key={d} style={[styles.weekday, i === 0 && { color: colors.error }, i === 6 && { color: colors.primary }]}>{d}</Text>
           ))}
           {calendarDays.map((dateStr, idx) => {
             if (!dateStr) return <View key={idx} style={styles.dayCell} />;
@@ -60,7 +65,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({ viewMonth, expense
 
             return (
               <TouchableOpacity key={dateStr} style={[styles.dayCell, isSelected && styles.selectedDayCell]} onPress={() => onSelectDate(dateStr)}>
-                <Text style={[styles.dayText, isSundayOrHoliday && { color: '#FF3B30' }, isSaturday && !isHoliday && { color: '#007AFF' }, isSelected && styles.selectedDayText]}>
+                <Text style={[styles.dayText, isSundayOrHoliday && { color: colors.error }, isSaturday && !isHoliday && { color: colors.primary }, isSelected && styles.selectedDayText]}>
                   {parseInt(dateStr.split('-')[2], 10)}
                 </Text>
                 {dayTotal > 0 && <Text style={styles.dayAmount} numberOfLines={1}>￥{dayTotal.toLocaleString()}</Text>}
@@ -73,18 +78,19 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({ viewMonth, expense
   );
 };
 
-const styles = StyleSheet.create({
-  monthControl: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  monthControl: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, backgroundColor: colors.background, borderRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
   controlGroup: { flexDirection: 'row', alignItems: 'center' },
   monthBtn: { paddingHorizontal: 12, paddingVertical: 8 },
-  monthBtnText: { fontSize: 14, color: '#007AFF', fontWeight: 'bold' },
-  currentMonthText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
+  monthBtnText: { fontSize: 14, color: colors.primary, fontWeight: 'bold' },
+  currentMonthText: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
   loadingArea: { height: 200, justifyContent: 'center', alignItems: 'center' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  weekday: { width: '14.28%', textAlign: 'center', fontSize: 12, color: '#8E8E93', fontWeight: 'bold', marginBottom: 8 },
-  dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#F2F2F7', padding: 2 },
-  selectedDayCell: { backgroundColor: '#E5F1FF', borderRadius: 8, borderBottomWidth: 0 },
-  dayText: { fontSize: 14, color: '#1C1C1E', fontWeight: '500' },
+  weekday: { width: '14.28%', textAlign: 'center', fontSize: 12, color: colors.textSecondary, fontWeight: 'bold', marginBottom: 8 },
+  dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.border, padding: 2 },
+  selectedDayCell: { backgroundColor: isDark ? 'rgba(10, 132, 255, 0.15)' : colors.primaryLight, borderRadius: 8, borderBottomWidth: 0 },
+  dayText: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' },
   selectedDayText: { fontWeight: 'bold' },
-  dayAmount: { fontSize: 8, color: '#8E8E93', marginTop: 2 },
+  dayAmount: { fontSize: 8, color: colors.textSecondary, marginTop: 2 },
 });

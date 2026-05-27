@@ -2,6 +2,8 @@
 import React from 'react';
 import { TextInput, StyleSheet } from 'react-native';
 import { TermsAgreementUI } from './TermsAgreementUI';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface AuthInputFormProps {
   authMode: 'LOGIN' | 'SIGNUP' | 'CONFIRM' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
@@ -20,6 +22,9 @@ interface AuthInputFormProps {
 }
 
 export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const {
     authMode, email, setEmail, password, setPassword,
     newPassword, setNewPassword, code, setCode, unconfirmedEmail,
@@ -32,6 +37,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
         <TextInput
           style={styles.input}
           placeholder="メールアドレス"
+          placeholderTextColor={colors.textSecondary} // ▼ 新規追加: ダークモード対応
           value={unconfirmedEmail || email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -41,6 +47,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
         <TextInput
           style={styles.input}
           placeholder="確認コード (6桁)"
+          placeholderTextColor={colors.textSecondary} // ▼ 新規追加
           value={code}
           onChangeText={setCode}
           keyboardType="number-pad"
@@ -54,6 +61,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
       <TextInput
         style={styles.input}
         placeholder="登録済みメールアドレス"
+        placeholderTextColor={colors.textSecondary} // ▼ 新規追加
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -68,6 +76,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
         <TextInput
           style={styles.input}
           placeholder="メールアドレス"
+          placeholderTextColor={colors.textSecondary} // ▼ 新規追加
           value={unconfirmedEmail || email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -77,6 +86,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
         <TextInput
           style={styles.input}
           placeholder="確認コード (6桁)"
+          placeholderTextColor={colors.textSecondary} // ▼ 新規追加
           value={code}
           onChangeText={setCode}
           keyboardType="number-pad"
@@ -84,6 +94,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
         <TextInput
           style={styles.input}
           placeholder="新しいパスワード"
+          placeholderTextColor={colors.textSecondary} // ▼ 新規追加
           value={newPassword}
           onChangeText={setNewPassword}
           secureTextEntry
@@ -97,6 +108,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
       <TextInput
         style={styles.input}
         placeholder="メールアドレス"
+        placeholderTextColor={colors.textSecondary} // ▼ 新規追加
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -105,6 +117,7 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
       <TextInput
         style={styles.input}
         placeholder="パスワード"
+        placeholderTextColor={colors.textSecondary} // ▼ 新規追加
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -117,6 +130,14 @@ export const AuthInputForm: React.FC<AuthInputFormProps> = (props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  input: { backgroundColor: '#F2F2F7', padding: 16, borderRadius: 8, marginBottom: 16, fontSize: 16 },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  input: { 
+    backgroundColor: colors.background, // ▼ 変更
+    color: colors.textPrimary, // ▼ 新規追加: ダークモード時の文字視認性確保
+    padding: 16, 
+    borderRadius: 8, 
+    marginBottom: 16, 
+    fontSize: 16 
+  },
 });

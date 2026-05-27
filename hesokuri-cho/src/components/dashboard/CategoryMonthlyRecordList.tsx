@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { ExpenseRecord, Category } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface CategoryMonthlyRecordListProps {
   viewMonth: string;
@@ -15,6 +17,9 @@ interface CategoryMonthlyRecordListProps {
 export const CategoryMonthlyRecordList: React.FC<CategoryMonthlyRecordListProps> = ({
   viewMonth, viewExpenses, category, onAddExpense, onEditExpense, onDeleteWrapper
 }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const getTodayStr = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -56,25 +61,26 @@ export const CategoryMonthlyRecordList: React.FC<CategoryMonthlyRecordListProps>
   );
 };
 
-const styles = StyleSheet.create({
-  monthlyListContainer: { flex: 1, marginTop: 16, borderTopWidth: 1, borderTopColor: '#E5E5EA', paddingTop: 16 },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  monthlyListContainer: { flex: 1, marginTop: 16, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16 },
   monthlyListHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  monthlyListTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  addDirectBtn: { backgroundColor: '#007AFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  addDirectBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 12 },
+  monthlyListTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  addDirectBtn: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  addDirectBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 12 }, // ※プライマリカラー上のテキストは白固定
   listContent: { paddingBottom: 40 },
-  emptyText: { textAlign: 'center', color: '#8E8E93', marginTop: 24, fontSize: 13 },
+  emptyText: { textAlign: 'center', color: colors.textSecondary, marginTop: 24, fontSize: 13 },
   
-  recordItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F2F2F7', backgroundColor: '#FAFAFC', borderRadius: 8, paddingHorizontal: 12, marginBottom: 8 },
+  recordItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#FAFAFC', borderRadius: 8, paddingHorizontal: 12, marginBottom: 8 },
   recordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   badgeWrap: { flexDirection: 'row', alignItems: 'center' },
-  dateBadge: { fontSize: 11, backgroundColor: '#1C1C1E', color: '#FFFFFF', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden', marginRight: 6, fontWeight: 'bold' },
-  methodBadge: { fontSize: 10, backgroundColor: '#E5E5EA', color: '#8E8E93', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
-  amount: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E' },
+  dateBadge: { fontSize: 11, backgroundColor: colors.textPrimary, color: colors.surface, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden', marginRight: 6, fontWeight: 'bold' },
+  methodBadge: { fontSize: 10, backgroundColor: colors.border, color: colors.textSecondary, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
+  amount: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary },
   recordBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   textContainer: { flex: 1, marginRight: 8 },
-  storeName: { fontSize: 13, color: '#1C1C1E', marginBottom: 2, fontWeight: '500' },
-  memo: { fontSize: 12, color: '#8E8E93' },
-  deleteBtnWrap: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#FFF0F0', borderRadius: 6 },
-  deleteText: { fontSize: 12, color: '#FF3B30', fontWeight: 'bold' },
+  storeName: { fontSize: 13, color: colors.textPrimary, marginBottom: 2, fontWeight: '500' },
+  memo: { fontSize: 12, color: colors.textSecondary },
+  deleteBtnWrap: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: isDark ? 'rgba(255, 59, 48, 0.15)' : '#FFF0F0', borderRadius: 6 },
+  deleteText: { fontSize: 12, color: colors.error, fontWeight: 'bold' },
 });

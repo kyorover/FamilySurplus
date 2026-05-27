@@ -2,8 +2,13 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useHesokuriStore } from '../../store';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 export const DebugControlPanel: React.FC = () => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const { accountInfo, monthlyBudget, updateMonthlyBudget } = useHesokuriStore();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -80,37 +85,38 @@ export const DebugControlPanel: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   container: {
     marginVertical: 24,
     padding: 16,
-    backgroundColor: '#FFE5E5', // 危険/デバッグ領域であることを視覚的に強調
+    backgroundColor: isDark ? 'rgba(255, 59, 48, 0.15)' : '#FFE5E5', // ▼ 変更: 危険/デバッグ領域であることを視覚的に強調しつつダークモード対応
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#FF3B30',
+    borderColor: colors.error,
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF3B30',
+    color: colors.error,
     marginBottom: 8,
   },
   description: {
     fontSize: 12,
-    color: '#666666',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: colors.error,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#FFB3B0',
+    backgroundColor: colors.border,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF', // ※エラー背景上の文字は白固定
     fontWeight: 'bold',
     fontSize: 14,
   },

@@ -1,6 +1,8 @@
 // src/components/input/AutocompleteInput.tsx
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, Text, ScrollView, Keyboard } from 'react-native';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface AutocompleteInputProps {
   value: string;
@@ -11,6 +13,9 @@ interface AutocompleteInputProps {
 }
 
 export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ value, onChangeText, placeholder, history, onFocus }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const [isFocused, setIsFocused] = useState(false);
 
   // 入力された文字を含む履歴だけを抽出（大文字小文字は区別しない）
@@ -23,6 +28,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ value, onC
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
+        placeholderTextColor={colors.textSecondary} // ▼ 新規追加: ダークモード対応のプレースホルダー色
         onFocus={() => { setIsFocused(true); onFocus && onFocus(); }}
         // タップ判定を優先するため、少し遅らせてサジェストを閉じる
         onBlur={() => setTimeout(() => setIsFocused(false), 200)}
@@ -48,18 +54,19 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ value, onC
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
   container: { position: 'relative', marginBottom: 8 },
-  textInput: { backgroundColor: '#F2F2F7', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, fontSize: 14 },
+  textInput: { backgroundColor: colors.background, color: colors.textPrimary, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, fontSize: 14 },
   dropdown: {
     position: 'absolute',
     top: 42,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.border,
     zIndex: 1000,
     elevation: 10,
     shadowColor: '#000',
@@ -68,6 +75,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   scrollArea: { maxHeight: 150 },
-  dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
-  dropdownText: { fontSize: 14, color: '#1C1C1E', fontWeight: '500' }
+  dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }, // ▼ 変更: borderBottomColorをテーマのborderに
+  dropdownText: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' }
 });

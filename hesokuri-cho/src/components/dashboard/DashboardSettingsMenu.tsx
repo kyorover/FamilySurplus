@@ -1,7 +1,8 @@
 // src/components/dashboard/DashboardSettingsMenu.tsx
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, Platform } from 'react-native';
-import { styles } from '../../styles/DashboardStyles';
+import { Modal, View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface DashboardSettingsMenuProps {
   visible: boolean;
@@ -19,6 +20,9 @@ export const DashboardSettingsMenu: React.FC<DashboardSettingsMenuProps> = ({
   onOpenPocketMoneyRule,
   onNavigateToHistory,
 }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={onClose}>
@@ -40,3 +44,15 @@ export const DashboardSettingsMenu: React.FC<DashboardSettingsMenuProps> = ({
     </Modal>
   );
 };
+
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  menuOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  menuContent: { backgroundColor: colors.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 40 },
+  menuHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  menuTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary },
+  menuCloseBtn: { fontSize: 20, color: colors.textSecondary, fontWeight: 'bold', padding: 4 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  menuItemIcon: { fontSize: 24, marginRight: 16 },
+  menuItemText: { fontSize: 16, color: colors.textPrimary, fontWeight: '500' }
+});

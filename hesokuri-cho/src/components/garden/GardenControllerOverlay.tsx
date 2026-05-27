@@ -3,6 +3,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { UniversalSprite } from './UniversalSprite';
 import { SPRITE_CONFIG, GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface Props {
   onMove: (dx: number, dy: number) => void;
@@ -24,6 +26,8 @@ const ARROW_IDS = {
 };
 
 export const GardenControllerOverlay: React.FC<Props> = ({ onMove, onRemove, onConfirm, onToggleMirror, showRemoveButton }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
   
   // ▼ ヘルパー: スプライト設定に基づき、動的なボタンスタイルを生成する
   const getDynamicBtnStyle = (id: string, centerX: number, centerY: number): ViewStyle => {
@@ -42,8 +46,8 @@ export const GardenControllerOverlay: React.FC<Props> = ({ onMove, onRemove, onC
       top: centerY - size / 2 + offY,
       justifyContent: 'center',
       alignItems: 'center',
-      // ▼ 修正: 背景を半透明の白にし、円形にする
-      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      // ▼ 変更: ダークモード時は背景を暗い半透明に
+      backgroundColor: isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.7)',
       borderRadius: size / 2,
       // ▼ 修正: 影を追加して背景（マップ）からボタンを浮き立たせる
       shadowColor: '#000',
@@ -114,12 +118,13 @@ export const GardenControllerOverlay: React.FC<Props> = ({ onMove, onRemove, onC
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   isoControlsOverlay: { position: 'absolute', bottom: 12, right: 12, alignItems: 'center' },
   isoDiamond: { width: 120, height: 120, position: 'relative', marginBottom: 8 },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  removeBtn: { paddingVertical: 10, paddingHorizontal: 16, backgroundColor: 'rgba(255, 59, 48, 0.95)', borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
-  mirrorBtn: { paddingVertical: 10, paddingHorizontal: 16, backgroundColor: 'rgba(33, 150, 243, 0.95)', borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
-  confirmBtn: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'rgba(76, 175, 80, 0.95)', borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
-  actionBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 13 }
+  removeBtn: { paddingVertical: 10, paddingHorizontal: 16, backgroundColor: isDark ? 'rgba(255, 69, 58, 0.95)' : 'rgba(255, 59, 48, 0.95)', borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+  mirrorBtn: { paddingVertical: 10, paddingHorizontal: 16, backgroundColor: isDark ? 'rgba(10, 132, 255, 0.95)' : 'rgba(33, 150, 243, 0.95)', borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+  confirmBtn: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: isDark ? 'rgba(48, 209, 88, 0.95)' : 'rgba(76, 175, 80, 0.95)', borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+  actionBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 13 } // ※色付き背景上の文字は白固定
 });

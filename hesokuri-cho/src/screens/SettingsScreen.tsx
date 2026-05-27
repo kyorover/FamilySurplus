@@ -11,12 +11,18 @@ import { FamilyMemberEditModal } from '../components/settings/FamilyMemberEditMo
 import { InputHistoryManagerModal } from '../components/settings/InputHistoryManagerModal';
 import { GardenBuilderScreen } from '../components/garden/GardenBuilderScreen';
 import { AdvancedSettingsSection } from '../components/settings/AdvancedSettingsSection';
+import { SubscriptionPaywallModal } from '../components/subscription/SubscriptionPaywallModal'; // ▼ 新規追加
 import { LEGAL_URLS } from '../constants';
+import { useTheme } from '../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 export const SettingsScreen: React.FC = () => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const { 
     pendingSettings, 
-    setPendingSettings, // ← 追加: 状態更新関数を受け取る
+    setPendingSettings, 
     activeCategories, 
     hasChanges,
     modals, 
@@ -31,7 +37,7 @@ export const SettingsScreen: React.FC = () => {
 
   if (modals.garden) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: '#F5F5F5' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>お庭デバッグ検証</Text>
           <TouchableOpacity onPress={() => modals.setGarden(false)}>
@@ -65,7 +71,6 @@ export const SettingsScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ paddingVertical: 16 }} scrollEnabled={modes.scroll} showsVerticalScrollIndicator={false}>
         
-        {/* 見出しと端（16px）を揃える */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>👨‍👩‍👦 家族構成</Text>
           <TouchableOpacity onPress={() => modes.setFamilyEdit(!modes.familyEdit)} style={[styles.actionBtn, modes.familyEdit && styles.actionBtnActive]}>
@@ -102,7 +107,16 @@ export const SettingsScreen: React.FC = () => {
           <AdvancedSettingsSection modals={modals} accountInfo={accountInfo} />
         </View>
 
-        {/* 規約リンクセクション：定数LEGAL_URLSを参照するように修正 */}
+        {/* 課金管理メニュー */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>💎 プレミアムプラン</Text>
+        </View>
+        <View style={styles.marginWrapper}>
+          <TouchableOpacity style={styles.legalButton} onPress={() => modals.setSubscription(true)}>
+            <Text style={styles.legalText}>プランの購入・復元</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.legalSection}>
           <TouchableOpacity onPress={() => openLink(LEGAL_URLS.SUPPORT)} style={styles.legalButton}>
             <Text style={styles.legalText}>サポート・お問い合わせ</Text>
@@ -113,6 +127,10 @@ export const SettingsScreen: React.FC = () => {
           <TouchableOpacity onPress={() => openLink(LEGAL_URLS.PRIVACY)} style={styles.legalButton}>
             <Text style={styles.legalText}>プライバシーポリシー</Text>
           </TouchableOpacity>
+          {/* 特商法表記リンク */}
+          <TouchableOpacity onPress={() => openLink(LEGAL_URLS.COMMERCIAL_LAW)} style={styles.legalButton}>
+            <Text style={styles.legalText}>特定商取引法に基づく表記</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 100 }} />
@@ -122,37 +140,43 @@ export const SettingsScreen: React.FC = () => {
       <FamilyMemberAddModal visible={modals.familyAdd} onSave={actions.addFamily} onClose={() => modals.setFamilyAdd(false)} />
       <FamilyMemberEditModal member={modals.familyEdit} onSave={actions.updateFamily} onClose={() => modals.setFamilyEdit(null)} />
       
-      {/* ▼ 修正: onUpdate に空関数ではなく、setPendingSettings を渡す */}
       <InputHistoryManagerModal 
         visible={modals.history} 
         settings={pendingSettings} 
         onUpdate={setPendingSettings} 
         onClose={() => modals.setHistory(false)} 
       />
+
+      {/* ▼ 新規追加: サブスクリプション課金モーダル */}
+      <SubscriptionPaywallModal 
+        visible={modals.subscription} 
+        onClose={() => modals.setSubscription(false)} 
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' }, 
-  headerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA', zIndex: 100 },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background }, 
+  headerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, zIndex: 100 },
   headerSideColumn: { flex: 1 },
   headerCenterColumn: { flex: 2, alignItems: 'center' },
   headerActionBtn: { paddingVertical: 4 },
-  headerTitleText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  headerSubmitText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF', textAlign: 'right' },
+  headerTitleText: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  headerSubmitText: { fontSize: 16, fontWeight: 'bold', color: colors.primary, textAlign: 'right' },
   marginWrapper: { marginHorizontal: 16 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#F2F2F7', borderRadius: 8 },
-  actionBtnActive: { backgroundColor: '#007AFF' },
-  actionBtnText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1E' },
-  actionBtnTextActive: { color: '#FFFFFF' },
-  hintText: { fontSize: 12, color: '#8E8E93', marginLeft: 16, marginBottom: 12, lineHeight: 18 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
-  modalTitle: { fontSize: 16, fontWeight: 'bold' },
-  modalCloseText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  actionBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: colors.border, borderRadius: 8 },
+  actionBtnActive: { backgroundColor: colors.primary },
+  actionBtnText: { fontSize: 12, fontWeight: 'bold', color: colors.textPrimary },
+  actionBtnTextActive: { color: '#FFFFFF' }, // ※プライマリカラー上のテキストは白固定
+  hintText: { fontSize: 12, color: colors.textSecondary, marginLeft: 16, marginBottom: 12, lineHeight: 18 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: colors.surface, borderBottomWidth: 1, borderColor: colors.border },
+  modalTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  modalCloseText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
   legalSection: { marginTop: 32, paddingHorizontal: 16, alignItems: 'center' },
-  legalButton: { paddingVertical: 12, width: '100%', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 8, marginBottom: 8 },
-  legalText: { fontSize: 14, color: '#007AFF', fontWeight: '500' },
+  legalButton: { paddingVertical: 12, width: '100%', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 8, marginBottom: 8 },
+  legalText: { fontSize: 14, color: colors.primary, fontWeight: '500' },
 });

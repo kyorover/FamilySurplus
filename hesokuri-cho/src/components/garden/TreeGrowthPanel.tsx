@@ -5,8 +5,13 @@ import { useHesokuriStore } from '../../store';
 import { GARDEN_CONSTANTS } from '../../constants';
 import { GLOBAL_GARDEN_SETTINGS } from '../../config/spriteConfig';
 import { ALL_GARDEN_ITEMS } from '../../constants/gardenItems';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 export const TreeGrowthPanel: React.FC = () => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const { settings, selectedTreeId, levelUpTree } = useHesokuriStore();
   const [isWatering, setIsWatering] = useState(false);
 
@@ -78,16 +83,17 @@ export const TreeGrowthPanel: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  panel: { padding: 12, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E0E0E0', zIndex: 1 },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  panel: { padding: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, zIndex: 1 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  levelText: { fontSize: 14, fontWeight: 'bold', color: '#2E7D32' },
-  pointsText: { fontSize: 14, color: '#555' },
+  levelText: { fontSize: 14, fontWeight: 'bold', color: isDark ? '#81C784' : '#2E7D32' }, // ▼ ダークモードで明るい緑に
+  pointsText: { fontSize: 14, color: colors.textSecondary },
   actionRow: { flexDirection: 'row', alignItems: 'center' },
-  progressContainer: { flex: 1, height: 30, backgroundColor: '#E0E0E0', borderRadius: 15, overflow: 'hidden', marginRight: 12, justifyContent: 'center' },
-  progressBar: { height: '100%', backgroundColor: '#4CAF50' },
-  progressText: { position: 'absolute', width: '100%', textAlign: 'center', fontSize: 12, color: '#000', fontWeight: 'bold' },
-  levelUpBtn: { backgroundColor: '#FF9800', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, minWidth: 90, alignItems: 'center' },
-  levelUpBtnDisabled: { backgroundColor: '#BDBDBD' },
-  levelUpBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12, textAlign: 'center' },
+  progressContainer: { flex: 1, height: 30, backgroundColor: colors.background, borderRadius: 15, overflow: 'hidden', marginRight: 12, justifyContent: 'center' },
+  progressBar: { height: '100%', backgroundColor: isDark ? '#66BB6A' : '#4CAF50' },
+  progressText: { position: 'absolute', width: '100%', textAlign: 'center', fontSize: 12, color: colors.textPrimary, fontWeight: 'bold' },
+  levelUpBtn: { backgroundColor: isDark ? '#FFB74D' : '#FF9800', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, minWidth: 90, alignItems: 'center' }, // ▼ ダークモードで明るいオレンジに
+  levelUpBtnDisabled: { backgroundColor: colors.border },
+  levelUpBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12, textAlign: 'center' }, // ※色付き背景上の文字は白固定
 });

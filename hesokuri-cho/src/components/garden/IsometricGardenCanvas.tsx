@@ -9,6 +9,8 @@ import { SPRITE_CONFIG, IMAGE_SOURCES } from '../../config/spriteConfig';
 import { useHesokuriStore } from '../../store';
 import { GardenZoomUI } from './GardenZoomUI';
 import { useGardenEngine } from '../../hooks/useGardenEngine';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_HEIGHT = 400; // キャンバスの高さ
@@ -32,6 +34,9 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   placements = [], onPressTile, selectedItemIndex, viewOffset = { x: 0, y: 0 }, 
   zoomScale = 1.0, onZoomIn, onZoomOut, onPanMove, onPanRelease, onLoadComplete
 }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const { settings } = useHesokuriStore();
   const [isLoading, setIsLoading] = useState(true); 
 
@@ -72,7 +77,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   };
 
   return (
-    <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: '#E0F7FA' }]} {...panResponder.panHandlers}>
+    <View style={[styles.canvasContainer, !wpImageSource && { backgroundColor: isDark ? '#112233' : '#E0F7FA' }]} {...panResponder.panHandlers}>
       <Pressable style={StyleSheet.absoluteFill} onPressIn={handleBackgroundPress} />
       
       <View style={{ flex: 1, transform: [{ scale: zoomScale }] }} pointerEvents="box-none">
@@ -109,7 +114,7 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
 
       {isLoading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
+          <ActivityIndicator size="large" color={isDark ? '#81C784' : '#4CAF50'} />
           <Text style={styles.loadingText}>ガーデンを準備中...</Text>
         </View>
       )}
@@ -117,9 +122,10 @@ export const IsometricGardenCanvas: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
   canvasContainer: { width: '100%', height: CANVAS_HEIGHT, position: 'relative', overflow: 'hidden' },
   tileWrapper: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
-  loadingContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(224, 247, 250, 0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#00695C', fontWeight: 'bold' }
+  loadingContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? 'rgba(17, 34, 51, 0.9)' : 'rgba(224, 247, 250, 0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+  loadingText: { marginTop: 12, fontSize: 14, color: isDark ? '#4DB6AC' : '#00695C', fontWeight: 'bold' }
 });

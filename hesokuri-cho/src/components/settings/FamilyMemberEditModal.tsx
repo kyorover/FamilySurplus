@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { FamilyMember } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface FamilyMemberEditModalProps {
   member: FamilyMember | null;
@@ -10,6 +12,9 @@ interface FamilyMemberEditModalProps {
 }
 
 export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ member, onSave, onClose }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [hasPocketMoney, setHasPocketMoney] = useState(false);
@@ -53,6 +58,7 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
             value={name} 
             onChangeText={setName} 
             placeholder="名前"
+            placeholderTextColor={colors.textSecondary} // ▼ 追加
           />
 
           {/* ▼ 変更: プレースホルダーを必須に変更 */}
@@ -63,6 +69,7 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
               onChangeText={setAge} 
               placeholder="年齢（必須）"
               keyboardType="numeric"
+              placeholderTextColor={colors.textSecondary} // ▼ 追加
             />
           )}
 
@@ -78,6 +85,7 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
               keyboardType="numeric" 
               value={pocketMoneyAmount} 
               onChangeText={setPocketMoneyAmount} 
+              placeholderTextColor={colors.textSecondary} // ▼ 追加
             />
           )}
 
@@ -95,16 +103,17 @@ export const FamilyMemberEditModal: React.FC<FamilyMemberEditModalProps> = ({ me
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: { width: '85%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 20, textAlign: 'center' },
-  input: { backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16, fontSize: 16, color: '#1C1C1E' },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', alignItems: 'center' },
+  modalCard: { width: '85%', backgroundColor: colors.surface, borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 20, textAlign: 'center' },
+  input: { backgroundColor: colors.background, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16, fontSize: 16, color: colors.textPrimary },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 },
-  switchLabel: { fontSize: 16, color: '#1C1C1E', fontWeight: '500' },
+  switchLabel: { fontSize: 16, color: colors.textPrimary, fontWeight: '500' },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 8, marginRight: 8 },
-  saveButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#007AFF', borderRadius: 8, marginLeft: 8 },
-  cancelButtonText: { fontWeight: 'bold', color: '#8E8E93', fontSize: 16 },
-  saveButtonText: { fontWeight: 'bold', color: '#FFFFFF', fontSize: 16 },
+  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: colors.border, borderRadius: 8, marginRight: 8 },
+  saveButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: colors.primary, borderRadius: 8, marginLeft: 8 },
+  cancelButtonText: { fontWeight: 'bold', color: colors.textSecondary, fontSize: 16 },
+  saveButtonText: { fontWeight: 'bold', color: '#FFFFFF', fontSize: 16 }, // ※プライマリカラー上の文字は白固定
 });

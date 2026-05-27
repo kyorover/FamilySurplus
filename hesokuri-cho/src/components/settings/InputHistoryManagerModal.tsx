@@ -2,6 +2,8 @@
 import React from 'react';
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { HouseholdSettings } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface InputHistoryManagerModalProps {
   visible: boolean;
@@ -11,6 +13,9 @@ interface InputHistoryManagerModalProps {
 }
 
 export const InputHistoryManagerModal: React.FC<InputHistoryManagerModalProps> = ({ visible, settings, onUpdate, onClose }) => {
+  const { colors, isDark } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors, isDark); // ▼ 新規追加: 動的スタイル生成
+
   const storeHistory = settings.storeNameHistory || [];
   const memoHistory = settings.memoHistory || [];
 
@@ -77,18 +82,19 @@ export const InputHistoryManagerModal: React.FC<InputHistoryManagerModalProps> =
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+// ▼ 変更: colorsとisDarkを引数に取るスタイル生成関数
+const createStyles = (colors: Colors, isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   headerSpacer: { width: 60, alignItems: 'flex-end' },
-  title: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  closeText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
+  title: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  closeText: { fontSize: 16, color: colors.primary, fontWeight: 'bold' },
   content: { padding: 16, paddingBottom: 40 },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93', marginLeft: 8, marginBottom: 8, marginTop: 16 },
-  listCard: { backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' },
-  emptyText: { padding: 16, color: '#8E8E93', textAlign: 'center', fontSize: 14 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
-  itemName: { fontSize: 16, color: '#1C1C1E', flex: 1, marginRight: 16 },
-  deleteBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#FFF0F0', borderRadius: 6 },
-  deleteText: { fontSize: 12, color: '#FF3B30', fontWeight: 'bold' },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textSecondary, marginLeft: 8, marginBottom: 8, marginTop: 16 },
+  listCard: { backgroundColor: colors.surface, borderRadius: 12, overflow: 'hidden' },
+  emptyText: { padding: 16, color: colors.textSecondary, textAlign: 'center', fontSize: 14 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  itemName: { fontSize: 16, color: colors.textPrimary, flex: 1, marginRight: 16 },
+  deleteBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: isDark ? 'rgba(255, 59, 48, 0.15)' : '#FFF0F0', borderRadius: 6 },
+  deleteText: { fontSize: 12, color: colors.error, fontWeight: 'bold' },
 });

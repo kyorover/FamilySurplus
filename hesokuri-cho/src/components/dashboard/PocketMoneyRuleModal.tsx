@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Modal, TouchableOpacity, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { MonthlyBudget, FamilyMember } from '../../types';
+import { useTheme } from '../../hooks/useTheme'; // ▼ 新規追加: テーマ用フック
+import { Colors } from '../../constants/colors'; // ▼ 新規追加: カラー型のインポート
 
 interface PocketMoneyRuleModalProps {
   visible: boolean;
@@ -12,6 +14,9 @@ interface PocketMoneyRuleModalProps {
 }
 
 export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visible, familyMembers, monthlyBudget, onSave, onClose }) => {
+  const { colors } = useTheme(); // ▼ 新規追加
+  const styles = createStyles(colors); // ▼ 新規追加: 動的スタイル生成
+
   const [localAllocation, setLocalAllocation] = useState<Record<string, number>>({});
   const [localRule, setLocalRule] = useState<MonthlyBudget['deficitRule']>('みんなで折半');
 
@@ -87,6 +92,7 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
                       onChangeText={(val) => setLocalAllocation(prev => ({ ...prev, [member.id]: parseInt(val, 10) || 0 }))}
                       selectTextOnFocus={true}
                       editable={targetMembers.length > 1}
+                      placeholderTextColor={colors.textSecondary} // ▼ 新規追加
                     />
                     <Text style={styles.allocPercent}>%</Text>
                   </View>
@@ -111,27 +117,28 @@ export const PocketMoneyRuleModal: React.FC<PocketMoneyRuleModalProps> = ({ visi
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+// ▼ 変更: colorsを引数に取るスタイル生成関数
+const createStyles = (colors: Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   headerBtn: { padding: 4 },
-  headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E' },
-  cancelText: { fontSize: 16, color: '#007AFF' },
-  saveText: { fontSize: 16, fontWeight: 'bold', color: '#007AFF' },
+  headerTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  cancelText: { fontSize: 16, color: colors.primary },
+  saveText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   content: { padding: 16 },
-  ruleLabel: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93', marginLeft: 8, marginBottom: 8, marginTop: 16 },
-  ruleCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  presetRow: { flexDirection: 'row', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  presetBtn: { backgroundColor: '#F2F2F7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginRight: 8 },
-  presetBtnText: { fontSize: 13, color: '#1C1C1E', fontWeight: 'bold' },
+  ruleLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textSecondary, marginLeft: 8, marginBottom: 8, marginTop: 16 },
+  ruleCard: { backgroundColor: colors.surface, borderRadius: 12, padding: 16, marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  presetRow: { flexDirection: 'row', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  presetBtn: { backgroundColor: colors.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginRight: 8 },
+  presetBtnText: { fontSize: 13, color: colors.textPrimary, fontWeight: 'bold' },
   allocRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  allocName: { fontSize: 16, color: '#1C1C1E', fontWeight: 'bold' },
-  allocInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, width: 100 },
-  allocInput: { flex: 1, fontSize: 18, fontWeight: 'bold', color: '#1C1C1E', textAlign: 'right', padding: 0 },
-  allocPercent: { fontSize: 14, color: '#8E8E93', marginLeft: 4 },
+  allocName: { fontSize: 16, color: colors.textPrimary, fontWeight: 'bold' },
+  allocInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, width: 100 },
+  allocInput: { flex: 1, fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, textAlign: 'right', padding: 0 },
+  allocPercent: { fontSize: 14, color: colors.textSecondary, marginLeft: 4 },
   ruleSelectors: { flexDirection: 'column' },
-  ruleBtn: { paddingVertical: 14, backgroundColor: '#F2F2F7', borderRadius: 8, marginBottom: 8, alignItems: 'center' },
-  ruleBtnActive: { backgroundColor: '#007AFF' },
-  ruleBtnText: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93' },
-  ruleBtnTextActive: { color: '#FFFFFF' },
+  ruleBtn: { paddingVertical: 14, backgroundColor: colors.background, borderRadius: 8, marginBottom: 8, alignItems: 'center' },
+  ruleBtnActive: { backgroundColor: colors.primary },
+  ruleBtnText: { fontSize: 14, fontWeight: 'bold', color: colors.textSecondary },
+  ruleBtnTextActive: { color: '#FFFFFF' }, // ※プライマリカラー上の文字は白固定
 });
